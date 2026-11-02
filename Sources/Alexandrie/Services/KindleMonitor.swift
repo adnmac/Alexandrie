@@ -18,6 +18,9 @@ final class KindleMonitor {
     private(set) var freeSpace: Int64?
     private(set) var transfers: [Book.ID: TransferState] = [:]
     private(set) var isBusy = false
+    private(set) var isEjecting = false
+    /// Nom de la Kindle qui vient d'être éjectée : « vous pouvez la débrancher ».
+    private(set) var ejectedName: String?
     /// Fiches des livres de l'appareil, remplies progressivement.
     private(set) var infos: [KindleDocument.ID: KindleBookInfo] = [:] {
         didSet { deviceTitles = Set(infos.values.filter { !$0.isGuessed }.map { Self.normalize($0.title) }) }
@@ -59,6 +62,7 @@ final class KindleMonitor {
             return MTPKindle.detect()
         }.value
         device = found
+        if found != nil { ejectedName = nil }
         await reloadDocuments()
     }
 
@@ -201,6 +205,36 @@ final class KindleMonitor {
         }
         await reloadDocuments()
         return nil
+    }
+
+    /// Seul un disque USB s'éjecte ; une Kindle en MTP se débranche directement.
+    var canEject: Bool { device is VolumeKindle }
+
+    func eject() async {
+        guard let volume = device as? VolumeKindle else {
+            lastError = isConnected ? "Cette Kindle (MTP) n'a pas besoin d'être éjectée : vous pouvez la débrancher."
+                                    : "Aucune Kindle à éjecter."
+            return
+        }
+        guard !isBusy else {
+            lastError = "Un transfert est en cours : attendez qu'il se termine avant d'éjecter la Kindle."
+            return
+        }
+        isBusy = true
+        isEjecting = true
+        defer { isBusy = false; isEjecting = false }
+        // La lecture des fiches garde des fichiers de l'appareil ouverts : elle est arrêtée d'abord.
+        catalogTask?.cancel()
+        catalogProgress = nil
+        do {
+            try await volume.eject()
+            ejectedName = volume.name
+            device = nil
+            documents = []
+            freeSpace = nil
+        } catch {
+            lastError = "Impossible d'éjecter la Kindle : \(error.localizedDescription) Fermez les fichiers ouverts sur l'appareil, puis réessayez."
+        }
     }
 
     func delete(_ document: KindleDocument) async {

@@ -26,12 +26,26 @@ struct SidebarView: View {
 
             Section("Kindle") {
                 Label {
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(kindle.device?.name ?? "Non connectée")
-                        if let device = kindle.device {
-                            Text(device.connection.rawValue)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(kindle.device?.name ?? (kindle.ejectedName != nil ? "Éjectée" : "Non connectée"))
+                            if let device = kindle.device {
+                                Text(device.connection.rawValue)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        Spacer()
+                        // Comme dans le Finder : ⏏ à droite du disque.
+                        if kindle.canEject {
+                            Button {
+                                Task { await kindle.eject() }
+                            } label: {
+                                Image(systemName: "eject.fill")
+                            }
+                            .buttonStyle(.borderless)
+                            .disabled(kindle.isBusy)
+                            .help("Éjecter la Kindle")
                         }
                     }
                 } icon: {
@@ -39,6 +53,11 @@ struct SidebarView: View {
                         .foregroundStyle(kindle.isConnected ? Color.green : Color.secondary)
                 }
                 .tag(SidebarItem.kindle)
+                .contextMenu {
+                    Button("Actualiser") { Task { await kindle.refresh() } }
+                    Button("Éjecter la Kindle") { Task { await kindle.eject() } }
+                        .disabled(!kindle.canEject || kindle.isBusy)
+                }
                 let pending = library.pendingSends.count
                 if pending > 0 || selection == .pending {
                     row("En attente d'envoi", "clock.arrow.circlepath", .pending, count: pending)

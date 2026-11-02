@@ -25,6 +25,13 @@ struct AlexandrieApp: App {
                     .keyboardShortcut("r")
             }
             LibraryViewCommands()
+            // Menu Kindle : toujours actif (les menus ne suivent pas l'état de l'app) ; sans Kindle à éjecter,
+            // un message l'explique.
+            CommandMenu("Kindle") {
+                Button("Actualiser") { Task { await kindle.refresh() } }
+                Button("Éjecter la Kindle") { Task { await kindle.eject() } }
+                    .keyboardShortcut("e")
+            }
         }
 
         Settings {

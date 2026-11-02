@@ -95,6 +95,17 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
         (try? root.resourceValues(forKeys: [.volumeAvailableCapacityKey]).volumeAvailableCapacity).map(Int64.init)
     }
 
+    /// Démonte et éjecte le disque (comme ⏏ dans le Finder) : la Kindle peut ensuite être débranchée.
+    /// Échoue si un fichier de l'appareil est encore ouvert.
+    public func eject() async throws {
+        let root = self.root
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
+            FileManager.default.unmountVolume(at: root, options: [.allPartitionsAndEjectDisk]) { error in
+                if let error { continuation.resume(throwing: error) } else { continuation.resume() }
+            }
+        }
+    }
+
     /// Parcours récursif : les achats récents sont rangés dans `documents/Downloads/Items01/…`.
     public func listDocuments() throws -> [KindleDocument] {
         // Le parcours ignore les erreurs : sans autorisation, il ne trouverait simplement rien.

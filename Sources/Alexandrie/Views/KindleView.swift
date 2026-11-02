@@ -35,9 +35,13 @@ struct KindleView: View {
             }
         } else {
             ContentUnavailableView {
-                Label("Aucune Kindle détectée", systemImage: "cable.connector")
+                if let name = kindle.ejectedName {
+                    Label("« \(name) » a été éjectée", systemImage: "eject.circle")
+                } else {
+                    Label("Aucune Kindle détectée", systemImage: "cable.connector")
+                }
             } description: {
-                Text(disconnectedHelp)
+                Text(kindle.ejectedName != nil ? "Vous pouvez débrancher la Kindle en toute sécurité." : disconnectedHelp)
             } actions: {
                 Button("Rechercher à nouveau") { Task { await kindle.refresh() } }
             }
@@ -64,6 +68,19 @@ struct KindleView: View {
             } label: {
                 Label("Actualiser", systemImage: "arrow.clockwise")
             }
+            .disabled(kindle.isBusy)
+            Button {
+                Task { await kindle.eject() }
+            } label: {
+                if kindle.isEjecting {
+                    HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Éjection…") }
+                } else {
+                    Label("Éjecter", systemImage: "eject")
+                }
+            }
+            .disabled(!kindle.canEject || kindle.isBusy)
+            .help(kindle.canEject ? "Éjecter la Kindle avant de la débrancher (⌘E)"
+                  : "Kindle en MTP : vous pouvez la débrancher directement")
         }
         .padding()
     }

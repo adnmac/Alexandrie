@@ -308,9 +308,10 @@ struct BookActions: View {
         Divider()
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         Button("Ouvrir") { NSWorkspace.shared.open(book.url) }
-        if book.isImported {
+        // Supprimer un fichier ne se fait que depuis « Tous les livres » : dans les autres listes
+        // (envoyés, en attente…), le menu ne propose que de retirer le livre de la liste.
+        if book.isImported, list == .all {
             Divider()
-            // Supprime un fichier : libellé explicite et confirmation, pour ne pas le confondre avec la file d'envoi.
             Button("Supprimer définitivement le fichier importé…", role: .destructive) {
                 if Panels.confirmRemoveImported(book) { library.removeImported(book) }
             }

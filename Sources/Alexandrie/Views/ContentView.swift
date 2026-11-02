@@ -19,6 +19,7 @@ enum SortOrder: String, CaseIterable, Identifiable {
 struct ContentView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(UpdateMonitor.self) private var updates
     @State private var sidebar: SidebarItem? = .all
     /// Identifiants de lignes : livre seul, groupe (`group:…`) ou fichier d'un groupe.
     @State private var selection = Set<String>()
@@ -68,6 +69,9 @@ struct ContentView: View {
                 }
             }
             .navigationSplitViewColumnWidth(min: 420, ideal: 640)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let info = updates.banner { UpdateBanner(info: info) }
+            }
             .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série…")
         } detail: {
             if sidebar == .kindle {
@@ -208,6 +212,37 @@ struct ContentView: View {
         await withCheckedContinuation { continuation in
             _ = provider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
         }
+    }
+}
+
+/// Bandeau signalant une version plus récente publiée sur GitHub.
+struct UpdateBanner: View {
+    @Environment(UpdateMonitor.self) private var updates
+    @Environment(\.openURL) private var openURL
+    let info: UpdateInfo
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(.blue)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Une mise à jour d'Alexandrie est disponible sur GitHub").font(.callout.weight(.semibold))
+                Text(info.newCommits == 1 ? "1 modification" : "\(info.newCommits) modifications")
+                    + Text(info.latestMessage.isEmpty ? "" : " · dernière : \(info.latestMessage)")
+                Text("Pour l'installer : git pull, puis scripts/bundle.sh.")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+            .lineLimit(2)
+            Spacer(minLength: 8)
+            if let url = info.url {
+                Button("Voir les modifications") { openURL(url) }
+            }
+            Button("Plus tard") { updates.dismiss() }
+        }
+        .controlSize(.small)
+        .padding(10)
+        .background(.blue.opacity(0.12))
+        .overlay(alignment: .bottom) { Divider() }
     }
 }
 

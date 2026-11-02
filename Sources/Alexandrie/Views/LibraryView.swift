@@ -144,6 +144,7 @@ struct BookCard: View {
                     RoundedRectangle(cornerRadius: 6)
                         .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
                 }
+            formatRow
             Text(book.title)
                 .font(.callout.weight(.medium))
                 .lineLimit(2)
@@ -155,19 +156,25 @@ struct BookCard: View {
         .contentShape(Rectangle())
     }
 
-    @ViewBuilder private var badges: some View {
-        VStack(alignment: .trailing, spacing: 4) {
+    /// Formats disponibles, entre la couverture et le titre.
+    private var formatRow: some View {
+        HStack(spacing: 4) {
             ForEach(formats.isEmpty ? [book.format] : formats, id: \.self) { f in
                 Text(f.label)
                     .font(.caption2.weight(.bold))
                     .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .background(.quaternary, in: Capsule())
             }
             if fileCount > max(1, formats.count) {
                 Text("\(fileCount) fichiers").font(.caption2)
-                    .padding(.horizontal, 5).padding(.vertical, 2)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .foregroundStyle(.secondary)
             }
+        }
+        .lineLimit(1)
+    }
+
+    @ViewBuilder private var badges: some View {
+        VStack(alignment: .trailing, spacing: 4) {
             if !book.catalogSuggestions.isEmpty {
                 Image(systemName: "exclamationmark.bubble.fill").font(.caption)
                     .foregroundStyle(.orange)
@@ -254,8 +261,9 @@ struct CoverImage: View {
             image = nil
             return
         }
-        let loaded = await Task.detached(priority: .utility) { NSImage(contentsOf: url) }.value
-        if let loaded {
+        // Lecture hors du thread principal ; NSImage n'est pas Sendable, seules les données traversent.
+        let data = await Task.detached(priority: .utility) { try? Data(contentsOf: url) }.value
+        if let data, let loaded = NSImage(data: data) {
             Self.cache.setObject(loaded, forKey: key)
             image = loaded
         }

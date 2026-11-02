@@ -90,7 +90,7 @@ final class KindleMonitor {
     /// Fiches en cache tout de suite, puis analyse des nouveaux fichiers un par un.
     private func readCatalog() {
         catalogTask?.cancel()
-        infos = Dictionary(uniqueKeysWithValues: documents.compactMap { d in catalog.cached(d).map { (d.id, $0) } })
+        infos = Dictionary(uniqueKeysWithValues: documents.compactMap { d in self.catalog.cached(d).map { (d.id, $0) } })
         let missing = documents.filter { infos[$0.id] == nil }
         guard let device, !missing.isEmpty else {
             catalogProgress = nil

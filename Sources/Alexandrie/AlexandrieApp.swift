@@ -7,12 +7,14 @@ struct AlexandrieApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var library = LibraryStore()
     @State private var kindle = KindleMonitor()
+    @State private var updates = UpdateMonitor()
 
     var body: some Scene {
         WindowGroup("Alexandrie", id: "main") {
             ContentView()
                 .environment(library)
                 .environment(kindle)
+                .environment(updates)
                 .frame(minWidth: 960, minHeight: 600)
         }
         .commands {
@@ -28,6 +30,7 @@ struct AlexandrieApp: App {
             SettingsView()
                 .environment(library)
                 .environment(kindle)
+                .environment(updates)
         }
     }
 }

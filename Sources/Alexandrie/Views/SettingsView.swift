@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(UpdateMonitor.self) private var updates
 
     var body: some View {
         Form {
@@ -42,6 +43,23 @@ struct SettingsView: View {
                 Text("L'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library. Aucune information n'est modifiée sans votre accord : les corrections proposées apparaissent dans la fiche du livre.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            Section("Mises à jour") {
+                Toggle("Vérifier au démarrage s'il existe une version plus récente", isOn: Binding(
+                    get: { updates.autoCheck }, set: { updates.autoCheck = $0 }))
+                LabeledContent("Version installée") {
+                    Text(updates.currentCommit.map { String($0.prefix(7)) } ?? "inconnue (lancée hors bundle)")
+                        .font(.callout.monospaced())
+                }
+                LabeledContent("État") {
+                    HStack {
+                        Text(updateStatus).foregroundStyle(.secondary)
+                        Button("Vérifier") { Task { await updates.check() } }
+                            .disabled(updates.currentCommit == nil || updates.status == .checking)
+                    }
+                }
+                Text("Seul l'identifiant de la version installée est envoyé à GitHub (github.com/\(UpdateChecker.repository)).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Section("Kindle") {
                 LabeledContent("Disque USB", value: "Pris en charge")
                 LabeledContent("MTP (modèles récents)") {
@@ -60,6 +78,16 @@ struct SettingsView: View {
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
         .task { await library.refreshCacheSize() }
+    }
+
+    private var updateStatus: String {
+        switch updates.status {
+        case .idle: "Pas encore vérifié"
+        case .checking: "Vérification…"
+        case .upToDate: "À jour"
+        case .available(let info): info.newCommits == 1 ? "1 modification disponible" : "\(info.newCommits) modifications disponibles"
+        case .failed: "Vérification impossible"
+        }
     }
 
     private func size(_ bytes: Int64) -> String {

@@ -9,7 +9,7 @@ final class LibraryStore {
     let directories = AppDirectories()
     let covers: CoverStore
     private(set) var books: [Book] = [] {
-        didSet { positions = nil; titleIndex = nil; publisherList = nil }
+        didSet { positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil }
     }
     private(set) var rootURL: URL?
     private(set) var isScanning = false
@@ -24,6 +24,7 @@ final class LibraryStore {
     @ObservationIgnored private var positions: [Book.ID: Int]?
     @ObservationIgnored private var titleIndex: [String: [Int]]?
     @ObservationIgnored private var publisherList: [String]?
+    @ObservationIgnored private var duplicateIDs: Set<Book.ID>?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "alexandrie.index", qos: .utility)
@@ -59,6 +60,36 @@ final class LibraryStore {
     }
 
     var hasLibrary: Bool { rootURL != nil || !books.isEmpty }
+
+    // MARK: - Copies en double (masquées, jamais supprimées)
+
+    /// Affiche toutes les copies d'un même livre dans un même format (réglage) ; par défaut une seule est gardée.
+    var showDuplicates: Bool {
+        get { access(keyPath: \.showDuplicates); return UserDefaults.standard.bool(forKey: "showDuplicates") }
+        set { withMutation(keyPath: \.showDuplicates) { UserDefaults.standard.set(newValue, forKey: "showDuplicates") } }
+    }
+
+    /// Fichiers masqués : même livre, même format qu'un fichier gardé (voir `BookGroups.duplicates`).
+    var hiddenDuplicates: Set<Book.ID> {
+        let books = self.books
+        if duplicateIDs == nil { duplicateIDs = BookGroups.duplicates(books) }
+        return duplicateIDs ?? []
+    }
+
+    /// Livres affichés, comptés et vérifiés en ligne. L'envoi et la reconnaissance des livres
+    /// de la Kindle passent, eux, par tous les fichiers.
+    var visibleBooks: [Book] {
+        guard !showDuplicates else { return books }
+        let hidden = hiddenDuplicates
+        return hidden.isEmpty ? books : books.filter { !hidden.contains($0.id) }
+    }
+
+    /// Copies masquées d'un livre (même clé de regroupement).
+    func hiddenCopies(of book: Book) -> [Book] {
+        guard !showDuplicates else { return [] }
+        let hidden = hiddenDuplicates, key = BookGroups.key(book)
+        return books.filter { hidden.contains($0.id) && BookGroups.key($0) == key }
+    }
 
     // MARK: - Dossier source
 
@@ -146,7 +177,9 @@ final class LibraryStore {
             progress = (i + 1, plan.changed.count)
         }
         save()
-        checkCatalog(newBooks)
+        // Une copie en double d'un livre déjà connu n'est pas revérifiée en ligne.
+        let duplicates = hiddenDuplicates
+        checkCatalog(newBooks.filter { !duplicates.contains($0) })
         if unreachable.isEmpty { await purgeStorage() }
     }
 
@@ -189,7 +222,7 @@ final class LibraryStore {
         set { withMutation(keyPath: \.autoCheckCatalog) { UserDefaults.standard.set(newValue, forKey: "catalogAutoCheck") } }
     }
 
-    var pendingSuggestionCount: Int { books.filter { !$0.catalogSuggestions.isEmpty }.count }
+    var pendingSuggestionCount: Int { visibleBooks.filter { !$0.catalogSuggestions.isEmpty }.count }
 
     func checkCatalog(_ ids: [Book.ID]) {
         let fresh = ids.filter { !catalogQueue.contains($0) && catalogChecking != $0 }
@@ -223,7 +256,7 @@ final class LibraryStore {
     }
 
     func checkUncheckedBooks() {
-        checkCatalog(books.filter { $0.catalogCheckedAt == nil }.map(\.id))
+        checkCatalog(visibleBooks.filter { $0.catalogCheckedAt == nil }.map(\.id))
     }
 
     // MARK: - Lecture des couvertures (vérification des propositions)

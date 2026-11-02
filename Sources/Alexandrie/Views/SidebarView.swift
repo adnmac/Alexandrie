@@ -13,10 +13,11 @@ struct SidebarView: View {
     var body: some View {
         List(selection: $selection) {
             Section("Bibliothèque") {
-                row("Tous les livres", "books.vertical", .all, count: library.books.count)
+                let books = library.visibleBooks
+                row("Tous les livres", "books.vertical", .all, count: books.count)
                 row("Ajoutés récemment", "clock", .recent)
                 row("Envoyés à la Kindle", "checkmark.circle", .sent,
-                    count: library.books.filter { $0.lastSentAt != nil }.count)
+                    count: books.filter { $0.lastSentAt != nil }.count)
                 row("À vérifier", "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
             }
 
@@ -42,7 +43,7 @@ struct SidebarView: View {
                 }
             }
 
-            let formats = BookFormat.allCases.map { f in (f, library.books.filter { $0.format == f }.count) }
+            let formats = BookFormat.allCases.map { f in (f, library.visibleBooks.filter { $0.format == f }.count) }
                 .filter { $0.1 > 0 }
             // Titres en lignes ordinaires plutôt qu'en en-têtes de section : macOS ajoute aux en-têtes
             // son propre chevron (visible au survol seulement), qui masquerait celui-ci.
@@ -53,7 +54,7 @@ struct SidebarView: View {
                 }
             }
 
-            let series = SeriesNames.groups(library.books)
+            let series = SeriesNames.groups(library.visibleBooks)
             Section {
                 CollapsibleHeader(title: "Séries", count: series.count, tint: .green, isExpanded: $seriesExpanded)
                 if seriesExpanded {
@@ -64,7 +65,7 @@ struct SidebarView: View {
                 }
             }
 
-            let authors = AuthorNames.groups(library.books)
+            let authors = AuthorNames.groups(library.visibleBooks)
             Section {
                 CollapsibleHeader(title: "Auteurs", count: authors.count, tint: .orange, isExpanded: $authorsExpanded)
                 if authorsExpanded {

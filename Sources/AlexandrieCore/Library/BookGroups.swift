@@ -62,6 +62,30 @@ public enum BookGroups {
 
     public static func isGroupID(_ id: String) -> Bool { id.hasPrefix(groupPrefix) }
 
+    /// Fichiers en double : pour un même livre et un même format, un seul fichier est gardé, les autres sont
+    /// renvoyés ici (pour être masqués, jamais supprimés). Gardé : le contenu le plus récent ; entre copies
+    /// identiques, celle du dossier source plutôt qu'un import, la moins profonde (pas un sous-dossier
+    /// d'un autre livre), puis la plus récente.
+    public static func duplicates(_ books: [Book]) -> Set<Book.ID> {
+        var out = Set<Book.ID>()
+        let sameBookAndFormat = Dictionary(grouping: books) { key($0) + "|" + $0.format.rawValue }
+        for files in sameBookAndFormat.values where files.count > 1 {
+            // Date d'un contenu : la plus récente de ses copies (une copie peut porter une date plus ancienne).
+            let contentDate = Dictionary(files.map { ($0.fingerprint, $0.modifiedAt) }, uniquingKeysWith: max)
+            let kept = files.min { a, b in
+                let (ca, cb) = (contentDate[a.fingerprint]!, contentDate[b.fingerprint]!)
+                if ca != cb { return ca > cb }
+                if a.isImported != b.isImported { return !a.isImported }
+                let (da, db) = (a.path.split(separator: "/").count, b.path.split(separator: "/").count)
+                if da != db { return da < db }
+                if a.modifiedAt != b.modifiedAt { return a.modifiedAt > b.modifiedAt }
+                return a.path < b.path
+            }!
+            out.formUnion(files.lazy.filter { $0.id != kept.id }.map(\.id))
+        }
+        return out
+    }
+
     static func rank(_ book: Book) -> Int {
         switch book.format {
         case .azw3: 0

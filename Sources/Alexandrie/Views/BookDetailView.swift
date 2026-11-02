@@ -87,7 +87,8 @@ struct BookDetailView: View {
 
                 CatalogSection(book: $draft)
 
-                if files.count > 1 { filesSection }
+                let hiddenCopies = library.hiddenCopies(of: draft)
+                if files.count > 1 || !hiddenCopies.isEmpty { filesSection(hiddenCopies: hiddenCopies) }
 
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
                     info("Format", draft.format.label)
@@ -144,7 +145,7 @@ struct BookDetailView: View {
     }
 
     /// Fichiers du même livre : celui de la fiche (envoyé à la Kindle) est marqué.
-    private var filesSection: some View {
+    private func filesSection(hiddenCopies: [Book]) -> some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(files.sorted { $0.format.rawValue < $1.format.rawValue }) { f in
@@ -169,12 +170,21 @@ struct BookDetailView: View {
                     }
                     .font(.callout)
                 }
-                Text("Les corrections des informations s'appliquent à tous ces fichiers.")
-                    .font(.caption).foregroundStyle(.secondary)
+                if files.count > 1 {
+                    Text("Les corrections des informations s'appliquent à tous ces fichiers.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                if !hiddenCopies.isEmpty {
+                    Text(hiddenCopies.count == 1
+                         ? "1 copie en double (même format) est masquée ; elle reste sur le disque."
+                         : "\(hiddenCopies.count) copies en double (même format) sont masquées ; elles restent sur le disque.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .help(hiddenCopies.map(\.path).joined(separator: "\n"))
+                }
             }
             .padding(4)
         } label: {
-            Label("\(files.count) fichiers pour ce livre", systemImage: "doc.on.doc")
+            Label(files.count == 1 ? "1 fichier pour ce livre" : "\(files.count) fichiers pour ce livre", systemImage: "doc.on.doc")
         }
     }
 

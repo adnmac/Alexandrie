@@ -176,7 +176,7 @@ struct ContentView: View {
     }
 
     private var filteredBooks: [Book] {
-        var list = library.books
+        var list = library.visibleBooks
         switch sidebar {
         case .recent:
             let limit = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast

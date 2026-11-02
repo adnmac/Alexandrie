@@ -97,3 +97,41 @@ import Testing
         }
     }
 }
+
+@Suite struct DuplicateFilesTests {
+    func book(_ path: String, _ format: BookFormat, fingerprint: String, modified: TimeInterval, imported: Bool = false) -> Book {
+        Book(path: path, format: format, fingerprint: fingerprint, fileSize: 0, modifiedAt: Date(timeIntervalSince1970: modified),
+             addedAt: Date(), title: "Changer le monde", authors: ["Jean-Marc Jancovici"], tags: [], hasCover: false,
+             isDRMProtected: false, isImported: imported, asin: "A")
+    }
+
+    @Test func keepsOneFilePerFormat() {
+        // Le cas réel : trois copies identiques de l'EPUB, deux AZW3 différents.
+        let books = [
+            book("/e/Jancovici/Changer le monde (449)/a.azw3", .azw3, fingerprint: "az1", modified: 100),
+            book("/e/Jancovici/Changer le monde (449)/a.epub", .epub, fingerprint: "ep", modified: 100),
+            book("/e/Jancovici/Climat (378)/Changer le monde (449)/b.epub", .epub, fingerprint: "ep", modified: 300),
+            book("/e/Jancovici/Changer le monde (377)/a.azw3", .azw3, fingerprint: "az2", modified: 200),
+            book("/e/Jancovici/Changer le monde (377)/a.epub", .epub, fingerprint: "ep", modified: 50),
+        ]
+        let hidden = BookGroups.duplicates(books)
+        let kept = books.filter { !hidden.contains($0.id) }
+        #expect(kept.count == 2)
+        // AZW3 : le contenu le plus récent.
+        #expect(kept.contains { $0.path == "/e/Jancovici/Changer le monde (377)/a.azw3" })
+        // EPUB identiques : pas celui rangé dans le sous-dossier d'un autre livre, malgré sa date.
+        let epub = kept.first { $0.format == .epub }!
+        #expect(epub.path.split(separator: "/").count == 4)
+        #expect(epub.path == "/e/Jancovici/Changer le monde (449)/a.epub")
+    }
+
+    @Test func prefersSourceOverImportAndKeepsSingleFiles() {
+        let books = [
+            book("/lib/Imports/x.epub", .epub, fingerprint: "same", modified: 100, imported: true),
+            book("/lib/x.epub", .epub, fingerprint: "same", modified: 100),
+            book("/lib/x.mobi", .mobi, fingerprint: "m", modified: 100),
+        ]
+        #expect(BookGroups.duplicates(books) == ["/lib/Imports/x.epub"])
+        #expect(BookGroups.duplicates([books[2]]).isEmpty)
+    }
+}

@@ -23,7 +23,13 @@ struct SettingsView: View {
                         NSWorkspace.shared.activateFileViewerSelecting([library.directories.base])
                     }
                 }
-                LabeledContent("Livres indexés", value: "\(library.books.count)")
+                LabeledContent("Fichiers indexés", value: "\(library.visibleBooks.count)")
+                let hidden = library.hiddenDuplicates.count
+                Toggle("Afficher les copies en double (\(hidden))", isOn: Binding(
+                    get: { library.showDuplicates }, set: { library.showDuplicates = $0 }))
+                    .disabled(hidden == 0)
+                Text("Pour un même livre et un même format, un seul fichier est affiché : le plus récent. Les autres copies restent sur le disque, intactes.")
+                    .font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Couvertures", value: library.cacheSize.map { size($0.covers) } ?? "…")
                 LabeledContent("Conversions pour la Kindle") {
                     HStack {
@@ -36,7 +42,7 @@ struct SettingsView: View {
             Section("Vérification en ligne") {
                 Toggle("Vérifier automatiquement les nouveaux livres", isOn: Binding(
                     get: { library.autoCheckCatalog }, set: { library.autoCheckCatalog = $0 }))
-                let unchecked = library.books.filter { $0.catalogCheckedAt == nil }.count
+                let unchecked = library.visibleBooks.filter { $0.catalogCheckedAt == nil }.count
                 LabeledContent("Livres jamais vérifiés", value: "\(unchecked)")
                 Button("Vérifier ces livres maintenant") { library.checkUncheckedBooks() }
                     .disabled(unchecked == 0)

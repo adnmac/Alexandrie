@@ -31,6 +31,8 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var asin: String
     public var lastSentAt: Date?
     public var sentFilename: String?
+    /// En attente d'envoi : la Kindle n'était pas branchée. Le livre part dès qu'elle est connectée.
+    public var pendingSendAt: Date?
     /// Version de l'extraction : un livre indexé par une version antérieure est relu.
     public var metadataVersion: Int?
 
@@ -60,6 +62,8 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public static let currentMetadataVersion = 4
 
     public var url: URL { URL(fileURLWithPath: path) }
+    /// Un EPUB sous DRM ne peut pas être converti ; les formats Kindle sous DRM sont copiés tels quels.
+    public var canSendToKindle: Bool { !isDRMProtected || format.isKindleNative }
     public var authorLine: String { authors.isEmpty ? "Auteur inconnu" : authors.joined(separator: ", ") }
 
     /// Informations corrigeables, appliquées aux copies envoyées sur la Kindle.

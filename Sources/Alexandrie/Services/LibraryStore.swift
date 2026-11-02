@@ -334,11 +334,39 @@ final class LibraryStore {
     func update(_ book: Book, propagatingTo siblings: [Book.ID]) {
         guard let i = position(of: book.id) else { return }
         let siblingPositions = siblings.filter { $0 != book.id }.compactMap(position(of:))
+        // L'attente d'envoi ne change que par la file (ajout, retrait, envoi réussi), jamais par une fiche ouverte avant.
+        var book = book
+        book.pendingSendAt = books[i].pendingSendAt
         books[i] = book
         for j in siblingPositions {
             books[j].edits = book.edits
             books[j].tags = book.tags
         }
+        save()
+    }
+
+    // MARK: - File d'envoi (Kindle débranchée)
+
+    /// Livres à envoyer dès que la Kindle sera branchée, dans l'ordre où ils ont été demandés.
+    var pendingSends: [Book] {
+        books.filter { $0.pendingSendAt != nil }.sorted { $0.pendingSendAt! < $1.pendingSendAt! }
+    }
+
+    func queueForKindle(_ books: [Book]) {
+        let now = Date()
+        setPending(books.filter(\.canSendToKindle).map(\.id)) { $0 ?? now }
+    }
+
+    func removeFromKindleQueue(_ ids: [Book.ID]) {
+        setPending(ids) { _ in nil }
+    }
+
+    /// Seul l'état d'envoi est modifié : les livres reçus peuvent être des fichiers principaux de groupe
+    /// complétés par les autres fichiers, qu'il ne faut pas enregistrer tels quels.
+    private func setPending(_ ids: [Book.ID], _ change: (Date?) -> Date?) {
+        let targets = ids.compactMap(position(of:))
+        guard !targets.isEmpty else { return }
+        for i in targets { books[i].pendingSendAt = change(books[i].pendingSendAt) }
         save()
     }
 

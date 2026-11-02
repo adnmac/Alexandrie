@@ -23,16 +23,27 @@ struct BookDetailView: View {
 
                 transferStatus
 
+                let isPending = library.book(id: draft.id)?.pendingSendAt != nil
                 HStack {
-                    Button {
-                        Task { await kindle.send([draft], library: library) }
-                    } label: {
-                        Label("Envoyer à la Kindle", systemImage: "arrow.down.to.line.compact")
-                            .frame(maxWidth: .infinity)
+                    if isPending && !kindle.isConnected {
+                        Button {
+                            library.removeFromKindleQueue([draft.id])
+                        } label: {
+                            Label("Retirer de la file d'envoi", systemImage: "xmark.circle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .controlSize(.large)
+                    } else {
+                        Button {
+                            Task { await kindle.sendOrQueue([draft], library: library) }
+                        } label: {
+                            Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(kindle.isBusy || !draft.canSendToKindle)
                     }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
-                    .disabled(!kindle.isConnected || kindle.isBusy || (draft.isDRMProtected && draft.format == .epub))
                     Menu {
                         BookActions(book: draft)
                     } label: {
@@ -42,8 +53,11 @@ struct BookDetailView: View {
                     .fixedSize()
                     .controlSize(.large)
                 }
-                if !kindle.isConnected {
-                    Text("Branchez votre Kindle par câble USB pour l'envoyer.")
+                if isPending && !kindle.isConnected {
+                    Label("En attente : sera envoyé dès que la Kindle sera branchée.", systemImage: "clock.arrow.circlepath")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if !kindle.isConnected {
+                    Text("Kindle non branchée : le livre peut être mis en attente et partira dès sa connexion.")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if draft.format == .epub {
                     Text("Sera converti en AZW3 avant l'envoi (la Kindle ne lit pas l'EPUB par USB).")
@@ -90,6 +104,7 @@ struct BookDetailView: View {
             // Mise à jour externe (envoi terminé, rescan) sans écraser une saisie en cours.
             guard let new else { return }
             if new.lastSentAt != draft.lastSentAt { draft.lastSentAt = new.lastSentAt; draft.sentFilename = new.sentFilename }
+            if new.pendingSendAt != draft.pendingSendAt { draft.pendingSendAt = new.pendingSendAt }
             if new.catalogCheckedAt != draft.catalogCheckedAt {
                 draft.catalogRecord = new.catalogRecord
                 draft.catalogCheckedAt = new.catalogCheckedAt
@@ -200,10 +215,14 @@ struct MultiSelectionView: View {
             if epubs > 0 {
                 Text("\(epubs) EPUB seront convertis en AZW3.").foregroundStyle(.secondary)
             }
-            Button("Envoyer à la Kindle") { Task { await kindle.send(books, library: library) } }
+            Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue(books, library: library) } }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(!kindle.isConnected || kindle.isBusy)
+                .disabled(kindle.isBusy || !books.contains(where: \.canSendToKindle))
+            if !kindle.isConnected {
+                Text("La Kindle n'est pas branchée : ces livres partiront dès sa connexion.")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             let done = books.filter { kindle.transfers[$0.id] == .done }.count
             let failed = books.filter { if case .failed = kindle.transfers[$0.id] { true } else { false } }.count
             if done + failed > 0 {

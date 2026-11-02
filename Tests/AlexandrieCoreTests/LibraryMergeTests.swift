@@ -127,3 +127,29 @@ func tempDirectory() -> URL {
     try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
     return url
 }
+
+@Suite struct KindleQueueTests {
+    @Test func pendingSendSurvivesRenameAndReread() throws {
+        let lib = SampleLibrary()
+        var book = try lib.index("Candide.epub")
+        book.pendingSendAt = Date(timeIntervalSince1970: 100)
+        // Fichier renommé : le livre est retrouvé par son empreinte, toujours en attente.
+        let renamed = lib.dir.appendingPathComponent("Voltaire - Candide.epub")
+        try FileManager.default.moveItem(at: book.url, to: renamed)
+        let plan = LibraryMerge.plan(files: FolderScanner.scan([lib.dir]), known: [book], importsPath: lib.imports)
+        #expect(plan.kept.first?.pendingSendAt == book.pendingSendAt)
+        // Fichier relu (modifié) : l'attente est reprise.
+        var fresh = try lib.index("Voltaire - Candide.epub")
+        LibraryMerge.carryOver(from: book, to: &fresh)
+        #expect(fresh.pendingSendAt == book.pendingSendAt)
+    }
+
+    @Test func drmEPUBCannotBeQueued() throws {
+        var book = try SampleLibrary().index("Candide.epub")
+        #expect(book.canSendToKindle)
+        book.isDRMProtected = true
+        #expect(!book.canSendToKindle)
+        book.format = .azw3
+        #expect(book.canSendToKindle)
+    }
+}

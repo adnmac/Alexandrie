@@ -61,5 +61,6 @@ public enum LibraryMerge {
         book.asin = previous.asin
         book.lastSentAt = previous.lastSentAt
         book.sentFilename = previous.sentFilename
+        book.pendingSendAt = previous.pendingSendAt
     }
 }

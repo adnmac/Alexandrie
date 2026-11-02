@@ -4,6 +4,8 @@ import UniformTypeIdentifiers
 
 enum SidebarItem: Hashable {
     case all, recent, sent, toReview, kindle
+    /// Livres en attente d'envoi (Kindle débranchée).
+    case pending
     case format(BookFormat)
     /// Clé de regroupement (voir `AuthorNames`), pas une graphie particulière.
     case author(String)
@@ -36,6 +38,10 @@ struct ContentView: View {
             } else {
                 OnboardingView()
             }
+        }
+        // La Kindle vient d'être branchée : la file d'attente part.
+        .onChange(of: kindle.isConnected) { _, connected in
+            if connected { Task { await kindle.sendPending(library: library) } }
         }
         .alert("Erreur", isPresented: errorBinding) {
             Button("OK") { library.lastError = nil; kindle.lastError = nil }
@@ -143,12 +149,13 @@ struct ContentView: View {
                   : isSeriesSelected ? "Les livres d'une série sont classés par numéro" : "Trier")
 
             Button {
-                Task { await kindle.send(selected, library: library) }
+                Task { await kindle.sendOrQueue(selected, library: library) }
             } label: {
-                Label("Envoyer à la Kindle", systemImage: "arrow.down.to.line.compact")
+                Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
             }
-            .disabled(!kindle.isConnected || selected.isEmpty || kindle.isBusy)
-            .help(kindle.isConnected ? "Envoyer la sélection sur la Kindle" : "Branchez une Kindle par USB")
+            .disabled(!selected.contains(where: \.canSendToKindle) || kindle.isBusy)
+            .help(kindle.isConnected ? "Envoyer la sélection sur la Kindle"
+                  : "La Kindle n'est pas branchée : la sélection sera envoyée dès sa connexion")
         }
     }
 
@@ -169,6 +176,7 @@ struct ContentView: View {
             let limit = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast
             list = list.filter { $0.addedAt >= limit }
         case .sent: list = list.filter { $0.lastSentAt != nil }
+        case .pending: list = list.filter { $0.pendingSendAt != nil }
         case .toReview: list = list.filter { !$0.catalogSuggestions.isEmpty }
         case .series(let key):
             // Classement par numéro de tome, les livres sans numéro à la fin.
@@ -212,6 +220,16 @@ struct ContentView: View {
         await withCheckedContinuation { continuation in
             _ = provider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
         }
+    }
+}
+
+/// Libellé des boutons d'envoi : envoi immédiat, ou mise en attente si la Kindle est débranchée.
+enum KindleSendLabel {
+    @MainActor static func title(_ kindle: KindleMonitor) -> String {
+        kindle.isConnected ? "Envoyer à la Kindle" : "Envoyer à la connexion"
+    }
+    @MainActor static func icon(_ kindle: KindleMonitor) -> String {
+        kindle.isConnected ? "arrow.down.to.line.compact" : "clock.arrow.circlepath"
     }
 }
 

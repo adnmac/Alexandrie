@@ -96,6 +96,10 @@ struct LibraryView: View {
                     if (r.group?.books ?? [r.book]).contains(where: kindle.isOnDevice) {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help("Sur la Kindle")
                     }
+                    if (r.group?.books ?? [r.book]).contains(where: { $0.pendingSendAt != nil }) {
+                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(.blue)
+                            .help("En attente d'envoi : partira dès que la Kindle sera branchée")
+                    }
                 }
                 .help(r.isFile ? r.book.path : r.book.title)
             }
@@ -180,6 +184,12 @@ struct BookCard: View {
                     .foregroundStyle(.orange)
                     .padding(4).background(.ultraThinMaterial, in: Circle())
                     .help("Le catalogue propose des corrections")
+            }
+            if book.pendingSendAt != nil {
+                Image(systemName: "clock.arrow.circlepath").font(.caption)
+                    .foregroundStyle(.blue)
+                    .padding(4).background(.ultraThinMaterial, in: Circle())
+                    .help("En attente d'envoi : partira dès que la Kindle sera branchée")
             }
             if book.isDRMProtected {
                 Image(systemName: "lock.fill").font(.caption)
@@ -277,8 +287,11 @@ struct BookActions: View {
     let book: Book
 
     var body: some View {
-        Button("Envoyer à la Kindle") { Task { await kindle.send([book], library: library) } }
-            .disabled(!kindle.isConnected || kindle.isBusy || (book.isDRMProtected && book.format == .epub))
+        Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue([book], library: library) } }
+            .disabled(kindle.isBusy || !book.canSendToKindle)
+        if library.book(id: book.id)?.pendingSendAt != nil {
+            Button("Retirer de la file d'envoi") { library.removeFromKindleQueue([book.id]) }
+        }
         if [.mobi, .azw3, .azw].contains(book.format) {
             Button("Exporter en EPUB…") { Task { await Panels.exportEPUB(book, library: library) } }
                 .disabled(book.isDRMProtected)

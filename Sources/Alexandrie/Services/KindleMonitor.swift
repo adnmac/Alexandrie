@@ -137,7 +137,7 @@ final class KindleMonitor {
             lastError = KindleError.notConnected.localizedDescription
             return
         }
-        let sendable = books.filter { !$0.isDRMProtected || $0.format.isKindleNative }
+        let sendable = books.filter(\.canSendToKindle)
         for b in sendable { transfers[b.id] = .queued }
         isBusy = true
         defer { isBusy = false }
@@ -160,12 +160,31 @@ final class KindleMonitor {
                 updated.lastSentAt = Date()
                 updated.sentFilename = filename
                 library.update(updated)
+                library.removeFromKindleQueue([book.id])
                 transfers[book.id] = .done
             } catch {
                 transfers[book.id] = .failed(error.localizedDescription)
             }
         }
         await reloadDocuments()
+    }
+
+    /// Envoie tout de suite si la Kindle est branchée, sinon met les livres en attente de connexion.
+    func sendOrQueue(_ books: [Book], library: LibraryStore) async {
+        if isConnected {
+            await send(books, library: library)
+        } else {
+            library.queueForKindle(books)
+        }
+    }
+
+    /// Envoie la file d'attente ; appelé quand la Kindle vient d'être branchée.
+    /// Un livre dont l'envoi échoue reste en attente pour la prochaine connexion.
+    func sendPending(library: LibraryStore) async {
+        guard isConnected, !isBusy else { return }
+        let pending = library.pendingSends
+        guard !pending.isEmpty else { return }
+        await send(pending, library: library)
     }
 
     /// Réécrit les informations d'un livre sur l'appareil. Renvoie un message d'erreur, ou nil si succès.

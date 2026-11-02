@@ -35,6 +35,11 @@ struct SidebarView: View {
                         .foregroundStyle(kindle.isConnected ? Color.green : Color.secondary)
                 }
                 .tag(SidebarItem.kindle)
+                let pending = library.pendingSends.count
+                if pending > 0 || selection == .pending {
+                    row("En attente d'envoi", "clock.arrow.circlepath", .pending, count: pending)
+                        .help("Livres envoyés automatiquement dès que la Kindle sera branchée")
+                }
             }
 
             let formats = BookFormat.allCases.map { f in (f, library.books.filter { $0.format == f }.count) }

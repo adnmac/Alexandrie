@@ -248,22 +248,27 @@ struct CatalogSection: View {
             } else {
                 Text("La notice \(record.source) propose \(suggestions.count == 1 ? "une correction" : "\(suggestions.count) corrections") :")
                     .font(.callout.weight(.medium))
-                ForEach(suggestions) { d in row(d) }
+                ForEach(suggestions) { d in
+                    row(d)
+                    if d.id != suggestions.last?.id { Divider() }
+                }
                 HStack {
                     Button("Tout appliquer") { apply(Set(suggestions.map(\.field))) }
                         .buttonStyle(.borderedProminent)
                     Button("Tout ignorer") { dismiss(Set(suggestions.map(\.field))) }
                 }
             }
-            HStack(spacing: 12) {
-                if record.match == .titleAuthor {
-                    Text("Trouvée par titre et auteur").font(.caption).foregroundStyle(.secondary)
+            // Sur une seule ligne si la colonne est assez large, sinon le bouton passe dessous.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    recordInfo(record)
+                    Spacer()
+                    checkButton("Revérifier").controlSize(.small).fixedSize()
                 }
-                if let url = record.url.flatMap(URL.init(string:)) {
-                    Link("Voir la notice", destination: url).font(.caption)
+                VStack(alignment: .leading, spacing: 6) {
+                    recordInfo(record)
+                    checkButton("Revérifier").controlSize(.small).fixedSize()
                 }
-                Spacer()
-                checkButton("Revérifier").controlSize(.small)
             }
         } else if book.catalogCheckedAt != nil {
             Label("Aucune notice trouvée à la BnF ni sur Open Library.", systemImage: "questionmark.circle")
@@ -276,24 +281,39 @@ struct CatalogSection: View {
         }
     }
 
+    @ViewBuilder private func recordInfo(_ record: CatalogRecord) -> some View {
+        HStack(spacing: 12) {
+            if record.match == .titleAuthor {
+                Text("Trouvée par titre et auteur").font(.caption).foregroundStyle(.secondary)
+            }
+            if let url = record.url.flatMap(URL.init(string:)) {
+                Link("Voir la notice", destination: url).font(.caption).fixedSize()
+            }
+        }
+    }
+
+    /// Libellé et boutons sur une ligne, valeurs en dessous sur toute la largeur : lisible même dans une colonne étroite.
     private func row(_ d: CatalogDifference) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(d.field.label).foregroundStyle(.secondary).frame(width: 82, alignment: .trailing)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(d.current ?? "—").strikethrough(d.current != nil).foregroundStyle(.secondary)
-                Text(d.proposed).fontWeight(.medium).textSelection(.enabled)
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(d.field.label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                Button("Appliquer") { apply([d.field]) }.controlSize(.small).fixedSize()
+                Button {
+                    dismiss([d.field])
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .controlSize(.small)
+                .help("Ignorer cette proposition")
             }
-            Spacer()
-            Button("Appliquer") { apply([d.field]) }.controlSize(.small)
-            Button {
-                dismiss([d.field])
-            } label: {
-                Image(systemName: "xmark")
+            if let current = d.current {
+                Text(current).strikethrough().foregroundStyle(.secondary)
             }
-            .controlSize(.small)
-            .help("Ignorer cette proposition")
+            Text(d.proposed).fontWeight(.medium).textSelection(.enabled)
         }
         .font(.callout)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func checkButton(_ title: String) -> some View {

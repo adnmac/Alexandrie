@@ -22,6 +22,7 @@ public struct BookGroup: Identifiable, Hashable, Sendable {
             p.publishedDate = p.publishedDate ?? other.publishedDate
             p.language = p.language ?? other.language
             p.summary = p.summary ?? other.summary
+            p.genre = p.genre ?? other.genre
         }
         return p
     }
@@ -36,9 +37,10 @@ public struct BookGroup: Identifiable, Hashable, Sendable {
 public enum BookGroups {
     static let groupPrefix = "group:"
 
-    /// Clé de regroupement : titre (casse, accents et ponctuation ignorés) + auteurs (graphies regroupées).
+    /// Clé de regroupement : titre (casse, accents, ponctuation et mention de genre « : roman » ignorés)
+    /// + auteurs (graphies regroupées).
     public static func key(_ book: Book) -> String {
-        Matching.key(book.title) + "|" + AuthorNames.keys(of: book).sorted().joined(separator: ";")
+        Matching.key(Matching.withoutGenre(book.title)) + "|" + AuthorNames.keys(of: book).sorted().joined(separator: ";")
     }
 
     /// Regroupe en conservant l'ordre de la liste (position du premier fichier de chaque livre).

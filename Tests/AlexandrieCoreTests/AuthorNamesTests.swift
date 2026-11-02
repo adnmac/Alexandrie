@@ -75,6 +75,18 @@ import Testing
         #expect(groups[2].id == "5" && groups[3].id == "6")
     }
 
+    @Test func genreMentionDoesNotSplitBook() {
+        var withGenre = book("2", "Brunetti et le mauvais augure : roman", ["Donna Leon"], .epub)
+        withGenre.genre = "Roman"
+        let books = [book("1", "Brunetti et le mauvais augure", ["Leon, Donna"], .azw3), withGenre,
+                     book("3", "Le grand détournement : comment milliardaires", ["Matthieu Aron"], .epub),
+                     book("4", "Le grand détournement", ["Matthieu Aron"], .epub)]
+        let groups = BookGroups.make(books)
+        #expect(groups.map(\.books.count) == [2, 1, 1])
+        #expect(groups[0].primary.title == "Brunetti et le mauvais augure")
+        #expect(groups[0].primary.genre == "Roman")
+    }
+
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"] != nil))
     func realLibraryGroups() throws {
         let books = try LibraryIndex.load(URL(fileURLWithPath: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"]!))

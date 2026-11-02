@@ -287,9 +287,13 @@ struct BookActions: View {
     let book: Book
 
     var body: some View {
-        Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue([book], library: library) } }
-            .disabled(kindle.isBusy || !book.canSendToKindle)
-        if library.book(id: book.id)?.pendingSendAt != nil {
+        let isPending = library.book(id: book.id)?.pendingSendAt != nil
+        // Déjà en attente et Kindle débranchée : le remettre en attente n'aurait aucun effet.
+        if !(isPending && !kindle.isConnected) {
+            Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue([book], library: library) } }
+                .disabled(kindle.isBusy || !book.canSendToKindle)
+        }
+        if isPending {
             Button("Retirer de la file d'envoi") { library.removeFromKindleQueue([book.id]) }
         }
         if [.mobi, .azw3, .azw].contains(book.format) {
@@ -301,7 +305,10 @@ struct BookActions: View {
         Button("Ouvrir") { NSWorkspace.shared.open(book.url) }
         if book.isImported {
             Divider()
-            Button("Retirer de la bibliothèque", role: .destructive) { library.removeImported(book) }
+            // Supprime un fichier : libellé explicite et confirmation, pour ne pas le confondre avec la file d'envoi.
+            Button("Supprimer la copie importée…", role: .destructive) {
+                if Panels.confirmRemoveImported(book) { library.removeImported(book) }
+            }
         }
     }
 }

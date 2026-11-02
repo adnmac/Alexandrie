@@ -66,6 +66,20 @@ enum Panels {
         if panel.runModal() == .OK { library.importFiles(panel.urls) }
     }
 
+    /// Confirmation avant de supprimer un livre importé (copie dans le dossier de l'app).
+    static func confirmRemoveImported(_ book: Book) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Supprimer la copie importée de « \(book.title) » ?"
+        alert.informativeText = """
+            Le fichier copié dans le dossier d'Alexandrie (Imports) sera supprimé, avec les corrections faites \
+            dans l'app pour ce fichier. Le fichier d'origine, s'il existe encore ailleurs, n'est pas touché.
+            """
+        alert.addButton(withTitle: "Supprimer").hasDestructiveAction = true
+        alert.addButton(withTitle: "Annuler")
+        return alert.runModal() == .alertFirstButtonReturn
+    }
+
     /// Convertit un MOBI/AZW3 en EPUB puis propose où l'enregistrer.
     static func exportEPUB(_ book: Book, library: LibraryStore) async {
         let directories = library.directories

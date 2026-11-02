@@ -8,7 +8,9 @@ import Observation
 final class LibraryStore {
     let directories = AppDirectories()
     let covers: CoverStore
-    private(set) var books: [Book] = []
+    private(set) var books: [Book] = [] {
+        didSet { positions = nil; titleIndex = nil }
+    }
     private(set) var rootURL: URL?
     private(set) var isScanning = false
     private(set) var progress: (done: Int, total: Int)?
@@ -16,6 +18,9 @@ final class LibraryStore {
 
     @ObservationIgnored private var watcher: FolderWatcher?
     @ObservationIgnored private var rescanPending = false
+    /// Index reconstruits à la demande après chaque changement de `books`.
+    @ObservationIgnored private var positions: [Book.ID: Int]?
+    @ObservationIgnored private var titleIndex: [String: [Int]]?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "alexandrie.index", qos: .utility)
@@ -239,8 +244,26 @@ final class LibraryStore {
     }
 
     func book(id: Book.ID?) -> Book? {
-        guard let id else { return nil }
-        return books.first { $0.id == id }
+        guard let id, let i = position(of: id) else { return nil }
+        return books[i]
+    }
+
+    private func position(of id: Book.ID) -> Int? {
+        // Lire `books` enregistre la dépendance des vues, même quand l'index est déjà construit.
+        let books = self.books
+        if positions == nil {
+            positions = Dictionary(books.indices.map { (books[$0].id, $0) }, uniquingKeysWith: { a, _ in a })
+        }
+        return positions?[id]
+    }
+
+    /// Livres dont le titre normalisé (cf. `KindleMonitor.normalize`) est `key`.
+    func books(titleKey key: String) -> [Book] {
+        let books = self.books
+        if titleIndex == nil {
+            titleIndex = Dictionary(grouping: books.indices) { KindleMonitor.normalize(books[$0].title) }
+        }
+        return titleIndex?[key]?.map { books[$0] } ?? []
     }
 
     func update(_ book: Book) {
@@ -250,10 +273,10 @@ final class LibraryStore {
     /// Enregistre un livre et recopie ses informations corrigées sur les autres fichiers du même livre,
     /// pour que le groupe (même titre, mêmes auteurs) reste uni.
     func update(_ book: Book, propagatingTo siblings: [Book.ID]) {
-        guard let i = books.firstIndex(where: { $0.id == book.id }) else { return }
+        guard let i = position(of: book.id) else { return }
+        let siblingPositions = siblings.filter { $0 != book.id }.compactMap(position(of:))
         books[i] = book
-        for id in siblings where id != book.id {
-            guard let j = books.firstIndex(where: { $0.id == id }) else { continue }
+        for j in siblingPositions {
             books[j].edits = book.edits
             books[j].tags = book.tags
         }

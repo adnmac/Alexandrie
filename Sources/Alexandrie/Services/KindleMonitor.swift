@@ -12,12 +12,20 @@ final class KindleMonitor {
     }
 
     private(set) var device: (any KindleDevice)?
-    private(set) var documents: [KindleDocument] = []
+    private(set) var documents: [KindleDocument] = [] {
+        didSet { documentNames = Set(documents.map(\.name)) }
+    }
     private(set) var freeSpace: Int64?
     private(set) var transfers: [Book.ID: TransferState] = [:]
     private(set) var isBusy = false
     /// Fiches des livres de l'appareil, remplies progressivement.
-    private(set) var infos: [KindleDocument.ID: KindleBookInfo] = [:]
+    private(set) var infos: [KindleDocument.ID: KindleBookInfo] = [:] {
+        didSet { deviceTitles = Set(infos.values.filter { !$0.isGuessed }.map { Self.normalize($0.title) }) }
+    }
+    /// Précalculés pour `isOnDevice`, appelé pour chaque ligne de la bibliothèque.
+    private(set) var documentNames: Set<String> = []
+    /// Titres normalisés des fiches lues sur l'appareil (fiches devinées exclues).
+    private(set) var deviceTitles: Set<String> = []
     private(set) var catalogProgress: (done: Int, total: Int)?
     let catalog = KindleCatalog(directories: AppDirectories())
     let mtpAvailable = MTPKindle.isLibraryAvailable
@@ -103,14 +111,12 @@ final class KindleMonitor {
     }
 
     /// Livre de la bibliothèque correspondant à un document de la Kindle (nom de fichier, ou titre + auteur).
-    func libraryBook(for doc: KindleDocument, in books: [Book]) -> Book? {
-        if let b = books.first(where: { $0.sentFilename == doc.name || $0.kindleFilename == doc.name }) { return b }
+    func libraryBook(for doc: KindleDocument, in library: LibraryStore) -> Book? {
+        if let b = library.books.first(where: { $0.sentFilename == doc.name || $0.kindleFilename == doc.name }) { return b }
         guard let info = infos[doc.id], !info.isGuessed else { return nil }
-        let title = Self.normalize(info.title)
-        return books.first { b in
-            Self.normalize(b.title) == title
-                && (info.authors.isEmpty || b.authors.isEmpty
-                    || Set(b.authors.map(Self.normalize)).intersection(info.authors.map(Self.normalize)).count > 0)
+        return library.books(titleKey: Self.normalize(info.title)).first { b in
+            info.authors.isEmpty || b.authors.isEmpty
+                || Set(b.authors.map(Self.normalize)).intersection(info.authors.map(Self.normalize)).count > 0
         }
     }
 
@@ -120,10 +126,8 @@ final class KindleMonitor {
     }
 
     func isOnDevice(_ book: Book) -> Bool {
-        let names = Set(documents.map(\.name))
-        if names.contains(book.kindleFilename) || book.sentFilename.map(names.contains) == true { return true }
-        let title = Self.normalize(book.title)
-        return infos.values.contains { !$0.isGuessed && Self.normalize($0.title) == title }
+        if documentNames.contains(book.kindleFilename) || book.sentFilename.map(documentNames.contains) == true { return true }
+        return !deviceTitles.isEmpty && deviceTitles.contains(Self.normalize(book.title))
     }
 
     // MARK: - Envoi

@@ -103,7 +103,7 @@ struct KindleView: View {
             TableColumn("Titre") { d in
                 HStack(spacing: 6) {
                     Text(title(d)).lineLimit(1)
-                    if kindle.libraryBook(for: d, in: library.books) != nil {
+                    if kindle.libraryBook(for: d, in: library) != nil {
                         Image(systemName: "books.vertical.fill").foregroundStyle(.secondary).help("Dans la bibliothèque")
                     }
                 }
@@ -120,7 +120,7 @@ struct KindleView: View {
     }
 
     @ViewBuilder private func actions(_ doc: KindleDocument) -> some View {
-        if let book = kindle.libraryBook(for: doc, in: library.books) {
+        if let book = kindle.libraryBook(for: doc, in: library) {
             Button("Afficher dans le Finder (bibliothèque)") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         }
         Button("Supprimer de la Kindle…", role: .destructive) { pendingDelete = doc }
@@ -160,7 +160,7 @@ struct KindleBookCard: View {
                                 .padding(4).background(.ultraThinMaterial, in: Circle())
                                 .help("Protégé par DRM")
                         }
-                        if kindle.libraryBook(for: document, in: library.books) != nil {
+                        if kindle.libraryBook(for: document, in: library) != nil {
                             Image(systemName: "books.vertical.fill").font(.caption)
                                 .padding(4).background(.ultraThinMaterial, in: Circle())
                                 .help("Aussi dans la bibliothèque")
@@ -227,7 +227,7 @@ struct KindleBookDetailView: View {
                           systemImage: "questionmark.circle")
                         .font(.callout).foregroundStyle(.secondary)
                 }
-                if let book = kindle.libraryBook(for: document, in: library.books) {
+                if let book = kindle.libraryBook(for: document, in: library) {
                     Label("Aussi dans la bibliothèque (\(book.format.label))", systemImage: "books.vertical.fill")
                         .font(.callout)
                 }

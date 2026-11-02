@@ -9,7 +9,7 @@ final class LibraryStore {
     let directories = AppDirectories()
     let covers: CoverStore
     private(set) var books: [Book] = [] {
-        didSet { positions = nil; titleIndex = nil }
+        didSet { positions = nil; titleIndex = nil; publisherList = nil }
     }
     private(set) var rootURL: URL?
     private(set) var isScanning = false
@@ -23,6 +23,7 @@ final class LibraryStore {
     /// Index reconstruits à la demande après chaque changement de `books`.
     @ObservationIgnored private var positions: [Book.ID: Int]?
     @ObservationIgnored private var titleIndex: [String: [Int]]?
+    @ObservationIgnored private var publisherList: [String]?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "alexandrie.index", qos: .utility)
@@ -223,6 +224,32 @@ final class LibraryStore {
 
     func checkUncheckedBooks() {
         checkCatalog(books.filter { $0.catalogCheckedAt == nil }.map(\.id))
+    }
+
+    // MARK: - Lecture des couvertures (vérification des propositions)
+
+    /// Texte lu sur les couvertures, par empreinte ; rempli à la demande.
+    private(set) var coverTexts: [String: CoverText] = [:]
+    /// Couvertures en cours de lecture (la première lecture charge le modèle de reconnaissance de macOS).
+    private(set) var coverReading: Set<String> = []
+
+    func readCover(_ book: Book) async {
+        let key = book.fingerprint
+        guard book.hasCover, coverTexts[key] == nil, coverReading.insert(key).inserted,
+              let url = coverURL(book) else { return }
+        defer { coverReading.remove(key) }
+        if let text = await Task.detached(priority: .utility, operation: { try? CoverText.recognize(imageAt: url) }).value {
+            coverTexts[key] = text
+        }
+    }
+
+    /// Éditeurs présents dans la bibliothèque : aident à reconnaître celui écrit sur une couverture.
+    var publisherNames: [String] {
+        let books = self.books
+        if publisherList == nil {
+            publisherList = Array(Set(books.compactMap(\.publisher)))
+        }
+        return publisherList ?? []
     }
 
     func applyCatalog(_ fields: Set<CatalogField>, to id: Book.ID) {

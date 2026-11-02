@@ -230,6 +230,20 @@ struct CatalogSection: View {
         } label: {
             Label("Catalogue en ligne", systemImage: "building.columns")
         }
+        .task(id: "\(book.fingerprint)|\(book.catalogCheckedAt?.timeIntervalSince1970 ?? 0)") {
+            if !book.catalogSuggestions.isEmpty { await library.readCover(book) }
+        }
+    }
+
+    /// Ce que dit la couverture de chaque proposition (vide tant qu'elle n'est pas lue).
+    private func coverVerdicts(_ suggestions: [CatalogDifference]) -> [CatalogField: CoverVerdict] {
+        guard let cover = library.coverTexts[book.fingerprint] else { return [:] }
+        let publishers = library.publisherNames
+        var out: [CatalogField: CoverVerdict] = [:]
+        for d in suggestions {
+            out[d.field] = CoverCheck.verdict(for: d, book: book.edits, cover: cover, publishers: publishers)
+        }
+        return out
     }
 
     @ViewBuilder private var content: some View {
@@ -246,16 +260,32 @@ struct CatalogSection: View {
                 Label("Informations conformes à la notice \(record.source)", systemImage: "checkmark.seal.fill")
                     .foregroundStyle(.green)
             } else {
+                let verdicts = coverVerdicts(suggestions)
+                let contradicted = Set(verdicts.compactMap { field, v in
+                    if case .contradicted = v { return field } else { return nil }
+                })
                 Text("La notice \(record.source) propose \(suggestions.count == 1 ? "une correction" : "\(suggestions.count) corrections") :")
                     .font(.callout.weight(.medium))
                 ForEach(suggestions) { d in
-                    row(d)
+                    row(d, verdict: verdicts[d.field])
                     if d.id != suggestions.last?.id { Divider() }
                 }
                 HStack {
-                    Button("Tout appliquer") { apply(Set(suggestions.map(\.field))) }
+                    Button("Tout appliquer") { apply(Set(suggestions.map(\.field)).subtracting(contradicted)) }
                         .buttonStyle(.borderedProminent)
+                        .disabled(contradicted.count == suggestions.count)
                     Button("Tout ignorer") { dismiss(Set(suggestions.map(\.field))) }
+                }
+                if library.coverReading.contains(book.fingerprint) {
+                    HStack(spacing: 6) {
+                        ProgressView().controlSize(.mini)
+                        Text("Lecture de la couverture…")
+                    }
+                    .font(.caption).foregroundStyle(.secondary)
+                }
+                if !contradicted.isEmpty {
+                    Text("« Tout appliquer » laisse de côté les propositions contredites par la couverture.")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
             }
             // Sur une seule ligne si la colonne est assez large, sinon le bouton passe dessous.
@@ -293,7 +323,7 @@ struct CatalogSection: View {
     }
 
     /// Libellé et boutons sur une ligne, valeurs en dessous sur toute la largeur : lisible même dans une colonne étroite.
-    private func row(_ d: CatalogDifference) -> some View {
+    private func row(_ d: CatalogDifference, verdict: CoverVerdict?) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             HStack {
                 Text(d.field.label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
@@ -311,9 +341,34 @@ struct CatalogSection: View {
                 Text(current).strikethrough().foregroundStyle(.secondary)
             }
             Text(d.proposed).fontWeight(.medium).textSelection(.enabled)
+            if let verdict { verdictLine(verdict, for: d) }
         }
         .font(.callout)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder private func verdictLine(_ verdict: CoverVerdict, for d: CatalogDifference) -> some View {
+        switch verdict {
+        case .confirmed:
+            Label("Lu sur la couverture", systemImage: "checkmark.circle")
+                .font(.caption).foregroundStyle(.green)
+        case .contradicted(let value?):
+            VStack(alignment: .leading, spacing: 4) {
+                Label("La couverture indique « \(value) »", systemImage: "exclamationmark.triangle")
+                    .font(.caption).foregroundStyle(.orange)
+                if d.field == .publisher {
+                    // La couverture confirme la valeur actuelle : on la garde ; sinon on adopte celle de la couverture.
+                    Button(value == d.current ? "Garder « \(value) »" : "Utiliser « \(value) »") {
+                        book.publisher = value
+                        dismiss([.publisher])
+                    }
+                    .controlSize(.small).fixedSize()
+                }
+            }
+        case .contradicted(nil):
+            Label("Absent de la couverture, qui porte la valeur actuelle", systemImage: "exclamationmark.triangle")
+                .font(.caption).foregroundStyle(.orange)
+        }
     }
 
     private func checkButton(_ title: String) -> some View {

@@ -211,7 +211,7 @@ final class LibraryStore {
                     }
                 } catch {
                     // Hors ligne ou service indisponible : le livre pourra être revérifié plus tard.
-                    catalogErrors[id] = "Vérification impossible : \(error.localizedDescription)"
+                    catalogErrors[id] = CatalogClient.describe(error)
                 }
                 catalogChecking = nil
                 // Ménage les services publics : une requête par seconde au plus.

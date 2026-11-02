@@ -159,26 +159,55 @@ public struct CatalogClient: Sendable {
 
     /// Notice correspondant au livre : par ISBN si valide, sinon (ou à défaut) par titre et auteur.
     /// Une recherche par titre n'est retenue que si le titre et l'auteur concordent.
+    /// Si un des deux services est injoignable, l'autre est quand même interrogé ; l'erreur n'est levée
+    /// que si aucune notice n'a pu être trouvée (« aucune notice » ne doit pas masquer une panne).
     public func lookup(_ book: MetadataEdits) async throws -> CatalogRecord? {
+        var failure: (any Error)?
+        func attempt(_ url: URL) async -> Data? {
+            do { return try await fetch(url) } catch { failure = failure ?? error; return nil }
+        }
+
         if let isbn = book.isbn.flatMap(ISBN.normalized) {
-            if let r = try await BnFCatalog.parse(fetch(BnFCatalog.url(BnFCatalog.isbnQuery(isbn), max: 3)), match: .isbn).first {
+            if let data = await attempt(BnFCatalog.url(BnFCatalog.isbnQuery(isbn), max: 3)),
+               let r = BnFCatalog.parse(data, match: .isbn).first {
                 return r
             }
-            if let r = OpenLibraryCatalog.parseISBN(try await fetch(OpenLibraryCatalog.isbnURL(isbn)), isbn: isbn) {
+            if let data = await attempt(OpenLibraryCatalog.isbnURL(isbn)),
+               let r = OpenLibraryCatalog.parseISBN(data, isbn: isbn) {
                 return r
             }
         }
         let title = Matching.mainTitle(book.title)
-        guard !title.isEmpty else { return nil }
+        guard !title.isEmpty else {
+            if let failure { throw failure }
+            return nil
+        }
         let author = book.authors.first.map(Matching.surname)
-        let bnf = BnFCatalog.parse(try await fetch(BnFCatalog.url(BnFCatalog.titleQuery(title: title, author: author), max: 10)),
-                                   match: .titleAuthor)
+        let bnf = await attempt(BnFCatalog.url(BnFCatalog.titleQuery(title: title, author: author), max: 10))
+            .map { BnFCatalog.parse($0, match: .titleAuthor) } ?? []
         let fromBnF = Matching.best(bnf, for: book)
         if fromBnF?.isbn != nil { return fromBnF }
         // Notice BnF sans ISBN (édition ancienne) : Open Library peut en fournir un.
-        let ol = OpenLibraryCatalog.parseSearch(try await fetch(OpenLibraryCatalog.searchURL(title: title, author: author)))
+        let ol = await attempt(OpenLibraryCatalog.searchURL(title: title, author: author))
+            .map(OpenLibraryCatalog.parseSearch) ?? []
         let fromOL = Matching.best(ol, for: book)
-        return fromOL?.isbn != nil ? fromOL : (fromBnF ?? fromOL)
+        if let found = fromOL?.isbn != nil ? fromOL : (fromBnF ?? fromOL) { return found }
+        if let failure { throw failure }
+        return nil
+    }
+
+    /// Message compréhensible pour une vérification échouée.
+    public static func describe(_ error: any Error) -> String {
+        let unavailable: [URLError.Code] = [.secureConnectionFailed, .networkConnectionLost, .cannotConnectToHost,
+                                            .cannotFindHost, .timedOut, .badServerResponse, .dnsLookupFailed]
+        if let e = error as? URLError {
+            if e.code == .notConnectedToInternet { return "Vérification impossible : pas de connexion Internet." }
+            if unavailable.contains(e.code) {
+                let host = e.failingURL?.host.map { $0.contains("bnf.fr") ? "de la BnF" : "d'Open Library" } ?? "en ligne"
+                return "Vérification impossible : le catalogue \(host) ne répond pas pour le moment. Réessayez plus tard."
+            }
+        }
+        return "Vérification impossible : \(error.localizedDescription)"
     }
 }
 

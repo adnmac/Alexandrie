@@ -128,3 +128,33 @@ struct LiveCatalogTests {
         #expect(english != nil)
     }
 }
+
+@Suite struct CatalogFallbackTests {
+    static let olISBN = Data(#"{"ISBN:9782070360024": {"url": "https://openlibrary.org/books/OL1M", "title": "L’étranger", "authors": [{"name": "Albert Camus"}], "publishers": [{"name": "Gallimard"}], "publish_date": "1972"}}"#.utf8)
+    static let tlsError = URLError(.secureConnectionFailed, userInfo: [NSURLErrorFailingURLErrorKey: URL(string: "https://catalogue.bnf.fr/api/SRU")!])
+    let book = MetadataEdits(title: "L'Étranger", authors: ["Albert Camus"], isbn: "9782070360024")
+
+    @Test func bnfDownFallsBackToOpenLibrary() async throws {
+        let client = CatalogClient { url in
+            if url.host == "catalogue.bnf.fr" { throw Self.tlsError }
+            return Self.olISBN
+        }
+        let r = try await client.lookup(book)
+        #expect(r?.source == "Open Library")
+        #expect(r?.title == "L’étranger")
+    }
+
+    @Test func outageIsNotReportedAsNoRecord() async {
+        let client = CatalogClient { url in
+            if url.host == "catalogue.bnf.fr" { throw Self.tlsError }
+            return Data("{}".utf8)
+        }
+        await #expect(throws: URLError.self) { try await client.lookup(book) }
+    }
+
+    @Test func friendlyMessage() {
+        #expect(CatalogClient.describe(Self.tlsError)
+                == "Vérification impossible : le catalogue de la BnF ne répond pas pour le moment. Réessayez plus tard.")
+        #expect(CatalogClient.describe(URLError(.notConnectedToInternet)) == "Vérification impossible : pas de connexion Internet.")
+    }
+}

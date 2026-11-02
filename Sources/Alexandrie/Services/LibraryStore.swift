@@ -52,6 +52,10 @@ final class LibraryStore {
         if changed { save() }
         rootURL = Self.restoreBookmark()
         startWatching()
+        NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
+                                               queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.syncDuplicatesSetting() }
+        }
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
                                                queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.saveNow() }
@@ -65,8 +69,28 @@ final class LibraryStore {
 
     /// Affiche toutes les copies d'un même livre dans un même format (réglage) ; par défaut une seule est gardée.
     var showDuplicates: Bool {
-        get { access(keyPath: \.showDuplicates); return UserDefaults.standard.bool(forKey: "showDuplicates") }
-        set { withMutation(keyPath: \.showDuplicates) { UserDefaults.standard.set(newValue, forKey: "showDuplicates") } }
+        get { access(keyPath: \.showDuplicates); return UserDefaults.standard.bool(forKey: Self.showDuplicatesKey) }
+        set {
+            lastShowDuplicates = newValue
+            withMutation(keyPath: \.showDuplicates) { UserDefaults.standard.set(newValue, forKey: Self.showDuplicatesKey) }
+        }
+    }
+    static let showDuplicatesKey = "showDuplicates"
+    @ObservationIgnored private var lastShowDuplicates = UserDefaults.standard.bool(forKey: "showDuplicates")
+
+    /// Le menu Présentation modifie le réglage directement (les menus ne suivent pas l'état de l'app) :
+    /// la bibliothèque se met à jour quand il change.
+    private func syncDuplicatesSetting() {
+        let value = UserDefaults.standard.bool(forKey: Self.showDuplicatesKey)
+        guard value != lastShowDuplicates else { return }
+        lastShowDuplicates = value
+        withMutation(keyPath: \.showDuplicates) {}
+    }
+
+    /// « Rassembler les doublons » (menu Présentation, réglages) : une seule copie par livre et par format.
+    var groupDuplicates: Bool {
+        get { !showDuplicates }
+        set { showDuplicates = !newValue }
     }
 
     /// Fichiers masqués : même livre, même format qu'un fichier gardé (voir `BookGroups.duplicates`).

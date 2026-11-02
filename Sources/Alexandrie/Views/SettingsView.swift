@@ -25,10 +25,9 @@ struct SettingsView: View {
                 }
                 LabeledContent("Fichiers indexés", value: "\(library.visibleBooks.count)")
                 let hidden = library.hiddenDuplicates.count
-                Toggle("Afficher les copies en double (\(hidden))", isOn: Binding(
-                    get: { library.showDuplicates }, set: { library.showDuplicates = $0 }))
-                    .disabled(hidden == 0)
-                Text("Pour un même livre et un même format, un seul fichier est affiché : le plus récent. Les autres copies restent sur le disque, intactes.")
+                Toggle("Rassembler les doublons (\(hidden) copies masquées)", isOn: Binding(
+                    get: { library.groupDuplicates }, set: { library.groupDuplicates = $0 }))
+                Text("Pour un même livre et un même format, un seul fichier est affiché : le plus récent. Les autres copies restent sur le disque, intactes. Aussi dans le menu Présentation (⌥⌘D).")
                     .font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Couvertures", value: library.cacheSize.map { size($0.covers) } ?? "…")
                 LabeledContent("Conversions pour la Kindle") {

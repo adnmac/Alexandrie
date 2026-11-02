@@ -24,6 +24,7 @@ struct AlexandrieApp: App {
                 Button("Rescanner la bibliothèque") { Task { await library.rescan() } }
                     .keyboardShortcut("r")
             }
+            LibraryViewCommands()
         }
 
         Settings {
@@ -31,6 +32,19 @@ struct AlexandrieApp: App {
                 .environment(library)
                 .environment(kindle)
                 .environment(updates)
+        }
+    }
+}
+
+/// Menu Présentation. Les menus ne suivent pas l'état observé de l'app : le réglage est lu directement
+/// (`@AppStorage`), et `LibraryStore` se met à jour quand il change.
+struct LibraryViewCommands: Commands {
+    @AppStorage(LibraryStore.showDuplicatesKey) private var showDuplicates = false
+
+    var body: some Commands {
+        CommandGroup(after: .sidebar) {
+            Toggle("Rassembler les doublons", isOn: Binding(get: { !showDuplicates }, set: { showDuplicates = !$0 }))
+                .keyboardShortcut("d", modifiers: [.command, .option])
         }
     }
 }

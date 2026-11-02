@@ -221,7 +221,11 @@ final class KindleMonitor {
                 updated.lastSentAt = Date()
                 updated.sentFilename = filename
                 library.update(updated)
-                library.removeFromKindleQueue([book.id])
+                library.removeFromKindleQueue([book.id], reader: deviceID)
+                if let reader = currentReader {
+                    library.recordSent(book.id, reader: reader.id)
+                    library.addToShelf([book], reader: reader.id)
+                }
                 transfers[book.id] = .done
             } catch {
                 transfers[book.id] = .failed(error.localizedDescription)
@@ -230,12 +234,13 @@ final class KindleMonitor {
         await reloadDocuments()
     }
 
-    /// Envoie tout de suite si la Kindle est branchée, sinon met les livres en attente de connexion.
-    func sendOrQueue(_ books: [Book], library: LibraryStore) async {
+    /// Envoie tout de suite si la Kindle est branchée, sinon met les livres en attente de connexion
+    /// de la liseuse choisie (la seule connue, à défaut la prochaine Kindle branchée).
+    func sendOrQueue(_ books: [Book], library: LibraryStore, reader: Reader.ID? = nil) async {
         if isConnected {
             await send(books, library: library)
         } else {
-            library.queueForKindle(books)
+            library.queueForKindle(books, reader: reader ?? (readers.count == 1 ? readers[0].id : nil))
         }
     }
 
@@ -243,7 +248,7 @@ final class KindleMonitor {
     /// Un livre dont l'envoi échoue reste en attente pour la prochaine connexion.
     func sendPending(library: LibraryStore) async {
         guard isConnected, !isBusy else { return }
-        let pending = library.pendingSends
+        let pending = library.pendingSends(for: deviceID)
         guard !pending.isEmpty else { return }
         await send(pending, library: library)
     }

@@ -132,6 +132,7 @@ final class LibraryStore {
         for i in books.indices where books[i].trashedAt == nil && ids[books[i].id] == key {
             books[i].trashedAt = now
             books[i].pendingSendAt = nil
+            books[i].pendingFor = nil
         }
         save()
     }
@@ -455,6 +456,8 @@ final class LibraryStore {
         // L'attente d'envoi et la corbeille ne changent que par leurs propres actions, jamais par une fiche ouverte avant.
         var book = book
         book.pendingSendAt = books[i].pendingSendAt
+        book.pendingFor = books[i].pendingFor
+        book.sentTo = books[i].sentTo
         book.trashedAt = books[i].trashedAt
         book.shelves = books[i].shelves
         books[i] = book
@@ -512,26 +515,60 @@ final class LibraryStore {
 
     // MARK: - File d'envoi (Kindle débranchée)
 
-    /// Livres à envoyer dès que la Kindle sera branchée, dans l'ordre où ils ont été demandés.
-    var pendingSends: [Book] {
-        books.filter { $0.pendingSendAt != nil && $0.trashedAt == nil }.sorted { $0.pendingSendAt! < $1.pendingSendAt! }
+    /// Tous les livres en attente d'envoi, quelle que soit la liseuse.
+    var pendingSends: [Book] { pendingSends(for: nil) }
+
+    /// Livres à envoyer à cette liseuse dès qu'elle sera branchée (ou à n'importe laquelle si nil),
+    /// dans l'ordre où ils ont été demandés.
+    func pendingSends(for reader: Reader.ID?) -> [Book] {
+        books.compactMap { b in b.trashedAt == nil ? b.pendingDate(for: reader).map { (b, $0) } : nil }
+            .sorted { $0.1 < $1.1 }.map(\.0)
     }
 
-    func queueForKindle(_ books: [Book]) {
+    /// Met en attente pour une liseuse (qui reçoit aussi le livre sur son étagère), ou pour la prochaine
+    /// Kindle branchée si aucune n'est choisie.
+    func queueForKindle(_ books: [Book], reader: Reader.ID?) {
         let now = Date()
-        setPending(books.filter { $0.canSendToKindle && $0.trashedAt == nil }.map(\.id)) { $0 ?? now }
+        let ids = books.filter { $0.canSendToKindle && $0.trashedAt == nil }.map(\.id)
+        mutate(ids) { b in
+            if let reader {
+                var pending = b.pendingFor ?? [:]
+                pending[reader] = pending[reader] ?? now
+                b.pendingFor = pending
+            } else {
+                b.pendingSendAt = b.pendingSendAt ?? now
+            }
+        }
+        if let reader { addToShelf(books, reader: reader) }
     }
 
-    func removeFromKindleQueue(_ ids: [Book.ID]) {
-        setPending(ids) { _ in nil }
+    /// Retire de la file : pour une liseuse (et l'attente « n'importe laquelle »), ou entièrement si nil.
+    func removeFromKindleQueue(_ ids: [Book.ID], reader: Reader.ID? = nil) {
+        mutate(ids) { b in
+            b.pendingSendAt = nil
+            if let reader {
+                b.pendingFor?[reader] = nil
+                if b.pendingFor?.isEmpty == true { b.pendingFor = nil }
+            } else {
+                b.pendingFor = nil
+            }
+        }
     }
 
-    /// Seul l'état d'envoi est modifié : les livres reçus peuvent être des fichiers principaux de groupe
+    func recordSent(_ id: Book.ID, reader: Reader.ID) {
+        mutate([id]) { b in
+            var sent = b.sentTo ?? [:]
+            sent[reader] = Date()
+            b.sentTo = sent
+        }
+    }
+
+    /// Seuls les états d'envoi sont modifiés : les livres reçus peuvent être des fichiers principaux de groupe
     /// complétés par les autres fichiers, qu'il ne faut pas enregistrer tels quels.
-    private func setPending(_ ids: [Book.ID], _ change: (Date?) -> Date?) {
+    private func mutate(_ ids: [Book.ID], _ change: (inout Book) -> Void) {
         let targets = ids.compactMap(position(of:))
         guard !targets.isEmpty else { return }
-        for i in targets { books[i].pendingSendAt = change(books[i].pendingSendAt) }
+        for i in targets { change(&books[i]) }
         save()
     }
 

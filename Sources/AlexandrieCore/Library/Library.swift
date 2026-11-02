@@ -31,8 +31,20 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var asin: String
     public var lastSentAt: Date?
     public var sentFilename: String?
-    /// En attente d'envoi : la Kindle n'était pas branchée. Le livre part dès qu'elle est connectée.
+    /// En attente d'envoi vers la prochaine Kindle branchée, quelle qu'elle soit (aucune liseuse choisie).
     public var pendingSendAt: Date?
+    /// En attente d'envoi vers une liseuse précise (identifiant → date de la demande).
+    public var pendingFor: [String: Date]?
+    /// Derniers envois, par liseuse.
+    public var sentTo: [String: Date]?
+
+    public var isPendingSend: Bool { pendingSendAt != nil || !(pendingFor ?? [:]).isEmpty }
+
+    /// Date de la demande d'envoi valable pour cette liseuse (nil : pour n'importe laquelle).
+    public func pendingDate(for reader: String?) -> Date? {
+        guard let reader else { return ([pendingSendAt] + (pendingFor.map { Array($0.values) } ?? [])).compactMap { $0 }.min() }
+        return pendingFor?[reader] ?? pendingSendAt
+    }
     /// Dans la corbeille d'Alexandrie : masqué partout, restaurable ; ses fichiers ne bougent pas
     /// avant que la corbeille soit vidée.
     public var trashedAt: Date?

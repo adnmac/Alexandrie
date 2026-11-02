@@ -23,7 +23,7 @@ struct BookDetailView: View {
 
                 transferStatus
 
-                let isPending = library.book(id: draft.id)?.pendingSendAt != nil
+                let isPending = library.book(id: draft.id)?.isPendingSend == true
                 let isTrashed = library.book(id: draft.id)?.trashedAt != nil
                 HStack {
                     if isTrashed {
@@ -44,12 +44,11 @@ struct BookDetailView: View {
                         }
                         .controlSize(.large)
                     } else {
-                        Button {
-                            Task { await kindle.sendOrQueue([draft], library: library) }
-                        } label: {
+                        KindleSendButton(books: [draft]) {
                             Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
                                 .frame(maxWidth: .infinity)
                         }
+                        .menuStyle(.button)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
                         .disabled(kindle.isBusy || !draft.canSendToKindle)
@@ -119,7 +118,12 @@ struct BookDetailView: View {
             // Mise à jour externe (envoi terminé, rescan) sans écraser une saisie en cours.
             guard let new else { return }
             if new.lastSentAt != draft.lastSentAt { draft.lastSentAt = new.lastSentAt; draft.sentFilename = new.sentFilename }
-            if new.pendingSendAt != draft.pendingSendAt { draft.pendingSendAt = new.pendingSendAt }
+            if new.pendingSendAt != draft.pendingSendAt || new.pendingFor != draft.pendingFor {
+                draft.pendingSendAt = new.pendingSendAt
+                draft.pendingFor = new.pendingFor
+            }
+            if new.sentTo != draft.sentTo { draft.sentTo = new.sentTo }
+            if new.shelves != draft.shelves { draft.shelves = new.shelves }
             if new.trashedAt != draft.trashedAt { draft.trashedAt = new.trashedAt }
             if new.catalogCheckedAt != draft.catalogCheckedAt {
                 draft.catalogRecord = new.catalogRecord
@@ -240,7 +244,8 @@ struct MultiSelectionView: View {
             if epubs > 0 {
                 Text("\(epubs) EPUB seront convertis en AZW3.").foregroundStyle(.secondary)
             }
-            Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue(books, library: library) } }
+            KindleSendButton(books: books) { Text(KindleSendLabel.title(kindle)) }
+                .menuStyle(.button)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .disabled(kindle.isBusy || !books.contains(where: \.canSendToKindle))

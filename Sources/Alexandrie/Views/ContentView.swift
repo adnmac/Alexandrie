@@ -173,9 +173,7 @@ struct ContentView: View {
                 .disabled(library.trashedBooks.isEmpty)
                 .help("Placer tous les fichiers de la corbeille d'Alexandrie dans la Corbeille de macOS")
             }
-            Button {
-                Task { await kindle.sendOrQueue(selected, library: library) }
-            } label: {
+            KindleSendButton(books: selected) {
                 Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
             }
             .disabled(!selected.contains(where: \.canSendToKindle) || kindle.isBusy || sidebar == .trash)
@@ -201,7 +199,7 @@ struct ContentView: View {
             let limit = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast
             list = list.filter { $0.addedAt >= limit }
         case .sent: list = list.filter { $0.lastSentAt != nil }
-        case .pending: list = list.filter { $0.pendingSendAt != nil }
+        case .pending: list = list.filter(\.isPendingSend)
         case .shelf(let reader): list = list.filter { $0.shelfIDs.contains(reader) }
         case .toReview: list = list.filter { !$0.catalogSuggestions.isEmpty }
         case .series(let key):
@@ -302,10 +300,35 @@ struct NameReaderSheet: View {
     }
 }
 
+/// Bouton d'envoi : envoi immédiat si la Kindle est branchée ; sinon mise en attente, avec le choix
+/// de la liseuse quand plusieurs sont connues.
+struct KindleSendButton<Content: View>: View {
+    @Environment(LibraryStore.self) private var library
+    @Environment(KindleMonitor.self) private var kindle
+    let books: [Book]
+    @ViewBuilder let label: () -> Content
+
+    var body: some View {
+        if kindle.isConnected || kindle.readers.count < 2 {
+            Button { Task { await kindle.sendOrQueue(books, library: library) } } label: { label() }
+        } else {
+            Menu {
+                Section("Envoyer à la connexion de") {
+                    ForEach(kindle.readers) { reader in
+                        Button(reader.name) { library.queueForKindle(books, reader: reader.id) }
+                    }
+                }
+            } label: { label() }
+        }
+    }
+}
+
 /// Libellé des boutons d'envoi : envoi immédiat, ou mise en attente si la Kindle est débranchée.
 enum KindleSendLabel {
     @MainActor static func title(_ kindle: KindleMonitor) -> String {
-        kindle.isConnected ? "Envoyer à la Kindle" : "Envoyer à la connexion"
+        if kindle.isConnected { return kindle.currentReader.map { "Envoyer sur « \($0.name) »" } ?? "Envoyer à la Kindle" }
+        if kindle.readers.count == 1 { return "Envoyer à la connexion de « \(kindle.readers[0].name) »" }
+        return "Envoyer à la connexion"
     }
     @MainActor static func icon(_ kindle: KindleMonitor) -> String {
         kindle.isConnected ? "arrow.down.to.line.compact" : "clock.arrow.circlepath"

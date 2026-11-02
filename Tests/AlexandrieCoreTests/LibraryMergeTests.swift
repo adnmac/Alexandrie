@@ -207,3 +207,30 @@ func tempDirectory() -> URL {
         #expect(loaded.first?.shelfIDs.isEmpty == true)
     }
 }
+
+@Suite struct ReaderQueueTests {
+    @Test func pendingDatePerReader() throws {
+        var book = try SampleLibrary().index("Candide.epub")
+        #expect(!book.isPendingSend)
+        book.pendingFor = ["vol:LEA": Date(timeIntervalSince1970: 20)]
+        #expect(book.isPendingSend)
+        #expect(book.pendingDate(for: "vol:LEA") == Date(timeIntervalSince1970: 20))
+        #expect(book.pendingDate(for: "mtp:PAUL") == nil)
+        #expect(book.pendingDate(for: nil) == Date(timeIntervalSince1970: 20))
+        // Attente sans liseuse choisie (ancienne file) : valable pour toutes, la plus ancienne date compte.
+        book.pendingSendAt = Date(timeIntervalSince1970: 10)
+        #expect(book.pendingDate(for: "mtp:PAUL") == Date(timeIntervalSince1970: 10))
+        #expect(book.pendingDate(for: nil) == Date(timeIntervalSince1970: 10))
+    }
+
+    @Test func queueAndSentMarksSurviveReread() throws {
+        let lib = SampleLibrary()
+        var book = try lib.index("Candide.epub")
+        book.pendingFor = ["vol:LEA": Date(timeIntervalSince1970: 1)]
+        book.sentTo = ["mtp:PAUL": Date(timeIntervalSince1970: 2)]
+        var fresh = try lib.index("Candide.epub")
+        LibraryMerge.carryOver(from: book, to: &fresh)
+        #expect(fresh.pendingFor == book.pendingFor)
+        #expect(fresh.sentTo == book.sentTo)
+    }
+}

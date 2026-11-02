@@ -96,7 +96,7 @@ struct LibraryView: View {
                     if (r.group?.books ?? [r.book]).contains(where: kindle.isOnDevice) {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help("Sur la Kindle")
                     }
-                    if (r.group?.books ?? [r.book]).contains(where: { $0.pendingSendAt != nil }) {
+                    if (r.group?.books ?? [r.book]).contains(where: \.isPendingSend) {
                         Image(systemName: "clock.arrow.circlepath").foregroundStyle(.blue)
                             .help("En attente d'envoi : partira dès que la Kindle sera branchée")
                     }
@@ -185,7 +185,7 @@ struct BookCard: View {
                     .padding(4).background(.ultraThinMaterial, in: Circle())
                     .help("Le catalogue propose des corrections")
             }
-            if book.pendingSendAt != nil {
+            if book.isPendingSend {
                 Image(systemName: "clock.arrow.circlepath").font(.caption)
                     .foregroundStyle(.blue)
                     .padding(4).background(.ultraThinMaterial, in: Circle())
@@ -335,10 +335,10 @@ struct BookActions: View {
     }
 
     @ViewBuilder private var libraryActions: some View {
-        let isPending = library.book(id: book.id)?.pendingSendAt != nil
+        let isPending = library.book(id: book.id)?.isPendingSend == true
         // Déjà en attente et Kindle débranchée : le remettre en attente n'aurait aucun effet.
         if !(isPending && !kindle.isConnected) {
-            Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue([book], library: library) } }
+            KindleSendButton(books: [book]) { Text(KindleSendLabel.title(kindle)) }
                 .disabled(kindle.isBusy || !book.canSendToKindle)
         }
         ShelfActions(books: [book])

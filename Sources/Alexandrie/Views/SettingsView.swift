@@ -5,6 +5,7 @@ import SwiftUI
 /// Liseuse dans les réglages : renommer, oublier.
 struct ReaderRow: View {
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(LibraryStore.self) private var library
     let reader: Reader
     @State private var name = ""
 
@@ -17,8 +18,11 @@ struct ReaderRow: View {
                 }
                 Text("vue le \(reader.lastSeenAt.formatted(date: .abbreviated, time: .omitted))")
                     .font(.caption).foregroundStyle(.secondary)
-                Button("Oublier", role: .destructive) { kindle.forget(reader.id) }
-                    .help("Oublier cette liseuse : elle sera de nouveau nommée à sa prochaine connexion")
+                Button("Oublier", role: .destructive) {
+                    library.clearShelf(reader.id)
+                    kindle.forget(reader.id)
+                }
+                .help("Oublier cette liseuse et vider son étagère (aucun livre n'est supprimé) ; elle sera de nouveau nommée à sa prochaine connexion")
             }
         } label: {
             TextField("Nom", text: $name).onSubmit { kindle.rename(reader.id, to: name) }

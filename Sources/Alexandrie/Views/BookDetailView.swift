@@ -248,6 +248,10 @@ struct MultiSelectionView: View {
                 Text("La Kindle n'est pas branchée : ces livres partiront dès sa connexion.")
                     .font(.caption).foregroundStyle(.secondary)
             }
+            if !kindle.readers.isEmpty {
+                Menu("Étagères") { ShelfActions(books: books) }
+                    .fixedSize()
+            }
             let done = books.filter { kindle.transfers[$0.id] == .done }.count
             let failed = books.filter { if case .failed = kindle.transfers[$0.id] { true } else { false } }.count
             if done + failed > 0 {

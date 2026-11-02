@@ -456,12 +456,58 @@ final class LibraryStore {
         var book = book
         book.pendingSendAt = books[i].pendingSendAt
         book.trashedAt = books[i].trashedAt
+        book.shelves = books[i].shelves
         books[i] = book
         for j in siblingPositions {
             books[j].edits = book.edits
             books[j].tags = book.tags
         }
         save()
+    }
+
+    // MARK: - Étagères des liseuses
+
+    /// Livres d'une étagère (copies en double et corbeille exclues).
+    func shelfBooks(_ reader: Reader.ID) -> [Book] {
+        visibleBooks.filter { $0.shelfIDs.contains(reader) }
+    }
+
+    /// Nombre de livres (et non de fichiers) d'une étagère.
+    func shelfCount(_ reader: Reader.ID) -> Int {
+        let ids = identities
+        return Set(shelfBooks(reader).map { ids[$0.id] ?? BookGroups.key($0) }).count
+    }
+
+    /// Une étagère concerne le livre entier : tous ses fichiers, copies masquées comprises.
+    func addToShelf(_ books: [Book], reader: Reader.ID) {
+        setShelf(books, reader: reader, on: true)
+    }
+
+    /// Retire de l'étagère sans rien supprimer, ni de la bibliothèque ni de la Kindle.
+    func removeFromShelf(_ books: [Book], reader: Reader.ID) {
+        setShelf(books, reader: reader, on: false)
+    }
+
+    /// Liseuse oubliée : son étagère disparaît.
+    func clearShelf(_ reader: Reader.ID) {
+        for i in books.indices where books[i].shelfIDs.contains(reader) {
+            books[i].shelves?.remove(reader)
+        }
+        save()
+    }
+
+    private func setShelf(_ selection: [Book], reader: Reader.ID, on: Bool) {
+        let ids = identities
+        let keys = Set(selection.map { ids[$0.id] ?? BookGroups.key($0) })
+        var changed = false
+        for i in books.indices where keys.contains(ids[books[i].id] ?? BookGroups.key(books[i]))
+            && books[i].shelfIDs.contains(reader) != on {
+            var shelves = books[i].shelfIDs
+            if on { shelves.insert(reader) } else { shelves.remove(reader) }
+            books[i].shelves = shelves.isEmpty ? nil : shelves
+            changed = true
+        }
+        if changed { save() }
     }
 
     // MARK: - File d'envoi (Kindle débranchée)

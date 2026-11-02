@@ -8,6 +8,8 @@ enum SidebarItem: Hashable {
     case pending
     /// Corbeille d'Alexandrie.
     case trash
+    /// Étagère d'une liseuse (identifiant de la Kindle).
+    case shelf(String)
     case format(BookFormat)
     /// Clé de regroupement (voir `AuthorNames`), pas une graphie particulière.
     case author(String)
@@ -200,6 +202,7 @@ struct ContentView: View {
             list = list.filter { $0.addedAt >= limit }
         case .sent: list = list.filter { $0.lastSentAt != nil }
         case .pending: list = list.filter { $0.pendingSendAt != nil }
+        case .shelf(let reader): list = list.filter { $0.shelfIDs.contains(reader) }
         case .toReview: list = list.filter { !$0.catalogSuggestions.isEmpty }
         case .series(let key):
             // Classement par numéro de tome, les livres sans numéro à la fin.
@@ -249,8 +252,15 @@ struct ContentView: View {
 /// Première connexion d'une Kindle : son nom de liseuse.
 struct NameReaderSheet: View {
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(LibraryStore.self) private var library
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
+    @State private var adoptExisting = true
+
+    /// Livres de la bibliothèque déjà présents sur cette Kindle.
+    private var booksOnDevice: [Book] {
+        kindle.documents.compactMap { kindle.libraryBook(for: $0, in: library) }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -261,6 +271,11 @@ struct NameReaderSheet: View {
             TextField("Nom", text: $name, prompt: Text("ex. Kindle de Léa"))
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(save)
+            let onDevice = booksOnDevice.count
+            if onDevice > 0 {
+                Toggle("Ajouter à son étagère les \(onDevice) livres de la bibliothèque déjà présents sur cette Kindle",
+                       isOn: $adoptExisting)
+            }
             HStack {
                 Spacer()
                 Button("Plus tard") {
@@ -278,7 +293,11 @@ struct NameReaderSheet: View {
     }
 
     private func save() {
+        let existing = adoptExisting ? booksOnDevice : []
         kindle.nameCurrentReader(name)
+        if let reader = kindle.currentReader, !existing.isEmpty {
+            library.addToShelf(existing, reader: reader.id)
+        }
         dismiss()
     }
 }

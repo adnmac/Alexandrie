@@ -280,6 +280,32 @@ struct CoverImage: View {
     }
 }
 
+/// Ajout aux étagères des liseuses et retrait de l'étagère affichée (menu d'un livre, sélection multiple).
+struct ShelfActions: View {
+    @Environment(LibraryStore.self) private var library
+    @Environment(KindleMonitor.self) private var kindle
+    @Environment(\.libraryList) private var list
+    let books: [Book]
+
+    var body: some View {
+        let current = books.compactMap { library.book(id: $0.id) }
+        let available = kindle.readers.filter { r in !current.allSatisfy { $0.shelfIDs.contains(r.id) } }
+        if available.count == 1, let reader = available.first {
+            Button("Ajouter à l'étagère « \(reader.name) »") { library.addToShelf(books, reader: reader.id) }
+        } else if available.count > 1 {
+            Menu("Ajouter à l'étagère") {
+                ForEach(available) { reader in
+                    Button(reader.name) { library.addToShelf(books, reader: reader.id) }
+                }
+            }
+        }
+        if case .shelf(let id) = list, let reader = kindle.readers.first(where: { $0.id == id }),
+           current.contains(where: { $0.shelfIDs.contains(id) }) {
+            Button("Retirer de l'étagère « \(reader.name) »") { library.removeFromShelf(books, reader: id) }
+        }
+    }
+}
+
 /// Actions communes (menu contextuel et fiche).
 struct BookActions: View {
     @Environment(LibraryStore.self) private var library
@@ -315,6 +341,7 @@ struct BookActions: View {
             Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue([book], library: library) } }
                 .disabled(kindle.isBusy || !book.canSendToKindle)
         }
+        ShelfActions(books: [book])
         // Retirer d'une liste ne supprime rien : le livre reste dans la bibliothèque.
         if isPending {
             Button("Retirer de la liste « En attente d'envoi »") { library.removeFromKindleQueue([book.id]) }

@@ -65,6 +65,18 @@ struct SidebarView: View {
                 }
             }
 
+            if !kindle.readers.isEmpty {
+                Section("Liseuses") {
+                    ForEach(kindle.readers) { reader in
+                        let connected = kindle.deviceID == reader.id
+                        Label(reader.name, systemImage: connected ? "books.vertical.circle.fill" : "books.vertical.circle")
+                            .badge(library.shelfCount(reader.id))
+                            .tag(SidebarItem.shelf(reader.id))
+                            .help(connected ? "Étagère de \(reader.name) — branchée" : "Étagère de \(reader.name)")
+                    }
+                }
+            }
+
             let formats = BookFormat.allCases.map { f in (f, library.visibleBooks.filter { $0.format == f }.count) }
                 .filter { $0.1 > 0 }
             // Titres en lignes ordinaires plutôt qu'en en-têtes de section : macOS ajoute aux en-têtes

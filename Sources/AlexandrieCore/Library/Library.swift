@@ -36,6 +36,10 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     /// Dans la corbeille d'Alexandrie : masqué partout, restaurable ; ses fichiers ne bougent pas
     /// avant que la corbeille soit vidée.
     public var trashedAt: Date?
+    /// Étagères (identifiants de liseuses) où figure ce livre. Facultatif : les index plus anciens n'en ont pas.
+    public var shelves: Set<String>?
+
+    public var shelfIDs: Set<String> { shelves ?? [] }
     /// Version de l'extraction : un livre indexé par une version antérieure est relu.
     public var metadataVersion: Int?
 

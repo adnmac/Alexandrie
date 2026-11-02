@@ -182,3 +182,28 @@ func tempDirectory() -> URL {
         #expect(FileManager.default.fileExists(atPath: b.path))
     }
 }
+
+@Suite struct ShelfTests {
+    @Test func shelvesSurviveRereadAndRename() throws {
+        let lib = SampleLibrary()
+        var book = try lib.index("Candide.epub")
+        book.shelves = ["vol:LEA", "mtp:PAUL"]
+        var fresh = try lib.index("Candide.epub")
+        LibraryMerge.carryOver(from: book, to: &fresh)
+        #expect(fresh.shelfIDs == ["vol:LEA", "mtp:PAUL"])
+        let renamed = lib.dir.appendingPathComponent("Voltaire - Candide.epub")
+        try FileManager.default.moveItem(at: book.url, to: renamed)
+        let plan = LibraryMerge.plan(files: FolderScanner.scan([lib.dir]), known: [book], importsPath: lib.imports)
+        #expect(plan.kept.first?.shelfIDs == ["vol:LEA", "mtp:PAUL"])
+    }
+
+    @Test func olderIndexWithoutShelvesStillLoads() throws {
+        let lib = SampleLibrary()
+        let book = try lib.index("Candide.epub")
+        let url = lib.dir.appendingPathComponent("library.json")
+        try LibraryIndex.save([book], to: url)
+        #expect(!String(decoding: try Data(contentsOf: url), as: UTF8.self).contains("shelves"))
+        let loaded = try LibraryIndex.load(url)
+        #expect(loaded.first?.shelfIDs.isEmpty == true)
+    }
+}

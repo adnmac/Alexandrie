@@ -22,6 +22,9 @@ void alx_mtp_close(alx_mtp_session *session);
 /// Nom convivial de l'appareil (copié dans buffer).
 void alx_mtp_name(alx_mtp_session *session, char *buffer, size_t length);
 
+/// Numéro de série de l'appareil (chaîne vide si inconnu).
+void alx_mtp_serial(alx_mtp_session *session, char *buffer, size_t length);
+
 /// Espace libre du premier stockage, en octets (-1 si inconnu).
 int64_t alx_mtp_free_space(alx_mtp_session *session);
 

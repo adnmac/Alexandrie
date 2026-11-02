@@ -40,6 +40,8 @@ public enum KindleError: LocalizedError {
 /// Une Kindle branchée, quel que soit le protocole.
 public protocol KindleDevice: AnyObject, Sendable {
     var name: String { get }
+    /// Identifiant stable de l'appareil (« vol:… », « mtp:… ») : reconnaît une liseuse d'une connexion à l'autre.
+    var identifier: String { get }
     var connection: KindleConnection { get }
     func freeSpace() -> Int64?
     func listDocuments() throws -> [KindleDocument]
@@ -76,6 +78,14 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
     }
 
     init(root: URL) { self.root = root }
+
+    /// UUID du volume (les disques FAT des Kindle en ont un, stable tant que l'appareil n'est pas réinitialisé) ;
+    /// à défaut, nom et capacité.
+    public var identifier: String {
+        let v = try? root.resourceValues(forKeys: [.volumeUUIDStringKey, .volumeTotalCapacityKey, .volumeNameKey])
+        if let uuid = v?.volumeUUIDString, !uuid.isEmpty { return "vol:" + uuid }
+        return "vol:\(v?.volumeName ?? root.lastPathComponent)-\(v?.volumeTotalCapacity ?? 0)"
+    }
 
     var documents: URL { root.appendingPathComponent("documents", isDirectory: true) }
 
@@ -203,6 +213,13 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
 public final class MTPKindle: KindleDevice, @unchecked Sendable {
     public let connection = KindleConnection.mtp
     public private(set) var name = "Kindle"
+    private var serial = ""
+
+    /// Numéro de série MTP, lu à la première session (« mtp:kindle » tant qu'il est inconnu).
+    public var identifier: String {
+        if serial.isEmpty { _ = try? withSession { _ in () } }
+        return "mtp:" + (serial.isEmpty ? "kindle" : serial)
+    }
     /// libmtp n'est pas réentrante : toutes les opérations passent par cette file.
     private static let queue = DispatchQueue(label: "alexandrie.mtp")
 
@@ -229,6 +246,10 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
             alx_mtp_name(session, &buffer, buffer.count)
             let n = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
             if !n.isEmpty { name = n }
+            var serialBuffer = [CChar](repeating: 0, count: 256)
+            alx_mtp_serial(session, &serialBuffer, serialBuffer.count)
+            let s = String(decoding: serialBuffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+            if !s.isEmpty { serial = s }
             return try body(session)
         }
     }

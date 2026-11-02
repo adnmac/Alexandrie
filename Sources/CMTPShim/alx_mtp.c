@@ -71,6 +71,7 @@ static struct {
     void (*Release_Device)(LIBMTP_mtpdevice_t *);
     char *(*Get_Friendlyname)(LIBMTP_mtpdevice_t *);
     char *(*Get_Modelname)(LIBMTP_mtpdevice_t *);
+    char *(*Get_Serialnumber)(LIBMTP_mtpdevice_t *);
     int (*Get_Storage)(LIBMTP_mtpdevice_t *, int);
     LIBMTP_file_t *(*Get_Files_And_Folders)(LIBMTP_mtpdevice_t *, uint32_t, uint32_t);
     LIBMTP_file_t *(*new_file_t)(void);
@@ -105,6 +106,8 @@ static void load_library(void) {
     BIND(Release_Device, "LIBMTP_Release_Device")
     BIND(Get_Friendlyname, "LIBMTP_Get_Friendlyname")
     BIND(Get_Modelname, "LIBMTP_Get_Modelname")
+    // Facultatif : une libmtp qui ne l'expose pas reste utilisable.
+    lib.Get_Serialnumber = dlsym(handle, "LIBMTP_Get_Serialnumber");
     BIND(Get_Storage, "LIBMTP_Get_Storage")
     BIND(Get_Files_And_Folders, "LIBMTP_Get_Files_And_Folders")
     BIND(new_file_t, "LIBMTP_new_file_t")
@@ -172,6 +175,14 @@ void alx_mtp_name(alx_mtp_session *session, char *buffer, size_t length) {
     char *name = lib.Get_Friendlyname(session->device);
     if (!name || !*name) { free(name); name = lib.Get_Modelname(session->device); }
     if (name) { strncpy(buffer, name, length - 1); buffer[length - 1] = 0; free(name); }
+}
+
+void alx_mtp_serial(alx_mtp_session *session, char *buffer, size_t length) {
+    if (!length) return;
+    buffer[0] = 0;
+    if (!lib.Get_Serialnumber) return;
+    char *serial = lib.Get_Serialnumber(session->device);
+    if (serial) { strncpy(buffer, serial, length - 1); buffer[length - 1] = 0; free(serial); }
 }
 
 int64_t alx_mtp_free_space(alx_mtp_session *session) {

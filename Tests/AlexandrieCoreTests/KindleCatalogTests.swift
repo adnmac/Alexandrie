@@ -88,3 +88,13 @@ func makeFakeKindle() throws -> URL {
         #expect(book.addedAt == files[0].addedAt)
     }
 }
+
+@Suite struct KindleIdentifierTests {
+    @Test func volumeIdentifierIsStable() {
+        let root = tempDirectory()
+        let a = VolumeKindle(root: root), b = VolumeKindle(root: root)
+        #expect(a.identifier.hasPrefix("vol:"))
+        #expect(a.identifier.count > 4)
+        #expect(a.identifier == b.identifier)
+    }
+}

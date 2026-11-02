@@ -27,5 +27,5 @@ let package = Package(
             dependencies: ["AlexandrieCore"]
         ),
     ],
-    swiftLanguageModes: [.v5]
+    swiftLanguageModes: [.v6]
 )

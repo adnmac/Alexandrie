@@ -203,7 +203,7 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
             defer { alx_mtp_close(session) }
             var buffer = [CChar](repeating: 0, count: 256)
             alx_mtp_name(session, &buffer, buffer.count)
-            let n = String(cString: buffer)
+            let n = String(decoding: buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
             if !n.isEmpty { name = n }
             return try body(session)
         }

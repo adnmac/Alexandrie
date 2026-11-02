@@ -194,18 +194,20 @@ struct ContentView: View {
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
-        let group = DispatchGroup()
-        var urls: [URL] = []
-        let lock = NSLock()
-        for p in providers {
-            group.enter()
-            _ = p.loadObject(ofClass: URL.self) { url, _ in
-                if let url { lock.lock(); urls.append(url); lock.unlock() }
-                group.leave()
+        Task {
+            var urls: [URL] = []
+            for p in providers {
+                if let url = await Self.loadURL(p) { urls.append(url) }
             }
+            library.importFiles(urls)
         }
-        group.notify(queue: .main) { library.importFiles(urls) }
         return true
+    }
+
+    private static func loadURL(_ provider: NSItemProvider) async -> URL? {
+        await withCheckedContinuation { continuation in
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
+        }
     }
 }
 

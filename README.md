@@ -44,6 +44,10 @@ Tout ce que l'app produit est dans `~/Library/Application Support/Alexandrie/` :
 | `Conversions/` | AZW3 et EPUB convertis (cache) |
 | `Imports/` | livres ajoutés par glisser-déposer ou « Importer » |
 
+Les couvertures et conversions qui ne servent plus sont supprimées après chaque rescan ; les réglages affichent
+la taille de ces caches et permettent de vider les conversions. Un `library.json` illisible n'est jamais écrasé :
+il est renommé en `library.corrupt-<date>.json` et la bibliothèque est réindexée (les retouches restent dans ce fichier).
+
 ## Architecture
 
 - `Sources/AlexandrieCore` : logique sans interface (testable)

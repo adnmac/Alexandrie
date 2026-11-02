@@ -46,8 +46,8 @@ import Testing
     }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"] != nil))
-    func realLibrarySeries() {
-        var books = LibraryIndex.load(URL(fileURLWithPath: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"]!))
+    func realLibrarySeries() throws {
+        var books = try LibraryIndex.load(URL(fileURLWithPath: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"]!))
         for i in books.indices { (books[i].series, books[i].seriesIndex) = SeriesNames.normalized(books[i].series, books[i].seriesIndex) }
         let groups = SeriesNames.groups(books)
         print("📚 \(groups.count) séries ; \(books.filter { $0.seriesHint != nil }.count) fichiers avec une proposition tirée du titre")

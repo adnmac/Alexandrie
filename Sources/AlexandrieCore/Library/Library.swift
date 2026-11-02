@@ -191,15 +191,27 @@ public struct CoverStore: Sendable {
 
 /// Persistance de l'index en JSON.
 public enum LibraryIndex {
-    public static func load(_ url: URL) -> [Book] {
-        guard let data = try? Data(contentsOf: url) else { return [] }
-        let decoder = JSONDecoder()
-        return (try? decoder.decode([Book].self, from: data)) ?? []
+    /// Index absent : bibliothèque vide. Index illisible : erreur, pour ne jamais l'écraser par une liste vide.
+    public static func load(_ url: URL) throws -> [Book] {
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        return try JSONDecoder().decode([Book].self, from: Data(contentsOf: url))
     }
 
     public static func save(_ books: [Book], to url: URL) throws {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = .sortedKeys
         try encoder.encode(books).write(to: url, options: .atomic)
+    }
+
+    /// Met de côté un index illisible (library.corrupt-AAAAMMJJ-HHMMSS.json) et renvoie son nouvel emplacement.
+    @discardableResult
+    public static func quarantine(_ url: URL, now: Date = Date()) throws -> URL {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyyMMdd-HHmmss"
+        let target = url.deletingLastPathComponent()
+            .appendingPathComponent("\(url.deletingPathExtension().lastPathComponent).corrupt-\(f.string(from: now)).json")
+        try FileManager.default.moveItem(at: url, to: target)
+        return target
     }
 }

@@ -1,4 +1,5 @@
 import AlexandrieCore
+import AppKit
 import Foundation
 import Observation
 
@@ -15,11 +16,21 @@ final class LibraryStore {
 
     @ObservationIgnored private var watcher: FolderWatcher?
     @ObservationIgnored private var rescanPending = false
+    @ObservationIgnored private var saveTask: Task<Void, Never>?
+    /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
+    @ObservationIgnored private let writeQueue = DispatchQueue(label: "alexandrie.index", qos: .utility)
     private static let bookmarkKey = "libraryFolderBookmark"
 
     init() {
         covers = CoverStore(directory: directories.covers)
-        books = LibraryIndex.load(directories.index)
+        do {
+            books = try LibraryIndex.load(directories.index)
+        } catch {
+            // Index illisible : mis de côté plutôt qu'écrasé, la bibliothèque est réindexée.
+            let moved = try? LibraryIndex.quarantine(directories.index)
+            lastError = "Index de la bibliothèque illisible (\(error.localizedDescription)). "
+                + (moved.map { "Il a été mis de côté sous « \($0.lastPathComponent) »." } ?? "")
+        }
         // Séries enregistrées avec leur numéro (« Brunetti 8 ») : nom et numéro séparés une fois pour toutes.
         var changed = false
         for i in books.indices {
@@ -32,6 +43,10 @@ final class LibraryStore {
         if changed { save() }
         rootURL = Self.restoreBookmark()
         startWatching()
+        NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
+                                               queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.saveNow() }
+        }
         Task { await rescan() }
     }
 
@@ -52,7 +67,13 @@ final class LibraryStore {
     private static func restoreBookmark() -> URL? {
         guard let data = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
         var stale = false
-        return try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
+        guard let url = try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
+        else { return nil }
+        // Dossier déplacé ou renommé : le signet est renouvelé pour rester valable.
+        if stale, let fresh = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+            UserDefaults.standard.set(fresh, forKey: bookmarkKey)
+        }
+        return url
     }
 
     private var roots: [URL] {
@@ -83,53 +104,34 @@ final class LibraryStore {
             }
         }
         let roots = self.roots
-        let files = await Task.detached { FolderScanner.scan(roots) }.value
-        let known = Dictionary(books.map { ($0.path, $0) }, uniquingKeysWith: { a, _ in a })
-        var result: [Book] = []
-        var changed: [ScannedFile] = []
-        for f in files {
-            if var b = known[f.url.path], b.fileSize == f.size,
-               abs(b.modifiedAt.timeIntervalSince(f.modifiedAt)) < 1,
-               b.metadataVersion == Book.currentMetadataVersion {
-                // La date d'ajout suit le fichier (corrige aussi les livres datés de leur indexation).
-                b.addedAt = f.addedAt
-                result.append(b)
-            } else {
-                changed.append(f)
-            }
-        }
-        // Publie tout de suite les livres connus, puis complète au fil de l'extraction.
-        books = result
-        progress = changed.isEmpty ? nil : (0, changed.count)
+        let known = books
         let importsPath = directories.imports.path
+        let plan = await Task.detached {
+            LibraryMerge.plan(files: FolderScanner.scan(roots), known: known, importsPath: importsPath)
+        }.value
+        // Publie tout de suite les livres connus (avec les retouches faites pendant le parcours), puis complète au fil de l'extraction.
+        let current = Dictionary(books.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        books = plan.kept.map { b in
+            guard var edited = current[b.id] else { return b }
+            edited.addedAt = b.addedAt
+            return edited
+        }
+        progress = plan.changed.isEmpty ? nil : (0, plan.changed.count)
         let covers = self.covers
         var newBooks: [Book.ID] = []
-        for (i, f) in changed.enumerated() {
+        for (i, item) in plan.changed.enumerated() {
+            let f = item.file
             let imported = f.url.path.hasPrefix(importsPath)
             var book = await Task.detached(priority: .utility) {
                 FolderScanner.makeBook(f, imported: imported, coverStore: covers)
             }.value
-            if let previous = known[f.url.path] {
-                // Fichier modifié ou index plus ancien : les retouches faites dans l'app restent prioritaires.
-                book.title = previous.title
-                book.authors = previous.authors
-                book.publisher = previous.publisher ?? book.publisher
-                book.language = previous.language ?? book.language
-                book.summary = previous.summary ?? book.summary
-                book.publishedDate = previous.publishedDate ?? book.publishedDate
-                book.isbn = previous.isbn ?? book.isbn
-                book.catalogRecord = previous.catalogRecord
-                book.catalogCheckedAt = previous.catalogCheckedAt
-                book.catalogDismissed = previous.catalogDismissed
-                book.tags = previous.tags
-                book.asin = previous.asin
-                book.lastSentAt = previous.lastSentAt
-                book.sentFilename = previous.sentFilename
+            if let previous = item.previous {
+                LibraryMerge.carryOver(from: previous, to: &book)
             } else if autoCheckCatalog {
                 newBooks.append(book.id)
             }
             books.append(book)
-            progress = (i + 1, changed.count)
+            progress = (i + 1, plan.changed.count)
         }
         save()
         checkCatalog(newBooks)
@@ -200,12 +202,40 @@ final class LibraryStore {
         update(book)
     }
 
+    /// Enregistrement différé : une saisie dans la fiche ne réécrit l'index qu'après une courte pause.
     func save() {
-        do {
-            try LibraryIndex.save(books, to: directories.index)
-        } catch {
-            lastError = "Impossible d'enregistrer l'index : \(error.localizedDescription)"
+        saveTask?.cancel()
+        saveTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            self?.saveTask = nil
+            self?.write(sync: false)
         }
+    }
+
+    /// Écrit tout de suite un enregistrement en attente (fermeture de l'app).
+    func saveNow() {
+        if let pending = saveTask {
+            pending.cancel()
+            saveTask = nil
+            write(sync: true)
+        } else {
+            writeQueue.sync {}  // laisse finir une écriture déjà lancée
+        }
+    }
+
+    private func write(sync: Bool) {
+        let books = self.books
+        let url = directories.index
+        let work: @Sendable () -> Void = { [weak self] in
+            do {
+                try LibraryIndex.save(books, to: url)
+            } catch {
+                let message = "Impossible d'enregistrer l'index : \(error.localizedDescription)"
+                Task { @MainActor in self?.lastError = message }
+            }
+        }
+        if sync { writeQueue.sync(execute: work) } else { writeQueue.async(execute: work) }
     }
 
     func book(id: Book.ID?) -> Book? {
@@ -259,7 +289,14 @@ final class LibraryStore {
     /// Retire un livre importé (seuls les imports, propriété de l'app, peuvent être supprimés).
     func removeImported(_ book: Book) {
         guard book.isImported else { return }
-        try? FileManager.default.removeItem(at: book.url)
+        do {
+            try FileManager.default.removeItem(at: book.url)
+        } catch CocoaError.fileNoSuchFile {
+            // Déjà absent : il suffit de le retirer de l'index.
+        } catch {
+            lastError = "Suppression impossible de « \(book.url.lastPathComponent) » : \(error.localizedDescription)"
+            return
+        }
         books.removeAll { $0.id == book.id }
         save()
     }

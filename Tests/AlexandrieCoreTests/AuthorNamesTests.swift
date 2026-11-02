@@ -34,7 +34,7 @@ import Testing
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"] != nil))
     func realLibrary() throws {
         let url = URL(fileURLWithPath: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"]!)
-        let books = LibraryIndex.load(url)
+        let books = try LibraryIndex.load(url)
         let raw = Set(books.flatMap(\.authors))
         let groups = AuthorNames.groups(books)
         print("📚 \(books.count) livres : \(raw.count) graphies → \(groups.count) auteurs")
@@ -76,8 +76,8 @@ import Testing
     }
 
     @Test(.enabled(if: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"] != nil))
-    func realLibraryGroups() {
-        let books = LibraryIndex.load(URL(fileURLWithPath: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"]!))
+    func realLibraryGroups() throws {
+        let books = try LibraryIndex.load(URL(fileURLWithPath: ProcessInfo.processInfo.environment["ALEXANDRIE_LIBRARY_INDEX"]!))
         let groups = BookGroups.make(books)
         print("📚 \(books.count) fichiers → \(groups.count) livres (\(groups.filter(\.isGroup).count) en plusieurs fichiers)")
         for g in groups.filter(\.isGroup).prefix(6) {

@@ -6,6 +6,8 @@ enum SidebarItem: Hashable {
     case all, recent, sent, toReview, kindle
     /// Livres en attente d'envoi (Kindle débranchée).
     case pending
+    /// Corbeille d'Alexandrie.
+    case trash
     case format(BookFormat)
     /// Clé de regroupement (voir `AuthorNames`), pas une graphie particulière.
     case author(String)
@@ -154,12 +156,23 @@ struct ContentView: View {
             .help(sidebar == .recent ? "Les ajouts récents sont toujours classés du plus récent au plus ancien"
                   : isSeriesSelected ? "Les livres d'une série sont classés par numéro" : "Trier")
 
+            if sidebar == .trash {
+                Button {
+                    if Panels.confirmEmptyTrash(fileCount: library.trashedBooks.count) {
+                        Task { await library.emptyTrash() }
+                    }
+                } label: {
+                    Label("Vider la corbeille…", systemImage: "trash.slash")
+                }
+                .disabled(library.trashedBooks.isEmpty)
+                .help("Placer tous les fichiers de la corbeille d'Alexandrie dans la Corbeille de macOS")
+            }
             Button {
                 Task { await kindle.sendOrQueue(selected, library: library) }
             } label: {
                 Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
             }
-            .disabled(!selected.contains(where: \.canSendToKindle) || kindle.isBusy)
+            .disabled(!selected.contains(where: \.canSendToKindle) || kindle.isBusy || sidebar == .trash)
             .help(kindle.isConnected ? "Envoyer la sélection sur la Kindle"
                   : "La Kindle n'est pas branchée : la sélection sera envoyée dès sa connexion")
         }
@@ -176,7 +189,7 @@ struct ContentView: View {
     }
 
     private var filteredBooks: [Book] {
-        var list = library.visibleBooks
+        var list = sidebar == .trash ? library.trashedBooks : library.visibleBooks
         switch sidebar {
         case .recent:
             let limit = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast

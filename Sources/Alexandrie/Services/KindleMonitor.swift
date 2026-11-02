@@ -137,7 +137,7 @@ final class KindleMonitor {
             lastError = KindleError.notConnected.localizedDescription
             return
         }
-        let sendable = books.filter(\.canSendToKindle)
+        let sendable = books.filter { $0.canSendToKindle && $0.trashedAt == nil }
         for b in sendable { transfers[b.id] = .queued }
         isBusy = true
         defer { isBusy = false }

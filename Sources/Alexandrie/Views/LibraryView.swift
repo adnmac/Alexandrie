@@ -288,6 +288,27 @@ struct BookActions: View {
     let book: Book
 
     var body: some View {
+        if list == .trash || library.book(id: book.id)?.trashedAt != nil {
+            trashActions
+        } else {
+            libraryActions
+        }
+    }
+
+    /// Livre dans la corbeille : le restaurer, ou placer ses fichiers dans la Corbeille de macOS.
+    @ViewBuilder private var trashActions: some View {
+        Button("Restaurer") { library.restoreFromTrash(book) }
+        Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
+        Divider()
+        Button("Supprimer définitivement…", role: .destructive) {
+            let files = library.trashedFiles(of: book)
+            if Panels.confirmDeletePermanently(book, fileCount: files.count) {
+                Task { await library.deletePermanently(files) }
+            }
+        }
+    }
+
+    @ViewBuilder private var libraryActions: some View {
         let isPending = library.book(id: book.id)?.pendingSendAt != nil
         // Déjà en attente et Kindle débranchée : le remettre en attente n'aurait aucun effet.
         if !(isPending && !kindle.isConnected) {
@@ -308,13 +329,11 @@ struct BookActions: View {
         Divider()
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         Button("Ouvrir") { NSWorkspace.shared.open(book.url) }
-        // Supprimer un fichier ne se fait que depuis « Tous les livres » : dans les autres listes
+        // Mettre à la corbeille ne se fait que depuis « Tous les livres » : dans les autres listes
         // (envoyés, en attente…), le menu ne propose que de retirer le livre de la liste.
-        if book.isImported, list == .all {
+        if list == .all {
             Divider()
-            Button("Supprimer définitivement le fichier importé…", role: .destructive) {
-                if Panels.confirmRemoveImported(book) { library.removeImported(book) }
-            }
+            Button("Mettre à la corbeille") { library.moveToTrash(book) }
         }
     }
 }

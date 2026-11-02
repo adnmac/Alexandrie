@@ -72,16 +72,63 @@ final class LibraryStore {
     /// Fichiers masqués : même livre, même format qu'un fichier gardé (voir `BookGroups.duplicates`).
     var hiddenDuplicates: Set<Book.ID> {
         let books = self.books
-        if duplicateIDs == nil { duplicateIDs = BookGroups.duplicates(books) }
+        if duplicateIDs == nil { duplicateIDs = BookGroups.duplicates(books.filter { $0.trashedAt == nil }) }
         return duplicateIDs ?? []
     }
 
     /// Livres affichés, comptés et vérifiés en ligne. L'envoi et la reconnaissance des livres
     /// de la Kindle passent, eux, par tous les fichiers.
     var visibleBooks: [Book] {
-        guard !showDuplicates else { return books }
-        let hidden = hiddenDuplicates
-        return hidden.isEmpty ? books : books.filter { !hidden.contains($0.id) }
+        let hidden = showDuplicates ? [] : hiddenDuplicates
+        return books.filter { $0.trashedAt == nil && !hidden.contains($0.id) }
+    }
+
+    // MARK: - Corbeille d'Alexandrie
+
+    /// Fichiers dans la corbeille : masqués partout ailleurs, restaurables.
+    var trashedBooks: [Book] { books.filter { $0.trashedAt != nil } }
+
+    /// Met le livre entier à la corbeille (tous ses fichiers, copies masquées comprises) ; rien ne bouge sur le disque.
+    func moveToTrash(_ book: Book) {
+        let key = BookGroups.key(book), now = Date()
+        for i in books.indices where books[i].trashedAt == nil && BookGroups.key(books[i]) == key {
+            books[i].trashedAt = now
+            books[i].pendingSendAt = nil
+        }
+        save()
+    }
+
+    func restoreFromTrash(_ book: Book) {
+        let key = BookGroups.key(book)
+        for i in books.indices where books[i].trashedAt != nil && BookGroups.key(books[i]) == key {
+            books[i].trashedAt = nil
+        }
+        save()
+    }
+
+    /// Fichiers d'un livre de la corbeille.
+    func trashedFiles(of book: Book) -> [Book] {
+        let key = BookGroups.key(book)
+        return books.filter { $0.trashedAt != nil && BookGroups.key($0) == key }
+    }
+
+    /// Place les fichiers dans la Corbeille de macOS et les retire de la bibliothèque.
+    /// Un fichier qui ne peut pas être déplacé reste dans la corbeille d'Alexandrie.
+    func deletePermanently(_ files: [Book]) async {
+        let files = files.filter { $0.trashedAt != nil }
+        guard !files.isEmpty else { return }
+        let result = await Task.detached(priority: .userInitiated) { LibraryTrash.empty(files) }.value
+        let removed = Set(result.removed)
+        books.removeAll { removed.contains($0.id) }
+        save()
+        if let first = result.failures.first {
+            lastError = "\(result.failures.count) fichier(s) n'ont pas pu être placés dans la Corbeille de macOS "
+                + "et restent dans celle d'Alexandrie. Premier : « \((first.path as NSString).lastPathComponent) » — \(first.reason)"
+        }
+    }
+
+    func emptyTrash() async {
+        await deletePermanently(trashedBooks)
     }
 
     /// Copies masquées d'un livre (même clé de regroupement).
@@ -367,9 +414,10 @@ final class LibraryStore {
     func update(_ book: Book, propagatingTo siblings: [Book.ID]) {
         guard let i = position(of: book.id) else { return }
         let siblingPositions = siblings.filter { $0 != book.id }.compactMap(position(of:))
-        // L'attente d'envoi ne change que par la file (ajout, retrait, envoi réussi), jamais par une fiche ouverte avant.
+        // L'attente d'envoi et la corbeille ne changent que par leurs propres actions, jamais par une fiche ouverte avant.
         var book = book
         book.pendingSendAt = books[i].pendingSendAt
+        book.trashedAt = books[i].trashedAt
         books[i] = book
         for j in siblingPositions {
             books[j].edits = book.edits
@@ -382,12 +430,12 @@ final class LibraryStore {
 
     /// Livres à envoyer dès que la Kindle sera branchée, dans l'ordre où ils ont été demandés.
     var pendingSends: [Book] {
-        books.filter { $0.pendingSendAt != nil }.sorted { $0.pendingSendAt! < $1.pendingSendAt! }
+        books.filter { $0.pendingSendAt != nil && $0.trashedAt == nil }.sorted { $0.pendingSendAt! < $1.pendingSendAt! }
     }
 
     func queueForKindle(_ books: [Book]) {
         let now = Date()
-        setPending(books.filter(\.canSendToKindle).map(\.id)) { $0 ?? now }
+        setPending(books.filter { $0.canSendToKindle && $0.trashedAt == nil }.map(\.id)) { $0 ?? now }
     }
 
     func removeFromKindleQueue(_ ids: [Book.ID]) {
@@ -439,21 +487,6 @@ final class LibraryStore {
             lastError = "Aucun fichier pris en charge (EPUB, MOBI, AZW3, AZW, PDF)."
         }
         Task { await rescan() }
-    }
-
-    /// Retire un livre importé (seuls les imports, propriété de l'app, peuvent être supprimés).
-    func removeImported(_ book: Book) {
-        guard book.isImported else { return }
-        do {
-            try FileManager.default.removeItem(at: book.url)
-        } catch CocoaError.fileNoSuchFile {
-            // Déjà absent : il suffit de le retirer de l'index.
-        } catch {
-            lastError = "Suppression impossible de « \(book.url.lastPathComponent) » : \(error.localizedDescription)"
-            return
-        }
-        books.removeAll { $0.id == book.id }
-        save()
     }
 
     func coverURL(_ book: Book) -> URL? {

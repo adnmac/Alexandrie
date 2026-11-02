@@ -33,6 +33,9 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var sentFilename: String?
     /// En attente d'envoi : la Kindle n'était pas branchée. Le livre part dès qu'elle est connectée.
     public var pendingSendAt: Date?
+    /// Dans la corbeille d'Alexandrie : masqué partout, restaurable ; ses fichiers ne bougent pas
+    /// avant que la corbeille soit vidée.
+    public var trashedAt: Date?
     /// Version de l'extraction : un livre indexé par une version antérieure est relu.
     public var metadataVersion: Int?
 

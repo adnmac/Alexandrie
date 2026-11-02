@@ -66,19 +66,29 @@ enum Panels {
         if panel.runModal() == .OK { library.importFiles(panel.urls) }
     }
 
-    /// Confirmation avant de supprimer un livre importé (copie dans le dossier de l'app).
-    static func confirmRemoveImported(_ book: Book) -> Bool {
+    /// Confirmation avant de placer les fichiers d'un livre de la corbeille dans la Corbeille de macOS.
+    static func confirmDeletePermanently(_ book: Book, fileCount: Int) -> Bool {
+        confirm(title: "Supprimer définitivement « \(book.title) » ?",
+                message: (fileCount == 1 ? "Son fichier sera placé" : "Ses \(fileCount) fichiers seront placés")
+                    + " dans la Corbeille de macOS et le livre quittera Alexandrie. Les fichiers resteront récupérables "
+                    + "dans la Corbeille de macOS tant que vous ne la videz pas.",
+                action: "Supprimer")
+    }
+
+    static func confirmEmptyTrash(fileCount: Int) -> Bool {
+        confirm(title: "Vider la corbeille d'Alexandrie ?",
+                message: (fileCount == 1 ? "Le fichier sera placé" : "Les \(fileCount) fichiers seront placés")
+                    + " dans la Corbeille de macOS et ces livres quitteront Alexandrie. Ils resteront récupérables "
+                    + "dans la Corbeille de macOS tant que vous ne la videz pas.",
+                action: "Vider la corbeille")
+    }
+
+    private static func confirm(title: String, message: String, action: String) -> Bool {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Supprimer définitivement le fichier importé de « \(book.title) » ?"
-        alert.informativeText = """
-            Ce fichier (\(book.format.label)), copié dans le dossier d'Alexandrie lors de l'import, sera effacé du disque \
-            et retiré de la bibliothèque. Les autres fichiers du même livre et le fichier d'origine, s'il existe encore \
-            ailleurs, ne sont pas touchés.
-
-            Pour seulement retirer le livre d'une liste (envoyés, en attente), utilisez « Retirer de la liste ».
-            """
-        alert.addButton(withTitle: "Supprimer").hasDestructiveAction = true
+        alert.messageText = title
+        alert.informativeText = message
+        alert.addButton(withTitle: action).hasDestructiveAction = true
         alert.addButton(withTitle: "Annuler")
         return alert.runModal() == .alertFirstButtonReturn
     }

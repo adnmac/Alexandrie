@@ -153,3 +153,32 @@ func tempDirectory() -> URL {
         #expect(book.canSendToKindle)
     }
 }
+
+@Suite struct LibraryTrashTests {
+    @Test func trashedStateSurvivesReread() throws {
+        let lib = SampleLibrary()
+        var book = try lib.index("Candide.epub")
+        book.trashedAt = Date(timeIntervalSince1970: 7)
+        var fresh = try lib.index("Candide.epub")
+        LibraryMerge.carryOver(from: book, to: &fresh)
+        #expect(fresh.trashedAt == book.trashedAt)
+    }
+
+    @Test func emptyMovesFilesAndReportsFailures() throws {
+        let lib = SampleLibrary()
+        let a = try lib.index("Candide.epub"), b = try lib.index("Zadig.epub")
+        var gone = try lib.index("Micromégas.epub")
+        try FileManager.default.removeItem(at: gone.url)
+        gone.title = "déjà supprimé"
+        // Fausse corbeille : déplace dans un dossier temporaire, refuse Zadig.
+        let bin = tempDirectory()
+        let result = LibraryTrash.empty([a, b, gone]) { url in
+            if url.lastPathComponent == "Zadig.epub" { throw CocoaError(.fileWriteNoPermission) }
+            try FileManager.default.moveItem(at: url, to: bin.appendingPathComponent(url.lastPathComponent))
+        }
+        #expect(Set(result.removed) == [a.id, gone.id])
+        #expect(result.failures.map(\.path) == [b.path])
+        #expect(FileManager.default.fileExists(atPath: bin.appendingPathComponent("Candide.epub").path))
+        #expect(FileManager.default.fileExists(atPath: b.path))
+    }
+}

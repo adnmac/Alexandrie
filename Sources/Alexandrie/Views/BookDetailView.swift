@@ -24,8 +24,18 @@ struct BookDetailView: View {
                 transferStatus
 
                 let isPending = library.book(id: draft.id)?.pendingSendAt != nil
+                let isTrashed = library.book(id: draft.id)?.trashedAt != nil
                 HStack {
-                    if isPending && !kindle.isConnected {
+                    if isTrashed {
+                        Button {
+                            library.restoreFromTrash(draft)
+                        } label: {
+                            Label("Restaurer", systemImage: "arrow.uturn.backward")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    } else if isPending && !kindle.isConnected {
                         Button {
                             library.removeFromKindleQueue([draft.id])
                         } label: {
@@ -53,7 +63,11 @@ struct BookDetailView: View {
                     .fixedSize()
                     .controlSize(.large)
                 }
-                if isPending && !kindle.isConnected {
+                if isTrashed {
+                    Label("Dans la corbeille d'Alexandrie : ses fichiers sont intacts tant qu'elle n'est pas vidée.",
+                          systemImage: "trash")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if isPending && !kindle.isConnected {
                     Label("En attente : sera envoyé dès que la Kindle sera branchée.", systemImage: "clock.arrow.circlepath")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if !kindle.isConnected {
@@ -106,6 +120,7 @@ struct BookDetailView: View {
             guard let new else { return }
             if new.lastSentAt != draft.lastSentAt { draft.lastSentAt = new.lastSentAt; draft.sentFilename = new.sentFilename }
             if new.pendingSendAt != draft.pendingSendAt { draft.pendingSendAt = new.pendingSendAt }
+            if new.trashedAt != draft.trashedAt { draft.trashedAt = new.trashedAt }
             if new.catalogCheckedAt != draft.catalogCheckedAt {
                 draft.catalogRecord = new.catalogRecord
                 draft.catalogCheckedAt = new.catalogCheckedAt

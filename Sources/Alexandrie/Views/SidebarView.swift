@@ -19,6 +19,9 @@ struct SidebarView: View {
                 row("Envoyés à la Kindle", "checkmark.circle", .sent,
                     count: books.filter { $0.lastSentAt != nil }.count)
                 row("À vérifier", "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
+                row("Corbeille", library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
+                    count: library.trashedBooks.count)
+                    .help("Livres supprimés, restaurables tant que la corbeille n'est pas vidée")
             }
 
             Section("Kindle") {

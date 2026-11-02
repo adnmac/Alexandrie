@@ -22,12 +22,17 @@ public enum KindleError: LocalizedError {
     case notConnected
     case transferFailed(String)
     case insufficientSpace
+    /// macOS refuse à l'app la lecture du disque de la Kindle (autorisation « volumes amovibles »).
+    case accessDenied
 
     public var errorDescription: String? {
         switch self {
         case .notConnected: "La Kindle n'est plus connectée."
         case .transferFailed(let why): "Le transfert a échoué : \(why)."
         case .insufficientSpace: "Espace insuffisant sur la Kindle."
+        case .accessDenied:
+            "macOS ne laisse pas Alexandrie lire la Kindle. Autorisez-la dans Réglages Système › Confidentialité et sécurité › "
+                + "Fichiers et dossiers › Alexandrie › Volumes amovibles, puis cliquez sur « Actualiser »."
         }
     }
 }
@@ -92,6 +97,14 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
 
     /// Parcours récursif : les achats récents sont rangés dans `documents/Downloads/Items01/…`.
     public func listDocuments() throws -> [KindleDocument] {
+        // Le parcours ignore les erreurs : sans autorisation, il ne trouverait simplement rien.
+        do {
+            _ = try FileManager.default.contentsOfDirectory(atPath: documents.path)
+        } catch let error as CocoaError where error.code == .fileReadNoPermission {
+            throw KindleError.accessDenied
+        } catch let error as NSError where error.domain == NSPOSIXErrorDomain && [1, 13].contains(error.code) {
+            throw KindleError.accessDenied
+        }
         guard let e = FileManager.default.enumerator(at: documents, includingPropertiesForKeys: [.fileSizeKey, .isDirectoryKey],
                                                      options: [.skipsHiddenFiles]) else {
             throw KindleError.notConnected

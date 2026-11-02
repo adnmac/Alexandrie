@@ -151,10 +151,6 @@ struct KindleBookCard: View {
                 .frame(height: 200)
                 .overlay(alignment: .topTrailing) {
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(info?.format ?? document.fileExtension.uppercased())
-                            .font(.caption2.weight(.bold))
-                            .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(.ultraThinMaterial, in: Capsule())
                         if info?.isDRMProtected == true {
                             Image(systemName: "lock.fill").font(.caption)
                                 .padding(4).background(.ultraThinMaterial, in: Circle())
@@ -175,6 +171,12 @@ struct KindleBookCard: View {
                 .overlay {
                     if info == nil { ProgressView().controlSize(.small) }
                 }
+            // Format entre la couverture et le titre, comme dans la bibliothèque.
+            Text(info?.format ?? document.fileExtension.uppercased())
+                .font(.caption2.weight(.bold))
+                .padding(.horizontal, 5).padding(.vertical, 2)
+                .background(.quaternary, in: Capsule())
+                .lineLimit(1)
             Text(info?.title ?? document.name)
                 .font(.callout.weight(.medium))
                 .lineLimit(2)

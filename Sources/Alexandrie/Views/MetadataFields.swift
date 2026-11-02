@@ -4,11 +4,14 @@ import SwiftUI
 /// Champs de correction des informations d'un livre (à placer dans un `Form`).
 struct MetadataFields: View {
     @Binding var edits: MetadataEdits
+    /// Le genre n'existe que dans Alexandrie : masqué pour les livres corrigés sur la Kindle.
+    var showsGenre = true
     /// Texte brut des auteurs : analysé à chaque frappe sans effacer la virgule en cours de saisie.
     @State private var authorsText: String
 
-    init(edits: Binding<MetadataEdits>) {
+    init(edits: Binding<MetadataEdits>, showsGenre: Bool = true) {
         _edits = edits
+        self.showsGenre = showsGenre
         _authorsText = State(initialValue: edits.wrappedValue.authors.joined(separator: ", "))
     }
 
@@ -28,6 +31,9 @@ struct MetadataFields: View {
             TextField("N°", text: seriesIndexText, prompt: Text("—"))
                 .frame(width: 70)
                 .disabled(edits.series == nil)
+        }
+        if showsGenre {
+            TextField("Genre", text: optional(\.genre), prompt: Text("ex. Roman policier"))
         }
         TextField("Date de publication", text: optional(\.publishedDate), prompt: Text("AAAA ou AAAA-MM-JJ"))
         TextField("ISBN", text: optional(\.isbn), prompt: Text("978…"))
@@ -73,7 +79,7 @@ struct KindleEditSheet: View {
         VStack(alignment: .leading, spacing: 0) {
             Form {
                 Section {
-                    MetadataFields(edits: $edits)
+                    MetadataFields(edits: $edits, showsGenre: false)
                 } header: {
                     Text("Corriger « \(document.name) »")
                 } footer: {

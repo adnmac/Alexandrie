@@ -15,6 +15,8 @@ public struct CatalogRecord: Codable, Hashable, Sendable {
     public var publisher: String?
     public var publishedDate: String?
     public var language: String?
+    /// Genre lu dans le titre de la notice BnF (« … : roman »).
+    public var genre: String?
 }
 
 // MARK: - BnF (SRU, Dublin Core)
@@ -62,16 +64,18 @@ public enum BnFCatalog {
                     .map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
             }
             let identifiers = values("identifier")
+            let (title, genre) = Matching.splitGenre(parts[0])
             return CatalogRecord(
                 source: "BnF",
                 url: identifiers.first { $0.hasPrefix("http") },
                 match: match,
                 isbn: ISBN.first(in: identifiers.filter { $0.uppercased().hasPrefix("ISBN") }),
-                title: parts[0].trimmingCharacters(in: .whitespaces),
+                title: title,
                 authors: authors,
                 publisher: values("publisher").first.map(stripPlace),
                 publishedDate: values("date").first,
-                language: values("language").first.map(Matching.language))
+                language: values("language").first.map(Matching.language),
+                genre: genre)
         }
     }
 
@@ -230,6 +234,29 @@ enum Matching {
         return t.trimmingCharacters(in: .whitespaces)
     }
 
+    /// Mention de genre ajoutée par la BnF : « Brunetti et le mauvais augure : roman » → « Brunetti et le mauvais augure ».
+    /// Seul un genre reconnu est retiré ; un vrai sous-titre est conservé.
+    static func withoutGenre(_ title: String) -> String { splitGenre(title).title }
+
+    /// Titre sans mention de genre, et ce genre (« Roman policier »).
+    static func splitGenre(_ title: String) -> (title: String, genre: String?) {
+        guard let r = title.range(of: genrePattern, options: [.regularExpression, .caseInsensitive]) else {
+            return (title.trimmingCharacters(in: .whitespaces), nil)
+        }
+        let genre = title[r].drop { $0 == ":" || $0.isWhitespace }
+            .trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "."))).lowercased()
+        return (String(title[..<r.lowerBound]).trimmingCharacters(in: .whitespaces), genre.prefix(1).uppercased() + genre.dropFirst())
+    }
+
+    private static let genrePattern = "\\s*:\\s*(?:" + [
+        "romans?", "nouvelles?", "récits?", "contes?", "essais?", "poèmes?", "poésies?", "théâtre", "pièces?",
+        "comédie", "tragédie", "drame", "fables?", "chroniques?", "thriller", "polar", "témoignage", "biographie",
+        "autobiographie", "mémoires", "journal", "document", "bande dessinée", "roman graphique", "manga",
+    ].joined(separator: "|") + ")(?:\\s+(?:" + [
+        "policiers?", "policières?", "historiques?", "noirs?", "fantastiques?", "psychologiques?", "graphiques?",
+        "d'aventures?", "d'amour", "inédite?s?", "complète?s?", "choisie?s?",
+    ].joined(separator: "|") + "))?\\s*\\.?$"
+
     static func searchTerms(_ s: String) -> String {
         key(s).split(separator: " ").prefix(8).joined(separator: " ")
     }
@@ -287,7 +314,7 @@ enum Matching {
 
 /// Champ comparable entre un livre et une notice.
 public enum CatalogField: String, CaseIterable, Codable, Sendable, Identifiable {
-    case isbn, title, authors, publisher, publishedDate, language
+    case isbn, title, genre, authors, publisher, publishedDate, language
 
     public var id: Self { self }
 
@@ -295,6 +322,7 @@ public enum CatalogField: String, CaseIterable, Codable, Sendable, Identifiable 
         switch self {
         case .isbn: "ISBN"
         case .title: "Titre"
+        case .genre: "Genre"
         case .authors: "Auteurs"
         case .publisher: "Éditeur"
         case .publishedDate: "Publication"
@@ -322,8 +350,13 @@ public enum CatalogComparison {
         if let rIsbn = r.isbn, currentISBN != rIsbn, currentISBN == nil || r.match == .isbn {
             add(.isbn, e.isbn, rIsbn)
         }
-        if Matching.key(e.title) != Matching.key(r.title) && Matching.key(Matching.mainTitle(e.title)) != Matching.key(r.title) {
-            add(.title, e.title, r.title)
+        // Notices enregistrées avant le retrait des mentions de genre : nettoyées ici aussi.
+        let (rTitle, titleGenre) = Matching.splitGenre(r.title)
+        if Matching.key(e.title) != Matching.key(rTitle) && Matching.key(Matching.mainTitle(e.title)) != Matching.key(rTitle) {
+            add(.title, e.title, rTitle)
+        }
+        if let rGenre = r.genre ?? titleGenre, Matching.key(e.genre ?? "") != Matching.key(rGenre) {
+            add(.genre, e.genre, rGenre)
         }
         if !r.authors.isEmpty, Set(e.authors.map(Matching.personKey)) != Set(r.authors.map(Matching.personKey)) {
             add(.authors, e.authors.isEmpty ? nil : e.authors.joined(separator: ", "), r.authors.joined(separator: ", "))
@@ -345,7 +378,8 @@ public enum CatalogComparison {
         for f in fields {
             switch f {
             case .isbn: e.isbn = r.isbn ?? e.isbn
-            case .title: e.title = r.title
+            case .title: e.title = Matching.withoutGenre(r.title)
+            case .genre: e.genre = r.genre ?? Matching.splitGenre(r.title).genre ?? e.genre
             case .authors: if !r.authors.isEmpty { e.authors = r.authors }
             case .publisher: e.publisher = r.publisher ?? e.publisher
             case .publishedDate: e.publishedDate = r.publishedDate ?? e.publishedDate

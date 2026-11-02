@@ -12,10 +12,12 @@ public struct MetadataEdits: Codable, Hashable, Sendable {
     public var isbn: String?
     public var series: String?
     public var seriesIndex: Double?
+    /// Genre (« Roman », « Roman policier »…), conservé dans Alexandrie.
+    public var genre: String?
 
     public init(title: String, authors: [String], publisher: String? = nil, language: String? = nil,
                 summary: String? = nil, publishedDate: String? = nil, isbn: String? = nil,
-                series: String? = nil, seriesIndex: Double? = nil) {
+                series: String? = nil, seriesIndex: Double? = nil, genre: String? = nil) {
         self.title = title
         self.authors = authors
         self.publisher = publisher
@@ -25,6 +27,7 @@ public struct MetadataEdits: Codable, Hashable, Sendable {
         self.isbn = isbn
         self.series = series
         self.seriesIndex = seriesIndex
+        self.genre = genre
     }
 
     /// Valeurs vides → nil, espaces superflus retirés.

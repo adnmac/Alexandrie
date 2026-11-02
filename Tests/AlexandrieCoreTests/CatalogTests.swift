@@ -158,3 +158,48 @@ struct LiveCatalogTests {
         #expect(CatalogClient.describe(URLError(.notConnectedToInternet)) == "Vérification impossible : pas de connexion Internet.")
     }
 }
+
+@Suite struct GenreMentionTests {
+    @Test func removesGenreOnly() {
+        #expect(Matching.withoutGenre("Brunetti et le mauvais augure : roman") == "Brunetti et le mauvais augure")
+        #expect(Matching.withoutGenre("Le Crime de l'Orient-Express : roman policier") == "Le Crime de l'Orient-Express")
+        #expect(Matching.withoutGenre("Les Fleurs du mal : Poèmes.") == "Les Fleurs du mal")
+        #expect(Matching.withoutGenre("Dix petits nègres : nouvelles inédites") == "Dix petits nègres")
+        // Vrais sous-titres conservés.
+        #expect(Matching.withoutGenre("Le grand détournement : comment milliardaires et multinationales captent l'argent de l'État")
+                == "Le grand détournement : comment milliardaires et multinationales captent l'argent de l'État")
+        #expect(Matching.withoutGenre("Bernanos : journal d'un curé de campagne") == "Bernanos : journal d'un curé de campagne")
+        #expect(Matching.withoutGenre("Romans") == "Romans")
+    }
+
+    @Test func savedRecordNoLongerProposesGenre() {
+        let edits = MetadataEdits(title: "Brunetti et le mauvais augure", authors: ["Donna Leon"])
+        let record = CatalogRecord(source: "BnF", url: nil, match: .titleAuthor, isbn: nil,
+                                   title: "Brunetti et le mauvais augure : roman", authors: ["Donna Leon"],
+                                   publisher: nil, publishedDate: nil, language: nil)
+        let differences = CatalogComparison.differences(edits, record)
+        #expect(!differences.contains { $0.field == .title })
+        // Le genre retiré du titre est proposé à part.
+        #expect(differences.first { $0.field == .genre }?.proposed == "Roman")
+        var other = MetadataEdits(title: "Brunetti 21", authors: ["Donna Leon"])
+        CatalogComparison.apply([.title, .genre], from: record, to: &other)
+        #expect(other.title == "Brunetti et le mauvais augure")
+        #expect(other.genre == "Roman")
+        #expect(!CatalogComparison.differences(other, record).contains { $0.field == .genre })
+    }
+
+    @Test func splitsGenre() {
+        #expect(Matching.splitGenre("Le Crime de l'Orient-Express : roman policier") == ("Le Crime de l'Orient-Express", "Roman policier"))
+        #expect(Matching.splitGenre("Les Fleurs du mal : Poèmes.").genre == "Poèmes")
+        #expect(Matching.splitGenre("Le grand détournement : comment milliardaires").genre == nil)
+    }
+
+    @Test func bnfRecordCarriesGenre() {
+        let xml = String(decoding: bnfResponse, as: UTF8.self).replacingOccurrences(
+            of: "Le grand détournement : comment milliardaires et multinationales captent l'argent de l'État",
+            with: "Le grand détournement : roman")
+        let r = BnFCatalog.parse(Data(xml.utf8), match: .titleAuthor).first
+        #expect(r?.title == "Le grand détournement")
+        #expect(r?.genre == "Roman")
+    }
+}

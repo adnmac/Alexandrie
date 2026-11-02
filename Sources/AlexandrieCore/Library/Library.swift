@@ -21,6 +21,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var isbn: String?
     public var series: String?
     public var seriesIndex: Double?
+    public var genre: String?
     public var tags: [String]
     public var hasCover: Bool
     public var isDRMProtected: Bool
@@ -66,7 +67,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         get {
             MetadataEdits(title: title, authors: authors, publisher: publisher, language: language,
                           summary: summary, publishedDate: publishedDate, isbn: isbn,
-                          series: series, seriesIndex: seriesIndex)
+                          series: series, seriesIndex: seriesIndex, genre: genre)
         }
         set {
             let e = newValue
@@ -79,6 +80,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
             isbn = e.isbn
             series = e.series
             seriesIndex = e.seriesIndex
+            genre = e.genre
         }
     }
 

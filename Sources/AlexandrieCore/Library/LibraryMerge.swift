@@ -53,6 +53,7 @@ public enum LibraryMerge {
         book.summary = previous.summary ?? book.summary
         book.publishedDate = previous.publishedDate ?? book.publishedDate
         book.isbn = previous.isbn ?? book.isbn
+        book.genre = previous.genre ?? book.genre
         book.catalogRecord = previous.catalogRecord
         book.catalogCheckedAt = previous.catalogCheckedAt
         book.catalogDismissed = previous.catalogDismissed

@@ -72,7 +72,7 @@ struct ContentView: View {
             .safeAreaInset(edge: .top, spacing: 0) {
                 if let info = updates.banner { UpdateBanner(info: info) }
             }
-            .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série…")
+            .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série, genre…")
         } detail: {
             if sidebar == .kindle {
                 if let doc = kindle.documents.first(where: { $0.id == kindleSelection }) {
@@ -181,7 +181,7 @@ struct ContentView: View {
         let query = search.trimmingCharacters(in: .whitespaces)
         if !query.isEmpty {
             list = list.filter { b in
-                [b.title, b.authorLine, b.series ?? "", b.tags.joined(separator: " ")]
+                [b.title, b.authorLine, b.series ?? "", b.genre ?? "", b.tags.joined(separator: " ")]
                     .contains { $0.localizedStandardContains(query) }
             }
         }

@@ -50,6 +50,10 @@ struct ContentView: View {
         .onChange(of: kindle.isConnected) { _, connected in
             if connected { Task { await kindle.sendPending(library: library) } }
         }
+        // Kindle inconnue : on lui donne un nom, une fois pour toutes.
+        .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {
+            NameReaderSheet()
+        }
         .alert("Erreur", isPresented: errorBinding) {
             Button("OK") { library.lastError = nil; kindle.lastError = nil }
         } message: {
@@ -239,6 +243,43 @@ struct ContentView: View {
         await withCheckedContinuation { continuation in
             _ = provider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
         }
+    }
+}
+
+/// Première connexion d'une Kindle : son nom de liseuse.
+struct NameReaderSheet: View {
+    @Environment(KindleMonitor.self) private var kindle
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Label("Nouvelle liseuse", systemImage: "ipad.landscape.badge.play").font(.title3.weight(.semibold))
+            Text("Cette Kindle est branchée pour la première fois. Donnez-lui un nom : Alexandrie la reconnaîtra ensuite automatiquement et lui tiendra une étagère de livres.")
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField("Nom", text: $name, prompt: Text("ex. Kindle de Léa"))
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(save)
+            HStack {
+                Spacer()
+                Button("Plus tard") {
+                    kindle.postponeNaming()
+                    dismiss()
+                }
+                Button("Enregistrer", action: save)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 420)
+        .onAppear { name = kindle.device?.name ?? "Kindle" }
+    }
+
+    private func save() {
+        kindle.nameCurrentReader(name)
+        dismiss()
     }
 }
 

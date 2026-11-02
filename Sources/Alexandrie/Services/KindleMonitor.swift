@@ -31,6 +31,52 @@ final class KindleMonitor {
     private(set) var deviceTitles: Set<String> = []
     private(set) var catalogProgress: (done: Int, total: Int)?
     let catalog = KindleCatalog(directories: AppDirectories())
+    @ObservationIgnored private let directories = AppDirectories()
+
+    // MARK: - Liseuses connues
+
+    private(set) var readers: [Reader] = []
+    /// Identifiant de la Kindle branchée.
+    private(set) var deviceID: String?
+    /// Kindle inconnue que l'utilisateur a choisi de ne pas nommer pour cette connexion.
+    @ObservationIgnored private var namingPostponed: String?
+
+    /// Liseuse correspondant à la Kindle branchée, si elle est connue.
+    var currentReader: Reader? { deviceID.flatMap { id in readers.first { $0.id == id } } }
+    /// Kindle branchée et pas encore nommée : la feuille de nom s'affiche.
+    var needsNaming: Bool { deviceID != nil && currentReader == nil && namingPostponed != deviceID }
+    /// Nom affiché de la Kindle branchée : celui de la liseuse, sinon celui de l'appareil.
+    var displayName: String? { currentReader?.name ?? device?.name }
+
+    func nameCurrentReader(_ name: String) {
+        guard let id = deviceID else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        readers.append(Reader(id: id, name: trimmed.isEmpty ? (device?.name ?? "Kindle") : trimmed))
+        saveReaders()
+    }
+
+    func postponeNaming() { namingPostponed = deviceID }
+
+    func rename(_ reader: Reader.ID, to name: String) {
+        guard let i = readers.firstIndex(where: { $0.id == reader }) else { return }
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        readers[i].name = trimmed
+        saveReaders()
+    }
+
+    func forget(_ reader: Reader.ID) {
+        readers.removeAll { $0.id == reader }
+        saveReaders()
+    }
+
+    private func saveReaders() {
+        do {
+            try ReaderList.save(readers, to: directories.readers)
+        } catch {
+            lastError = "Impossible d'enregistrer les liseuses : \(error.localizedDescription)"
+        }
+    }
     let mtpAvailable = MTPKindle.isLibraryAvailable
     var lastError: String?
 
@@ -51,18 +97,29 @@ final class KindleMonitor {
                 Task { @MainActor in await self?.pollMTP() }
             }
         }
+        do {
+            readers = try ReaderList.load(directories.readers)
+        } catch {
+            lastError = "Liste des liseuses illisible : \(error.localizedDescription)"
+        }
         Task { await refresh() }
     }
 
     var isConnected: Bool { device != nil }
 
     func refresh() async {
-        let found: (any KindleDevice)? = await Task.detached {
-            if let volume = VolumeKindle.detect().first { return volume }
-            return MTPKindle.detect()
+        // L'identifiant MTP demande une session : il est lu hors du fil principal, avec la détection.
+        let (found, id): ((any KindleDevice)?, String?) = await Task.detached {
+            let device: (any KindleDevice)? = VolumeKindle.detect().first ?? MTPKindle.detect()
+            return (device, device?.identifier)
         }.value
         device = found
+        deviceID = id
         if found != nil { ejectedName = nil }
+        if let id, let i = readers.firstIndex(where: { $0.id == id }) {
+            readers[i].lastSeenAt = Date()
+            saveReaders()
+        }
         await reloadDocuments()
     }
 
@@ -228,8 +285,9 @@ final class KindleMonitor {
         catalogProgress = nil
         do {
             try await volume.eject()
-            ejectedName = volume.name
+            ejectedName = displayName ?? volume.name
             device = nil
+            deviceID = nil
             documents = []
             freeSpace = nil
         } catch {

@@ -28,7 +28,7 @@ struct SidebarView: View {
                 Label {
                     HStack {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(kindle.device?.name ?? (kindle.ejectedName != nil ? "Éjectée" : "Non connectée"))
+                            Text(kindle.displayName ?? (kindle.ejectedName != nil ? "Éjectée" : "Non connectée"))
                             if let device = kindle.device {
                                 Text(device.connection.rawValue)
                                     .font(.caption)

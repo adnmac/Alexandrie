@@ -98,3 +98,14 @@ func makeFakeKindle() throws -> URL {
         #expect(a.identifier == b.identifier)
     }
 }
+
+@Suite struct ReaderListTests {
+    @Test func roundTripAndMissingFile() throws {
+        let url = tempDirectory().appendingPathComponent("readers.json")
+        #expect(try ReaderList.load(url).isEmpty)
+        let readers = [Reader(id: "vol:ABC", name: "Kindle de Léa", seenAt: Date(timeIntervalSince1970: 1)),
+                       Reader(id: "mtp:G0001", name: "Kindle de Paul", seenAt: Date(timeIntervalSince1970: 2))]
+        try ReaderList.save(readers, to: url)
+        #expect(try ReaderList.load(url) == readers)
+    }
+}

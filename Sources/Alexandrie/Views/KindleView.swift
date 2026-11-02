@@ -51,7 +51,7 @@ struct KindleView: View {
     private func header(_ device: any KindleDevice) -> some View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(device.name).font(.title2.weight(.semibold))
+                Text(kindle.displayName ?? device.name).font(.title2.weight(.semibold))
                 Text("\(device.connection.rawValue) · \(kindle.documents.count) livres"
                      + (kindle.freeSpace.map { " · \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)) libres" } ?? ""))
                     .foregroundStyle(.secondary)

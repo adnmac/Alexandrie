@@ -2,6 +2,32 @@ import AlexandrieCore
 import AppKit
 import SwiftUI
 
+/// Liseuse dans les réglages : renommer, oublier.
+struct ReaderRow: View {
+    @Environment(KindleMonitor.self) private var kindle
+    let reader: Reader
+    @State private var name = ""
+
+    var body: some View {
+        LabeledContent {
+            HStack {
+                if kindle.deviceID == reader.id {
+                    Label("Branchée", systemImage: "circle.fill").labelStyle(.iconOnly).foregroundStyle(.green)
+                        .help("Branchée en ce moment")
+                }
+                Text("vue le \(reader.lastSeenAt.formatted(date: .abbreviated, time: .omitted))")
+                    .font(.caption).foregroundStyle(.secondary)
+                Button("Oublier", role: .destructive) { kindle.forget(reader.id) }
+                    .help("Oublier cette liseuse : elle sera de nouveau nommée à sa prochaine connexion")
+            }
+        } label: {
+            TextField("Nom", text: $name).onSubmit { kindle.rename(reader.id, to: name) }
+                .textFieldStyle(.plain)
+        }
+        .onAppear { name = reader.name }
+    }
+}
+
 struct SettingsView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
@@ -63,6 +89,17 @@ struct SettingsView: View {
                     }
                 }
                 Text("Seul l'identifiant de la version installée est envoyé à GitHub (github.com/\(UpdateChecker.repository)).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Liseuses") {
+                if kindle.readers.isEmpty {
+                    Text("Aucune liseuse pour l'instant : branchez une Kindle pour lui donner un nom.")
+                        .foregroundStyle(.secondary)
+                }
+                ForEach(kindle.readers) { reader in
+                    ReaderRow(reader: reader)
+                }
+                Text("Chaque Kindle est reconnue par son numéro de série et garde son nom d'une connexion à l'autre.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Kindle") {

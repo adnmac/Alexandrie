@@ -169,6 +169,7 @@ public struct AppDirectories: Sendable {
     }
 
     public var index: URL { base.appendingPathComponent("library.json") }
+    public var readers: URL { base.appendingPathComponent("readers.json") }
     public var covers: URL { base.appendingPathComponent("Covers", isDirectory: true) }
     public var conversions: URL { base.appendingPathComponent("Conversions", isDirectory: true) }
     /// Livres ajoutés par glisser-déposer : copiés ici, pas dans le dossier source.

@@ -80,8 +80,9 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 520)
-        .fixedSize(horizontal: false, vertical: true)
+        // Hauteur limitée : le contenu défile (barre de défilement visible) au lieu de dépasser de l'écran.
+        .scrollIndicators(.visible)
+        .frame(width: 520, height: 620)
         .task { await library.refreshCacheSize() }
     }
 

@@ -9,7 +9,7 @@ final class LibraryStore {
     let directories = AppDirectories()
     let covers: CoverStore
     private(set) var books: [Book] = [] {
-        didSet { positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil }
+        didSet { positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil }
     }
     private(set) var rootURL: URL?
     private(set) var isScanning = false
@@ -25,6 +25,7 @@ final class LibraryStore {
     @ObservationIgnored private var titleIndex: [String: [Int]]?
     @ObservationIgnored private var publisherList: [String]?
     @ObservationIgnored private var duplicateIDs: Set<Book.ID>?
+    @ObservationIgnored private var identityMap: [Book.ID: String]?
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "alexandrie.index", qos: .utility)
@@ -93,10 +94,22 @@ final class LibraryStore {
         set { showDuplicates = !newValue }
     }
 
+    /// Identité de chaque fichier (voir `BookGroups.identities`) : réunit les fichiers d'un même livre
+    /// même quand leurs auteurs sont écrits différemment ou manquent.
+    var identities: [Book.ID: String] {
+        let books = self.books
+        if identityMap == nil { identityMap = BookGroups.identities(books) }
+        return identityMap ?? [:]
+    }
+
+    func identity(of book: Book) -> String { identities[book.id] ?? BookGroups.key(book) }
+
     /// Fichiers masqués : même livre, même format qu'un fichier gardé (voir `BookGroups.duplicates`).
     var hiddenDuplicates: Set<Book.ID> {
         let books = self.books
-        if duplicateIDs == nil { duplicateIDs = BookGroups.duplicates(books.filter { $0.trashedAt == nil }) }
+        if duplicateIDs == nil {
+            duplicateIDs = BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: identities)
+        }
         return duplicateIDs ?? []
     }
 
@@ -114,8 +127,9 @@ final class LibraryStore {
 
     /// Met le livre entier à la corbeille (tous ses fichiers, copies masquées comprises) ; rien ne bouge sur le disque.
     func moveToTrash(_ book: Book) {
-        let key = BookGroups.key(book), now = Date()
-        for i in books.indices where books[i].trashedAt == nil && BookGroups.key(books[i]) == key {
+        // Identités lues une fois : chaque modification de `books` invalide leur cache.
+        let ids = identities, key = identity(of: book), now = Date()
+        for i in books.indices where books[i].trashedAt == nil && ids[books[i].id] == key {
             books[i].trashedAt = now
             books[i].pendingSendAt = nil
         }
@@ -123,8 +137,8 @@ final class LibraryStore {
     }
 
     func restoreFromTrash(_ book: Book) {
-        let key = BookGroups.key(book)
-        for i in books.indices where books[i].trashedAt != nil && BookGroups.key(books[i]) == key {
+        let ids = identities, key = identity(of: book)
+        for i in books.indices where books[i].trashedAt != nil && ids[books[i].id] == key {
             books[i].trashedAt = nil
         }
         save()
@@ -132,8 +146,8 @@ final class LibraryStore {
 
     /// Fichiers d'un livre de la corbeille.
     func trashedFiles(of book: Book) -> [Book] {
-        let key = BookGroups.key(book)
-        return books.filter { $0.trashedAt != nil && BookGroups.key($0) == key }
+        let ids = identities, key = identity(of: book)
+        return books.filter { $0.trashedAt != nil && ids[$0.id] == key }
     }
 
     /// Place les fichiers dans la Corbeille de macOS et les retire de la bibliothèque.
@@ -158,8 +172,8 @@ final class LibraryStore {
     /// Copies masquées d'un livre (même clé de regroupement).
     func hiddenCopies(of book: Book) -> [Book] {
         guard !showDuplicates else { return [] }
-        let hidden = hiddenDuplicates, key = BookGroups.key(book)
-        return books.filter { hidden.contains($0.id) && BookGroups.key($0) == key }
+        let hidden = hiddenDuplicates, ids = identities, key = identity(of: book)
+        return books.filter { hidden.contains($0.id) && ids[$0.id] == key }
     }
 
     // MARK: - Dossier source
@@ -478,9 +492,9 @@ final class LibraryStore {
     /// Retire un livre de la liste « Envoyés à la Kindle » (tous ses fichiers) ; rien n'est supprimé.
     /// Le nom du fichier envoyé est gardé : il sert à reconnaître le livre s'il est encore sur la Kindle.
     func forgetSent(_ book: Book) {
-        let key = BookGroups.key(book)
+        let ids = identities, key = identity(of: book)
         var changed = false
-        for i in books.indices where books[i].lastSentAt != nil && BookGroups.key(books[i]) == key {
+        for i in books.indices where books[i].lastSentAt != nil && ids[books[i].id] == key {
             books[i].lastSentAt = nil
             changed = true
         }

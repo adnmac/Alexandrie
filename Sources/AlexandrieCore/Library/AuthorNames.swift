@@ -11,9 +11,13 @@ public enum AuthorNames {
         public let bookCount: Int
     }
 
-    /// Clé indépendante de la casse, des accents, de la ponctuation et de l'ordre prénom/nom.
+    /// Clé indépendante de la casse, des accents, de la ponctuation, de l'ordre prénom/nom et des lettres
+    /// doublées (« Banks Russel » = « Russell Banks », faute de frappe courante). Sert au regroupement des
+    /// livres et des auteurs ; la comparaison avec le catalogue reste stricte et propose la bonne graphie.
     public static func key(_ name: String) -> String {
-        Matching.personKey(name)
+        var out = ""
+        for c in Matching.personKey(name) where !(c.isLetter && out.last == c) { out.append(c) }
+        return out
     }
 
     /// Sépare un champ qui cite plusieurs personnes : « A B & C D », « Edwy Plenel, Lisa Fittko ».

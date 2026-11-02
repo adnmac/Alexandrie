@@ -63,7 +63,7 @@ struct ContentView: View {
     }
 
     private var main: some View {
-        let groups = BookGroups.make(filteredBooks)
+        let groups = BookGroups.make(filteredBooks, identities: library.identities)
         let index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         // Un groupe sélectionné vaut pour son fichier principal (fiche, envoi à la Kindle).
         let resolve: (String) -> Book? = { id in

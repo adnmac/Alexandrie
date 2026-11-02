@@ -135,3 +135,66 @@ import Testing
         #expect(BookGroups.duplicates([books[2]]).isEmpty)
     }
 }
+
+@Suite struct AuthorTypoTests {
+    func book(_ path: String, _ title: String, _ authors: [String], _ format: BookFormat) -> Book {
+        Book(path: path, format: format, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
+             title: title, authors: authors, tags: [], hasCover: false, isDRMProtected: false, isImported: false, asin: "A")
+    }
+
+    @Test func doubledLetterTypoDoesNotSplitBook() {
+        // Cas réel : les deux formats d'un même livre, auteur écrit de deux façons.
+        let books = [book("1", "Amérique notre histoire", ["Banks Russel"], .azw3),
+                     book("2", "Amérique notre histoire", ["Russell Banks"], .epub)]
+        #expect(BookGroups.make(books).map(\.books.count) == [2])
+        #expect(AuthorNames.groups(books).count == 1)
+        // Le catalogue continue de voir la différence (et propose la bonne graphie).
+        #expect(Matching.personKey("Banks Russel") != Matching.personKey("Russell Banks"))
+    }
+
+    @Test func differentAuthorsStaySeparate() {
+        let books = [book("1", "1984", ["George Orwell"], .epub), book("2", "1984", ["Autre Auteur"], .epub)]
+        #expect(BookGroups.make(books).count == 2)
+    }
+}
+
+@Suite struct BookIdentityTests {
+    func book(_ path: String, _ title: String, _ authors: [String], _ format: BookFormat = .epub) -> Book {
+        Book(path: path, format: format, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
+             title: title, authors: authors, tags: [], hasCover: false, isDRMProtected: false, isImported: false, asin: "A")
+    }
+
+    func groupSizes(_ books: [Book]) -> [Int] {
+        BookGroups.make(books, identities: BookGroups.identities(books)).map(\.books.count).sorted()
+    }
+
+    @Test func partialNamesAndMissingAuthorsJoin() {
+        #expect(groupSizes([book("/a/1.epub", "L'archipel du Goulag", ["Soljénitsyne"]),
+                            book("/b/2.azw3", "L'archipel du Goulag", ["Alexandre Soljénitsyne"], .azw3)]) == [2])
+        #expect(groupSizes([book("/a/1.epub", "Chrono-minets", ["Asimov, Isaac (1920-1992)"]),
+                            book("/b/2.azw3", "Chrono-minets", ["Asimov Isaac"], .azw3)]) == [2])
+        #expect(groupSizes([book("/a/1.epub", "Cent ans de solitude", ["Inconnu(e)"]),
+                            book("/b/2.azw3", "Cent ans de solitude", ["Gabriel Garcia Marquez"], .azw3)]) == [2])
+        #expect(groupSizes([book("/a/1.epub", "La révolution Tesla", []),
+                            book("/b/2.mobi", "La révolution Tesla", ["La révolution Tesla Comment Elon Musk (z-lib.org)"], .mobi)]) == [2])
+    }
+
+    @Test func calibreFolderJoinsDifferentAuthors() {
+        // Même dossier de livre « Titre (40) » : un seul livre, auteur saisi différemment.
+        #expect(groupSizes([book("/e/Tolkien/Dictionnaire Tolkien (40)/d.epub", "Dictionnaire Tolkien", ["Vincent Ferré"]),
+                            book("/e/Tolkien/Dictionnaire Tolkien (40)/d.azw3", "Dictionnaire Tolkien", ["Tolkien J. R. R"], .azw3)]) == [2])
+    }
+
+    @Test func differentBooksWithSameTitleStaySeparate() {
+        #expect(groupSizes([book("/e/Gary/a.epub", "Les enchanteurs", ["Romain Gary"]),
+                            book("/e/Ellroy/b.epub", "Les Enchanteurs", ["James Ellroy"])]) == [1, 1])
+        // Dossier thématique (pas un dossier de livre) : trois livres distincts.
+        #expect(groupSizes([book("/e/_thema/Poutine/a.epub", "Poutine", ["Nina Bachkatov"]),
+                            book("/e/_thema/Poutine/b.epub", "Poutine", ["Gessen"]),
+                            book("/e/_thema/Poutine/c.epub", "Poutine", ["Frédéric Pons"])]) == [1, 1, 1])
+        // Auteur manquant mais plusieurs auteurs connus : impossible de choisir, il reste à part.
+        #expect(groupSizes([book("/e/x/a.epub", "Poutine", ["Unknown"]),
+                            book("/e/y/b.epub", "Poutine", ["Gessen"]),
+                            book("/e/z/c.epub", "Poutine", ["Frédéric Pons"])]) == [1, 1, 1])
+    }
+}

@@ -370,6 +370,18 @@ final class LibraryStore {
         save()
     }
 
+    /// Retire un livre de la liste « Envoyés à la Kindle » (tous ses fichiers) ; rien n'est supprimé.
+    /// Le nom du fichier envoyé est gardé : il sert à reconnaître le livre s'il est encore sur la Kindle.
+    func forgetSent(_ book: Book) {
+        let key = BookGroups.key(book)
+        var changed = false
+        for i in books.indices where books[i].lastSentAt != nil && BookGroups.key(books[i]) == key {
+            books[i].lastSentAt = nil
+            changed = true
+        }
+        if changed { save() }
+    }
+
     // MARK: - Imports
 
     /// Copie les fichiers dans le dossier d'imports de l'app (le dossier source n'est jamais modifié).

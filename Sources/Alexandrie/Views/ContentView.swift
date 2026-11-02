@@ -13,6 +13,11 @@ enum SidebarItem: Hashable {
     case series(String)
 }
 
+extension EnvironmentValues {
+    /// Liste affichée (barre latérale) : le menu d'un livre propose de le retirer de cette liste.
+    @Entry var libraryList: SidebarItem?
+}
+
 enum SortOrder: String, CaseIterable, Identifiable {
     case title = "Titre", author = "Auteur", added = "Date d'ajout"
     var id: Self { self }
@@ -100,6 +105,7 @@ struct ContentView: View {
             }
         }
         .toolbar { toolbar(selected) }
+        .environment(\.libraryList, sidebar)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
         .overlay {
             if isDropTargeted {

@@ -284,6 +284,7 @@ struct CoverImage: View {
 struct BookActions: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(\.libraryList) private var list
     let book: Book
 
     var body: some View {
@@ -293,8 +294,12 @@ struct BookActions: View {
             Button(KindleSendLabel.title(kindle)) { Task { await kindle.sendOrQueue([book], library: library) } }
                 .disabled(kindle.isBusy || !book.canSendToKindle)
         }
+        // Retirer d'une liste ne supprime rien : le livre reste dans la bibliothèque.
         if isPending {
-            Button("Retirer de la file d'envoi") { library.removeFromKindleQueue([book.id]) }
+            Button("Retirer de la liste « En attente d'envoi »") { library.removeFromKindleQueue([book.id]) }
+        }
+        if list == .sent, library.book(id: book.id)?.lastSentAt != nil {
+            Button("Retirer de la liste « Envoyés à la Kindle »") { library.forgetSent(book) }
         }
         if [.mobi, .azw3, .azw].contains(book.format) {
             Button("Exporter en EPUB…") { Task { await Panels.exportEPUB(book, library: library) } }
@@ -306,7 +311,7 @@ struct BookActions: View {
         if book.isImported {
             Divider()
             // Supprime un fichier : libellé explicite et confirmation, pour ne pas le confondre avec la file d'envoi.
-            Button("Supprimer la copie importée…", role: .destructive) {
+            Button("Supprimer définitivement le fichier importé…", role: .destructive) {
                 if Panels.confirmRemoveImported(book) { library.removeImported(book) }
             }
         }

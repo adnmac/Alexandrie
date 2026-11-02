@@ -70,10 +70,13 @@ enum Panels {
     static func confirmRemoveImported(_ book: Book) -> Bool {
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = "Supprimer la copie importée de « \(book.title) » ?"
+        alert.messageText = "Supprimer définitivement le fichier importé de « \(book.title) » ?"
         alert.informativeText = """
-            Le fichier copié dans le dossier d'Alexandrie (Imports) sera supprimé, avec les corrections faites \
-            dans l'app pour ce fichier. Le fichier d'origine, s'il existe encore ailleurs, n'est pas touché.
+            Ce fichier (\(book.format.label)), copié dans le dossier d'Alexandrie lors de l'import, sera effacé du disque \
+            et retiré de la bibliothèque. Les autres fichiers du même livre et le fichier d'origine, s'il existe encore \
+            ailleurs, ne sont pas touchés.
+
+            Pour seulement retirer le livre d'une liste (envoyés, en attente), utilisez « Retirer de la liste ».
             """
         alert.addButton(withTitle: "Supprimer").hasDestructiveAction = true
         alert.addButton(withTitle: "Annuler")

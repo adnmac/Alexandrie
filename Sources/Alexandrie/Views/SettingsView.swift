@@ -23,6 +23,14 @@ struct SettingsView: View {
                     }
                 }
                 LabeledContent("Livres indexés", value: "\(library.books.count)")
+                LabeledContent("Couvertures", value: library.cacheSize.map { size($0.covers) } ?? "…")
+                LabeledContent("Conversions pour la Kindle") {
+                    HStack {
+                        Text(library.cacheSize.map { size($0.conversions) } ?? "…")
+                        Button("Vider") { Task { await library.clearConversions() } }
+                            .disabled(library.cacheSize?.conversions ?? 0 == 0)
+                    }
+                }
             }
             Section("Vérification en ligne") {
                 Toggle("Vérifier automatiquement les nouveaux livres", isOn: Binding(
@@ -51,5 +59,10 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 520)
         .fixedSize(horizontal: false, vertical: true)
+        .task { await library.refreshCacheSize() }
+    }
+
+    private func size(_ bytes: Int64) -> String {
+        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
     }
 }

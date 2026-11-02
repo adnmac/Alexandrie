@@ -14,6 +14,8 @@ final class LibraryStore {
     private(set) var rootURL: URL?
     private(set) var isScanning = false
     private(set) var progress: (done: Int, total: Int)?
+    /// Taille des couvertures et des conversions, calculée à la demande (réglages).
+    private(set) var cacheSize: (covers: Int64, conversions: Int64)?
     var lastError: String?
 
     @ObservationIgnored private var watcher: FolderWatcher?
@@ -108,15 +110,19 @@ final class LibraryStore {
                 Task { await rescan() }
             }
         }
-        let roots = self.roots
-        let known = books
+        // Dossier injoignable (disque débranché, partage absent) : ses livres sont gardés tels quels.
+        let unreachable = self.roots.filter { !FileManager.default.fileExists(atPath: $0.path) }.map { $0.path + "/" }
+        let roots = self.roots.filter { !unreachable.contains($0.path + "/") }
+        let isOffline: (Book) -> Bool = { b in unreachable.contains { b.path.hasPrefix($0) } }
+        let offline = books.filter(isOffline)
+        let known = books.filter { !isOffline($0) }
         let importsPath = directories.imports.path
         let plan = await Task.detached {
             LibraryMerge.plan(files: FolderScanner.scan(roots), known: known, importsPath: importsPath)
         }.value
         // Publie tout de suite les livres connus (avec les retouches faites pendant le parcours), puis complète au fil de l'extraction.
         let current = Dictionary(books.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        books = plan.kept.map { b in
+        books = offline.map { current[$0.id] ?? $0 } + plan.kept.map { b in
             guard var edited = current[b.id] else { return b }
             edited.addedAt = b.addedAt
             return edited
@@ -140,6 +146,32 @@ final class LibraryStore {
         }
         save()
         checkCatalog(newBooks)
+        if unreachable.isEmpty { await purgeStorage() }
+    }
+
+    // MARK: - Stockage de l'app
+
+    private func purgeStorage() async {
+        let books = self.books
+        let directories = self.directories
+        _ = await Task.detached(priority: .background) {
+            StorageMaintenance.purge(keeping: books, directories: directories)
+        }.value
+        if cacheSize != nil { await refreshCacheSize() }
+    }
+
+    func refreshCacheSize() async {
+        let directories = self.directories
+        cacheSize = await Task.detached(priority: .utility) {
+            (StorageMaintenance.size(of: directories.covers), StorageMaintenance.size(of: directories.conversions))
+        }.value
+    }
+
+    /// Les conversions sont refaites au prochain envoi.
+    func clearConversions() async {
+        let directory = directories.conversions
+        await Task.detached(priority: .utility) { StorageMaintenance.clear(directory) }.value
+        await refreshCacheSize()
     }
 
     // MARK: - Vérification en ligne (BnF, Open Library)

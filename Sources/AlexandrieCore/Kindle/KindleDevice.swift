@@ -296,13 +296,7 @@ public enum KindleTransfer {
     /// ou un livre sous DRM. Les fichiers produits sont mis en cache.
     public static func prepare(_ book: Book, directories: AppDirectories) throws -> URL {
         if book.format == .pdf || (book.isDRMProtected && book.format != .epub) { return book.url }
-        // Clé stable : toute correction des informations force une nouvelle copie.
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .sortedKeys
-        let key = (try? encoder.encode(book.edits)) ?? Data(book.title.utf8)
-        let variant = SHA256.hash(data: key).prefix(4).map { String(format: "%02x", $0) }.joined()
-        let ext = book.format == .epub ? "azw3" : book.format.rawValue
-        let out = directories.conversions.appendingPathComponent("\(book.fingerprint)-\(variant).\(ext)")
+        let out = cachedCopy(of: book, directories: directories)
         if !FileManager.default.fileExists(atPath: out.path) {
             if book.format == .epub {
                 try EPUBToAZW3.convert(input: book.url, output: out, edits: book.edits, asin: book.asin)
@@ -313,9 +307,23 @@ public enum KindleTransfer {
         return out
     }
 
+    /// Copie en cache pour la Kindle. Clé stable : toute correction des informations force une nouvelle copie.
+    public static func cachedCopy(of book: Book, directories: AppDirectories) -> URL {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        let key = (try? encoder.encode(book.edits)) ?? Data(book.title.utf8)
+        let variant = SHA256.hash(data: key).prefix(4).map { String(format: "%02x", $0) }.joined()
+        let ext = book.format == .epub ? "azw3" : book.format.rawValue
+        return directories.conversions.appendingPathComponent("\(book.fingerprint)-\(variant).\(ext)")
+    }
+
+    public static func exportedEPUB(of book: Book, directories: AppDirectories) -> URL {
+        directories.conversions.appendingPathComponent("\(book.fingerprint).epub")
+    }
+
     /// Conversion MOBI/AZW3 → EPUB vers un fichier temporaire du cache.
     public static func exportEPUB(_ book: Book, directories: AppDirectories) throws -> URL {
-        let out = directories.conversions.appendingPathComponent("\(book.fingerprint).epub")
+        let out = exportedEPUB(of: book, directories: directories)
         try MobiToEPUB.convert(input: book.url, output: out, edits: book.edits)
         return out
     }

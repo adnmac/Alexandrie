@@ -181,14 +181,17 @@ final class KindleMonitor {
         }
     }
 
-    static func normalize(_ s: String) -> String {
-        s.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
-            .components(separatedBy: CharacterSet.alphanumerics.inverted).joined()
-    }
+    static func normalize(_ s: String) -> String { ShelfSync.normalize(s) }
 
     func isOnDevice(_ book: Book) -> Bool {
-        if documentNames.contains(book.kindleFilename) || book.sentFilename.map(documentNames.contains) == true { return true }
-        return !deviceTitles.isEmpty && deviceTitles.contains(Self.normalize(book.title))
+        ShelfSync.isOnDevice([book], documentNames: documentNames, deviceTitles: deviceTitles)
+    }
+
+    /// Livres de l'étagère de la Kindle branchée qui n'y sont pas encore (attend la lecture des fiches).
+    func missingFromShelf(in library: LibraryStore) -> [Book] {
+        guard let reader = currentReader, catalogProgress == nil else { return [] }
+        let groups = BookGroups.make(library.shelfBooks(reader.id), identities: library.identities)
+        return ShelfSync.missing(groups, documentNames: documentNames, deviceTitles: deviceTitles)
     }
 
     // MARK: - Envoi

@@ -109,3 +109,26 @@ func makeFakeKindle() throws -> URL {
         #expect(try ReaderList.load(url) == readers)
     }
 }
+
+@Suite struct ShelfSyncTests {
+    func book(_ path: String, _ title: String, _ format: BookFormat = .epub, sent: String? = nil, drm: Bool = false) -> Book {
+        var b = Book(path: path, format: format, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
+                     title: title, authors: ["Auteur"], tags: [], hasCover: false, isDRMProtected: drm, isImported: false, asin: "A")
+        b.sentFilename = sent
+        return b
+    }
+
+    @Test func missingBooksOfShelf() {
+        let shelf = BookGroups.make([
+            book("/a.epub", "Candide", sent: "Candide - Auteur.azw3"),        // sur la Kindle par son nom d'envoi
+            book("/b.azw3", "L'Étranger", .azw3),                              // sur la Kindle par son titre
+            book("/c.epub", "Zadig"),                                          // absent : à envoyer
+            book("/d.epub", "Protégé", drm: true),                             // absent mais non envoyable
+            book("/e1.azw3", "Micromégas", .azw3), book("/e2.epub", "Micromégas"), // absent : un seul envoi
+        ])
+        let missing = ShelfSync.missing(shelf, documentNames: ["Candide - Auteur.azw3"],
+                                        deviceTitles: [ShelfSync.normalize("l’Etranger")])
+        #expect(missing.map(\.title).sorted() == ["Micromégas", "Zadig"])
+        #expect(missing.first { $0.title == "Micromégas" }?.format == .azw3)
+    }
+}

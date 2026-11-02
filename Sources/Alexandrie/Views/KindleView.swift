@@ -16,6 +16,7 @@ struct KindleView: View {
             VStack(spacing: 0) {
                 header(device)
                 Divider()
+                missingBanner
                 if documents.isEmpty {
                     ContentUnavailableView(kindle.documents.isEmpty ? "La Kindle ne contient aucun livre" : "Aucun résultat",
                                            systemImage: "books.vertical")
@@ -45,6 +46,35 @@ struct KindleView: View {
             } actions: {
                 Button("Rechercher à nouveau") { Task { await kindle.refresh() } }
             }
+        }
+    }
+
+    /// Livres de l'étagère absents de la Kindle branchée : mise à jour proposée, jamais imposée.
+    @ViewBuilder private var missingBanner: some View {
+        let missing = kindle.missingFromShelf(in: library)
+        if let reader = kindle.currentReader, !missing.isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "books.vertical.circle.fill").font(.title2).foregroundStyle(.blue)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(missing.count == 1
+                         ? "1 livre de l'étagère de « \(reader.name) » n'est pas sur cette Kindle"
+                         : "\(missing.count) livres de l'étagère de « \(reader.name) » ne sont pas sur cette Kindle")
+                        .font(.callout.weight(.semibold))
+                    Text(missing.prefix(3).map(\.title).joined(separator: " · ") + (missing.count > 3 ? " …" : ""))
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                .help(missing.map(\.title).joined(separator: "\n"))
+                Spacer(minLength: 8)
+                Button(missing.count == 1 ? "Envoyer" : "Envoyer les \(missing.count)") {
+                    Task { await kindle.send(missing, library: library) }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(kindle.isBusy)
+            }
+            .controlSize(.small)
+            .padding(10)
+            .background(.blue.opacity(0.12))
+            Divider()
         }
     }
 

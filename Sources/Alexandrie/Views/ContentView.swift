@@ -10,6 +10,8 @@ enum SidebarItem: Hashable {
     case trash
     /// Étagère d'une liseuse (identifiant de la Kindle).
     case shelf(String)
+    /// Notes et surlignages importés des Kindle.
+    case notes
     case format(BookFormat)
     /// Clé de regroupement (voir `AuthorNames`), pas une graphie particulière.
     case author(String)
@@ -90,6 +92,8 @@ struct ContentView: View {
             Group {
                 if sidebar == .kindle {
                     KindleView(search: search, gridMode: gridMode, selection: $kindleSelection)
+                } else if sidebar == .notes {
+                    NotesView(search: search, selection: $selection)
                 } else {
                     LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
                 }

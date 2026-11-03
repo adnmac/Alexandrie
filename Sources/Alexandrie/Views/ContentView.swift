@@ -39,6 +39,7 @@ struct ContentView: View {
     @State private var sort: SortOrder = .title
     @AppStorage("gridMode") private var gridMode = true
     @State private var isDropTargeted = false
+    @State private var showReview = false
 
     var body: some View {
         Group {
@@ -52,6 +53,7 @@ struct ContentView: View {
         .onChange(of: kindle.isConnected) { _, connected in
             if connected { Task { await kindle.sendPending(library: library) } }
         }
+        .sheet(isPresented: $showReview) { CatalogReviewSheet() }
         // Kindle inconnue : on lui donne un nom, une fois pour toutes.
         .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {
             NameReaderSheet()
@@ -166,6 +168,14 @@ struct ContentView: View {
             .help(sidebar == .recent ? "Les ajouts récents sont toujours classés du plus récent au plus ancien"
                   : isSeriesSelected ? "Les livres d'une série sont classés par numéro" : "Trier")
 
+            if sidebar == .toReview {
+                Button {
+                    showReview = true
+                } label: {
+                    Label("Revue en lot…", systemImage: "checklist")
+                }
+                .help("Revoir toutes les propositions du catalogue dans un tableau, et les appliquer ou les ignorer d'un coup")
+            }
             if sidebar == .trash {
                 Button {
                     if Panels.confirmEmptyTrash(fileCount: library.trashedBooks.count) {

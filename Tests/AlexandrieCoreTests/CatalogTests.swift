@@ -203,3 +203,27 @@ struct LiveCatalogTests {
         #expect(r?.genre == "Roman")
     }
 }
+
+@Suite struct CatalogReviewTests {
+    func book(_ path: String, _ title: String, _ format: BookFormat, record: CatalogRecord?) -> Book {
+        var b = Book(path: path, format: format, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
+                     title: title, authors: ["Thomas Piketty"], tags: [], hasCover: false, isDRMProtected: false,
+                     isImported: false, asin: "A")
+        b.catalogRecord = record
+        return b
+    }
+
+    @Test func oneRowPerBookAndField() {
+        let record = CatalogRecord(source: "BnF", url: nil, match: .titleAuthor, isbn: "9782021338041",
+                                   title: "Capital et idéologie", authors: ["Thomas Piketty"],
+                                   publisher: "Éditions Points", publishedDate: "2022", language: nil)
+        let groups = BookGroups.make([book("/a.azw3", "Capital et idéologie", .azw3, record: record),
+                                      book("/a.epub", "Capital et idéologie", .epub, record: nil),
+                                      book("/b.epub", "Sans notice", .epub, record: nil)])
+        let rows = CatalogReview.rows(groups)
+        #expect(Set(rows.map(\.difference.field)) == [.isbn, .publisher, .publishedDate])
+        #expect(rows.allSatisfy { $0.book.id == "/a.azw3" && Set($0.fileIDs) == ["/a.azw3", "/a.epub"] })
+        let byBook = CatalogReview.fieldsByBook(rows.filter { $0.difference.field != .publisher })
+        #expect(byBook["/a.azw3"]?.fields == [.isbn, .publishedDate])
+    }
+}

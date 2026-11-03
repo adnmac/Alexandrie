@@ -379,6 +379,24 @@ final class LibraryStore {
         update(book)
     }
 
+    /// Revue en lot : applique les propositions retenues, livre par livre, à tous les fichiers de chaque livre
+    /// (même chemin que la fiche : fichier principal corrigé, corrections recopiées sur les autres).
+    func applyReview(_ rows: [CatalogReview.Row]) {
+        for (_, item) in CatalogReview.fieldsByBook(rows) {
+            var book = item.book
+            guard let record = book.catalogRecord else { continue }
+            var edits = book.edits
+            CatalogComparison.apply(item.fields, from: record, to: &edits)
+            book.edits = edits
+            update(book, propagatingTo: item.fileIDs)
+        }
+    }
+
+    /// Revue en lot : écarte les propositions retenues (elles ne seront plus proposées pour cette notice).
+    func dismissReview(_ rows: [CatalogReview.Row]) {
+        for (id, item) in CatalogReview.fieldsByBook(rows) { dismissCatalog(item.fields, for: id) }
+    }
+
     func dismissCatalog(_ fields: Set<CatalogField>, for id: Book.ID) {
         guard var book = book(id: id) else { return }
         book.catalogDismissed = (book.catalogDismissed ?? []).union(fields)

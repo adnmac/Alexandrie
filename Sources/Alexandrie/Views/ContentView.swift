@@ -232,9 +232,12 @@ struct ContentView: View {
         }
         let query = search.trimmingCharacters(in: .whitespaces)
         if !query.isEmpty {
+            // Aussi les livres dont une note ou un surlignage Kindle contient le texte cherché.
+            let withNotes = kindle.titleKeys(withClippingsMatching: query)
             list = list.filter { b in
                 [b.title, b.authorLine, b.series ?? "", b.genre ?? "", b.tags.joined(separator: " ")]
                     .contains { $0.localizedStandardContains(query) }
+                    || withNotes.contains(ShelfSync.normalize(b.title))
             }
         }
         // « Ajoutés récemment » : toujours les derniers ajouts en tête, quel que soit le tri choisi.

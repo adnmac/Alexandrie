@@ -186,6 +186,8 @@ public struct AppDirectories: Sendable {
 
     public var index: URL { base.appendingPathComponent("library.json") }
     public var readers: URL { base.appendingPathComponent("readers.json") }
+    /// Notes et surlignages importés des Kindle (voir `KindleClippings`).
+    public var clippings: URL { base.appendingPathComponent("clippings.json") }
     /// Copies datées de l'index (voir `IndexBackups`).
     public var backups: URL { base.appendingPathComponent("Sauvegardes", isDirectory: true) }
     public var covers: URL { base.appendingPathComponent("Covers", isDirectory: true) }

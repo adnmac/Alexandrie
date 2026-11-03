@@ -101,6 +101,9 @@ struct BookDetailView: View {
                 CatalogSection(book: $draft, fileIDs: files.isEmpty ? [draft.id] : files.map(\.id))
 
                 let hiddenCopies = library.hiddenCopies(of: draft)
+                let notes = kindle.clippings(for: files.isEmpty ? [draft] : files)
+                if !notes.isEmpty { ClippingsSection(clippings: notes) }
+
                 if files.count > 1 || !hiddenCopies.isEmpty { filesSection(hiddenCopies: hiddenCopies) }
 
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
@@ -283,6 +286,40 @@ struct MultiSelectionView: View {
 }
 
 /// Résultat de la vérification en ligne : propositions à appliquer ou ignorer, une par une.
+/// Notes et surlignages faits sur la Kindle pour ce livre.
+struct ClippingsSection: View {
+    let clippings: [Clipping]
+
+    var body: some View {
+        GroupBox {
+            VStack(alignment: .leading, spacing: 10) {
+                ForEach(clippings) { c in
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(c.text)
+                            .font(c.kind == .note ? .callout.italic() : .callout)
+                            .textSelection(.enabled)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Label((c.kind == .note ? "Note · " : "") + [c.location, c.added].filter { !$0.isEmpty }.joined(separator: " · "),
+                              systemImage: c.kind == .note ? "note.text" : "highlighter")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                    if c.id != clippings.last?.id { Divider() }
+                }
+                Button("Copier tout") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(clippings.map(\.text).joined(separator: "\n\n"), forType: .string)
+                }
+                .controlSize(.small)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(4)
+        } label: {
+            Label(clippings.count == 1 ? "1 note ou surlignage Kindle" : "\(clippings.count) notes et surlignages Kindle",
+                  systemImage: "highlighter")
+        }
+    }
+}
+
 struct CatalogSection: View {
     @Environment(LibraryStore.self) private var library
     @Binding var book: Book

@@ -132,3 +132,31 @@ func makeFakeKindle() throws -> URL {
         #expect(missing.first { $0.title == "Micromégas" }?.format == .azw3)
     }
 }
+
+@Suite struct ClippingsTests {
+    let sample = "\u{FEFF}Le Rouge et le Noir (Stendhal)\r\n- Votre surlignement sur la page 12 | emplacement 180-182 | Ajouté le mardi 3 novembre 2026 10:12:33\r\n\r\nOn n'a guère besoin d'appuyer.\r\n==========\r\n"
+        + "Le Rouge et le Noir (Stendhal)\r\n- Votre note à l'emplacement 182 | Ajouté le mardi 3 novembre 2026 10:13:01\r\n\r\nÀ relire.\r\n==========\r\n"
+        + "La plus belle ruse de la lumière (French Edition) (David Elbaz)\r\n- Votre signet à l'emplacement 40 | Ajouté le lundi 2 novembre 2026 09:00:00\r\n\r\n\r\n==========\r\n"
+        + "Dune (Frank Herbert)\r\n- Your Highlight on page 3 | Location 41-42 | Added on Monday, 2 November 2026 08:00:00\r\n\r\nFear is the mind-killer.\r\n==========\r\n"
+
+    @Test func parsesFrenchAndEnglishEntries() {
+        let c = KindleClippings.parse(sample)
+        #expect(c.count == 4)
+        #expect(c[0].title == "Le Rouge et le Noir" && c[0].author == "Stendhal")
+        #expect(c[0].kind == .highlight && c[0].location == "page 12 · emplacement 180-182")
+        #expect(c[0].text == "On n'a guère besoin d'appuyer.")
+        #expect(c[0].added == "mardi 3 novembre 2026 10:12:33")
+        #expect(c[1].kind == .note && c[1].text == "À relire." && c[1].location == "emplacement 182")
+        #expect(c[2].kind == .bookmark && c[2].title == "La plus belle ruse de la lumière (French Edition)")
+        #expect(c[3].kind == .highlight && c[3].location == "page 3 · emplacement 41-42" && c[3].added.hasPrefix("Monday"))
+    }
+
+    @Test func mergeKeepsEachClippingOnce() throws {
+        let first = KindleClippings.parse(sample)
+        let merged = KindleClippings.merge(first, KindleClippings.parse(sample))
+        #expect(merged.count == first.count)
+        let url = tempDirectory().appendingPathComponent("clippings.json")
+        try KindleClippings.save(merged, to: url)
+        #expect(KindleClippings.load(url) == merged)
+    }
+}

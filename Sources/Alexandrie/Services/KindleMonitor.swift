@@ -33,6 +33,40 @@ final class KindleMonitor {
     let catalog = KindleCatalog(directories: AppDirectories())
     @ObservationIgnored private let directories = AppDirectories()
 
+    // MARK: - Notes et surlignages (My Clippings.txt)
+
+    /// Tous les relevés importés des Kindle, conservés même après la suppression du livre de l'appareil.
+    private(set) var clippings: [Clipping] = [] {
+        didSet { clippingIndex = Dictionary(grouping: clippings) { ShelfSync.normalize($0.title) } }
+    }
+    @ObservationIgnored private var clippingIndex: [String: [Clipping]] = [:]
+
+    /// Notes et surlignages d'un livre (rapprochés par titre, comme les livres de la Kindle).
+    func clippings(for books: [Book]) -> [Clipping] {
+        var seen = Set<String>()
+        return books.flatMap { clippingIndex[ShelfSync.normalize($0.title)] ?? [] }
+            .filter { $0.kind != .bookmark && seen.insert($0.id).inserted }
+    }
+
+    /// Titres (normalisés) dont une note ou un surlignage contient `query` : la recherche les retrouve.
+    func titleKeys(withClippingsMatching query: String) -> Set<String> {
+        Set(clippings.filter { $0.text.localizedStandardContains(query) }.map { ShelfSync.normalize($0.title) })
+    }
+
+    /// Lit My Clippings.txt sur une Kindle en disque USB et ajoute les nouveaux relevés.
+    private func importClippings(from device: any KindleDevice) async {
+        guard let volume = device as? VolumeKindle else { return }
+        let file = volume.root.appendingPathComponent("documents/My Clippings.txt")
+        let found = await Task.detached(priority: .utility) { () -> [Clipping] in
+            guard let data = try? Data(contentsOf: file) else { return [] }
+            return KindleClippings.parse(String(decoding: data, as: UTF8.self))
+        }.value
+        let merged = KindleClippings.merge(clippings, found)
+        guard merged.count != clippings.count else { return }
+        clippings = merged
+        try? KindleClippings.save(merged, to: directories.clippings)
+    }
+
     // MARK: - Liseuses connues
 
     private(set) var readers: [Reader] = []
@@ -97,6 +131,7 @@ final class KindleMonitor {
                 Task { @MainActor in await self?.pollMTP() }
             }
         }
+        clippings = KindleClippings.load(directories.clippings)
         do {
             readers = try ReaderList.load(directories.readers)
         } catch {
@@ -141,6 +176,7 @@ final class KindleMonitor {
             }.value
             documents = docs
             freeSpace = free
+            await importClippings(from: device)
         } catch {
             documents = []
             lastError = error.localizedDescription

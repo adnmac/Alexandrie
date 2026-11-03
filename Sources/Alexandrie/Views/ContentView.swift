@@ -89,7 +89,11 @@ struct ContentView: View {
             }
             .navigationSplitViewColumnWidth(min: 420, ideal: 640)
             .safeAreaInset(edge: .top, spacing: 0) {
-                if let info = updates.banner { UpdateBanner(info: info) }
+                if let release = updates.releaseBanner {
+                    ReleaseBanner(release: release)
+                } else if let info = updates.banner {
+                    UpdateBanner(info: info)
+                }
             }
             .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série, genre…")
         } detail: {
@@ -332,6 +336,45 @@ enum KindleSendLabel {
     }
     @MainActor static func icon(_ kindle: KindleMonitor) -> String {
         kindle.isConnected ? "arrow.down.to.line.compact" : "clock.arrow.circlepath"
+    }
+}
+
+/// Version publiée plus récente : installation depuis l'app.
+struct ReleaseBanner: View {
+    @Environment(UpdateMonitor.self) private var updates
+    @Environment(\.openURL) private var openURL
+    let release: ReleaseInfo
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(.blue)
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Alexandrie \(release.version) est disponible (vous avez la \(updates.currentVersion))")
+                    .font(.callout.weight(.semibold))
+                if case .failed(let why) = updates.installState {
+                    Text(why).foregroundStyle(.orange).lineLimit(3)
+                } else if !release.notes.isEmpty {
+                    Text(release.notes.components(separatedBy: .newlines).prefix(2).joined(separator: " "))
+                        .foregroundStyle(.secondary).lineLimit(2)
+                }
+            }
+            .font(.caption)
+            Spacer(minLength: 8)
+            switch updates.installState {
+            case .downloading, .installing:
+                ProgressView().controlSize(.small)
+                Text(updates.installState == .downloading ? "Téléchargement…" : "Installation…").font(.caption)
+            case .idle, .failed:
+                if let page = release.pageURL { Button("Détails") { openURL(page) } }
+                Button("Installer et relancer") { Task { await updates.install(release) } }
+                    .buttonStyle(.borderedProminent)
+                Button("Plus tard") { updates.dismissRelease() }
+            }
+        }
+        .controlSize(.small)
+        .padding(10)
+        .background(.blue.opacity(0.12))
+        .overlay(alignment: .bottom) { Divider() }
     }
 }
 

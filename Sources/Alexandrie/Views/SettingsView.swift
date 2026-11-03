@@ -82,14 +82,14 @@ struct SettingsView: View {
                 Toggle("Vérifier au démarrage s'il existe une version plus récente", isOn: Binding(
                     get: { updates.autoCheck }, set: { updates.autoCheck = $0 }))
                 LabeledContent("Version installée") {
-                    Text(updates.currentCommit.map { String($0.prefix(7)) } ?? "inconnue (lancée hors bundle)")
+                    Text(updates.currentVersion + (updates.currentCommit.map { " (\($0.prefix(7)))" } ?? ""))
                         .font(.callout.monospaced())
                 }
                 LabeledContent("État") {
                     HStack {
                         Text(updateStatus).foregroundStyle(.secondary)
                         Button("Vérifier") { Task { await updates.check() } }
-                            .disabled(updates.currentCommit == nil || updates.status == .checking)
+                            .disabled(updates.status == .checking)
                     }
                 }
                 Text("Seul l'identifiant de la version installée est envoyé à GitHub (github.com/\(UpdateChecker.repository)).")
@@ -133,6 +133,7 @@ struct SettingsView: View {
         case .checking: "Vérification…"
         case .upToDate: "À jour"
         case .available(let info): info.newCommits == 1 ? "1 modification disponible" : "\(info.newCommits) modifications disponibles"
+        case .release(let r): "Version \(r.version) disponible"
         case .failed: "Vérification impossible"
         }
     }

@@ -21,6 +21,16 @@ open build/Alexandrie.app
 ```
 
 Autres scripts : `scripts/build.sh [release]`, `scripts/test.sh`.
+
+### Signature et versions
+
+`scripts/bundle.sh` signe l'app avec le certificat de signature de code « Alexandrie Dev » s'il existe
+(Trousseaux d'accès › Assistant de certification › Créer un certificat : racine auto-signée, signature de code).
+Avec une signature stable, macOS garde les autorisations de l'app (disque de la Kindle…) d'une version à l'autre ;
+sans certificat, la signature est ad hoc.
+
+`scripts/release.sh X.Y.Z` publie une version sur GitHub (app signée, zippée). L'app installée la signale et propose
+« Installer et relancer » : elle télécharge la version, vérifie qu'elle porte la même signature, puis la remplace.
 Avec les seules Command Line Tools, ces scripts chargent les plugins de macros SwiftUI et Swift Testing
 depuis `/Applications/Xcode.app` (Xcode doit être installé, mais sa licence n'a pas besoin d'être acceptée).
 

@@ -92,6 +92,22 @@ struct SettingsView: View {
                 Text("Pour un même livre et un même format, un seul fichier est affiché : le plus récent. Les autres copies restent sur le disque, intactes. Aussi dans le menu Présentation (⌥⌘D).")
                     .font(.caption).foregroundStyle(.secondary)
                 LabeledContent("Couvertures", value: library.cacheSize.map { size($0.covers) } ?? "…")
+                let missing = library.booksWithoutCover
+                LabeledContent("Livres sans couverture") {
+                    HStack {
+                        if let p = library.coverSearch {
+                            ProgressView(value: Double(p.done), total: Double(max(1, p.total))).frame(width: 80)
+                            Text("\(p.done)/\(p.total)").font(.caption.monospacedDigit())
+                        } else {
+                            if let r = library.lastCoverSearch {
+                                Text("\(r.found) trouvée(s) sur \(r.searched)").font(.caption).foregroundStyle(.secondary)
+                            }
+                            Text("\(missing.count)")
+                            Button("Chercher sur Open Library") { Task { await library.findCovers(for: missing) } }
+                                .disabled(missing.isEmpty)
+                        }
+                    }
+                }
                 LabeledContent("Conversions pour la Kindle") {
                     HStack {
                         Text(library.cacheSize.map { size($0.conversions) } ?? "…")

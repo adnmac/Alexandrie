@@ -20,6 +20,9 @@ struct BookDetailView: View {
                 CoverView(book: draft)
                     .frame(height: 280)
                     .frame(maxWidth: .infinity)
+                if !files.contains(where: \.hasCover), !draft.hasCover {
+                    CoverSearchButton(book: draft)
+                }
 
                 transferStatus
 
@@ -286,6 +289,31 @@ struct MultiSelectionView: View {
 }
 
 /// Résultat de la vérification en ligne : propositions à appliquer ou ignorer, une par une.
+/// Livre sans couverture : recherche sur Open Library (par ISBN, sinon titre et auteur).
+struct CoverSearchButton: View {
+    @Environment(LibraryStore.self) private var library
+    let book: Book
+    @State private var notFound = false
+
+    var body: some View {
+        HStack {
+            Spacer()
+            if library.coverSearch != nil {
+                ProgressView().controlSize(.small)
+                Text("Recherche de la couverture…").font(.caption).foregroundStyle(.secondary)
+            } else if notFound {
+                Text("Aucune couverture trouvée sur Open Library.").font(.caption).foregroundStyle(.secondary)
+            } else {
+                Button("Chercher une couverture") {
+                    Task { notFound = await library.findCovers(for: [book]) == 0 }
+                }
+                .controlSize(.small)
+            }
+            Spacer()
+        }
+    }
+}
+
 /// Notes et surlignages faits sur la Kindle pour ce livre.
 struct ClippingsSection: View {
     let clippings: [Clipping]

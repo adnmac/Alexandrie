@@ -227,3 +227,32 @@ struct LiveCatalogTests {
         #expect(byBook["/a.azw3"]?.fields == [.isbn, .publishedDate])
     }
 }
+
+@Suite struct CoverFinderTests {
+    static let image = Data(repeating: 0xFF, count: 5_000)
+
+    @Test func coverByISBN() async {
+        let finder = CoverFinder { url in
+            #expect(url.absoluteString.contains("/b/isbn/9782070360024-L.jpg"))
+            return Self.image
+        }
+        #expect(await finder.cover(for: MetadataEdits(title: "L'Étranger", authors: ["Albert Camus"], isbn: "2070360024")) == Self.image)
+    }
+
+    @Test func coverBySearchOnlyWhenTitleAndAuthorMatch() async {
+        let search = Data((#"{"docs": [{"title": "Autre livre", "author_name": ["Quelqu'un"], "cover_i": 1},"#
+            + #" {"title": "King Kong théorie", "author_name": ["Virginie Despentes"], "cover_i": 42}]}"#).utf8)
+        let finder = CoverFinder { url in
+            if url.host == "openlibrary.org" { return search }
+            #expect(url.absoluteString.contains("/b/id/42-L.jpg"))
+            return Self.image
+        }
+        #expect(await finder.cover(for: MetadataEdits(title: "King Kong théorie", authors: ["Despentes, Virginie"])) == Self.image)
+        #expect(await finder.cover(for: MetadataEdits(title: "Introuvable", authors: ["Personne"])) == nil)
+    }
+
+    @Test func placeholderImageIsRejected() async {
+        let finder = CoverFinder { _ in Data(repeating: 0, count: 43) }
+        #expect(await finder.cover(for: MetadataEdits(title: "x", authors: [], isbn: "2070360024")) == nil)
+    }
+}

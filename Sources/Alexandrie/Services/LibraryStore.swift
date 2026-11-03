@@ -483,6 +483,49 @@ final class LibraryStore {
         registerUndo(name, restoring: current)
     }
 
+    // MARK: - Couvertures manquantes (Open Library)
+
+    @ObservationIgnored private let coverFinder = CoverFinder()
+    /// Recherche en cours : livres traités / à traiter.
+    private(set) var coverSearch: (done: Int, total: Int)?
+    /// Résultat de la dernière recherche (couvertures trouvées / livres cherchés).
+    private(set) var lastCoverSearch: (found: Int, searched: Int)?
+
+    /// Livres (un fichier principal par livre) sans couverture.
+    var booksWithoutCover: [Book] {
+        BookGroups.make(visibleBooks, identities: identities).filter { !$0.books.contains(where: \.hasCover) }.map(\.primary)
+    }
+
+    /// Cherche les couvertures sur Open Library, une requête par seconde au plus ; l'image trouvée sert
+    /// à tous les fichiers du livre. Renvoie le nombre de couvertures trouvées.
+    @discardableResult
+    func findCovers(for selection: [Book]) async -> Int {
+        guard coverSearch == nil, !selection.isEmpty else { return 0 }
+        coverSearch = (0, selection.count)
+        defer { coverSearch = nil }
+        var found = 0
+        for (i, book) in selection.enumerated() {
+            let edits = book.isbn == nil ? { var e = book.edits; e.isbn = book.catalogRecord?.isbn; return e }() : book.edits
+            if let data = await coverFinder.cover(for: edits) {
+                let key = identity(of: book), ids = identities, covers = self.covers
+                let files = books.filter { (ids[$0.id] ?? BookGroups.key($0)) == key && !$0.hasCover }
+                let stored = await Task.detached { files.filter { covers.store(data, key: $0.fingerprint) }.map(\.id) }.value
+                if !stored.isEmpty {
+                    let set = Set(stored)
+                    var copy = books
+                    for j in copy.indices where set.contains(copy[j].id) { copy[j].hasCover = true }
+                    books = copy
+                    save()
+                    found += 1
+                }
+            }
+            coverSearch = (i + 1, selection.count)
+            if i + 1 < selection.count { try? await Task.sleep(for: .seconds(1)) }
+        }
+        lastCoverSearch = (found, selection.count)
+        return found
+    }
+
     // MARK: - Sauvegardes de l'index
 
     var backups: [IndexBackups.Backup] { IndexBackups.list(directories.backups) }

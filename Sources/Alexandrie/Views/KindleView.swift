@@ -10,6 +10,7 @@ struct KindleView: View {
     let gridMode: Bool
     @Binding var selection: KindleDocument.ID?
     @State private var pendingDelete: KindleDocument?
+    @State private var pendingTidy: [KindleDocument] = []
 
     var body: some View {
         if let device = kindle.device {
@@ -17,6 +18,7 @@ struct KindleView: View {
                 header(device)
                 Divider()
                 missingBanner
+                offShelfBanner
                 if documents.isEmpty {
                     ContentUnavailableView(kindle.documents.isEmpty ? "La Kindle ne contient aucun livre" : "Aucun résultat",
                                            systemImage: "books.vertical")
@@ -46,6 +48,44 @@ struct KindleView: View {
             } actions: {
                 Button("Rechercher à nouveau") { Task { await kindle.refresh() } }
             }
+        }
+    }
+
+    /// Livres de la Kindle qui ne sont plus sur l'étagère : les y remettre, ou les retirer de l'appareil.
+    @ViewBuilder private var offShelfBanner: some View {
+        let off = kindle.offShelfDocuments(in: library)
+        if let reader = kindle.currentReader, !off.isEmpty {
+            HStack(spacing: 10) {
+                Image(systemName: "tray.and.arrow.up.fill").font(.title2).foregroundStyle(.orange)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(off.count == 1
+                         ? "1 livre de cette Kindle n'est plus sur l'étagère de « \(reader.name) »"
+                         : "\(off.count) livres de cette Kindle ne sont plus sur l'étagère de « \(reader.name) »")
+                        .font(.callout.weight(.semibold))
+                    Text(off.prefix(3).map(\.book.title).joined(separator: " · ") + (off.count > 3 ? " …" : ""))
+                        .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                }
+                .help(off.map(\.book.title).joined(separator: "\n"))
+                Spacer(minLength: 8)
+                Button("Remettre sur l'étagère") {
+                    library.undoable("Ajouter à l'étagère") { library.addToShelf(off.map(\.book), reader: reader.id) }
+                }
+                Button("Retirer de la Kindle…") { pendingTidy = off.map(\.document) }
+                    .disabled(kindle.isBusy)
+            }
+            .controlSize(.small)
+            .padding(10)
+            .background(.orange.opacity(0.12))
+            .confirmationDialog(pendingTidy.count == 1 ? "Retirer ce livre de la Kindle ?" : "Retirer ces \(pendingTidy.count) livres de la Kindle ?",
+                                isPresented: Binding(get: { !pendingTidy.isEmpty }, set: { if !$0 { pendingTidy = [] } })) {
+                Button("Retirer de la Kindle", role: .destructive) {
+                    let docs = pendingTidy
+                    Task { await kindle.delete(docs) }
+                }
+            } message: {
+                Text("Les fichiers et leurs données de lecture (position, notes sur l'appareil) seront effacés de la Kindle. Votre bibliothèque n'est pas modifiée, et les notes déjà importées restent dans Alexandrie.")
+            }
+            Divider()
         }
     }
 

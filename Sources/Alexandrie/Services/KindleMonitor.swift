@@ -339,6 +339,29 @@ final class KindleMonitor {
         }
     }
 
+    /// Livres de la Kindle branchée qui sont dans la bibliothèque mais plus sur l'étagère de sa liseuse.
+    /// Les livres inconnus de la bibliothèque (achats Amazon…) ne sont jamais proposés.
+    func offShelfDocuments(in library: LibraryStore) -> [(document: KindleDocument, book: Book)] {
+        guard let reader = currentReader, catalogProgress == nil else { return [] }
+        return documents.compactMap { d in
+            guard let b = libraryBook(for: d, in: library), !b.shelfIDs.contains(reader.id) else { return nil }
+            return (d, b)
+        }
+    }
+
+    /// Supprime plusieurs livres de l'appareil (la bibliothèque n'est pas touchée).
+    func delete(_ documents: [KindleDocument]) async {
+        guard let device, !isBusy else { return }
+        isBusy = true
+        defer { isBusy = false }
+        var failures = 0
+        for d in documents {
+            do { try await Task.detached { try device.delete(d) }.value } catch { failures += 1 }
+        }
+        if failures > 0 { lastError = "\(failures) livre(s) n'ont pas pu être retirés de la Kindle." }
+        await reloadDocuments()
+    }
+
     func delete(_ document: KindleDocument) async {
         guard let device else { return }
         do {

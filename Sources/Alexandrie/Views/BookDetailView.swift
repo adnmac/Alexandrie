@@ -105,7 +105,7 @@ struct BookDetailView: View {
 
                 let hiddenCopies = library.hiddenCopies(of: draft)
                 let notes = kindle.clippings(for: files.isEmpty ? [draft] : files)
-                if !notes.isEmpty { ClippingsSection(clippings: notes) }
+                if !notes.isEmpty { ClippingsSection(clippings: notes, bookKey: ShelfSync.normalize(draft.title)) }
 
                 if files.count > 1 || !hiddenCopies.isEmpty { filesSection(hiddenCopies: hiddenCopies) }
 
@@ -314,28 +314,23 @@ struct CoverSearchButton: View {
     }
 }
 
-/// Notes et surlignages faits sur la Kindle pour ce livre.
+/// Résumé des notes Kindle du livre dans la fiche : les dernières, et l'accès à toutes dans la vue Notes.
 struct ClippingsSection: View {
+    @Environment(KindleMonitor.self) private var kindle
     let clippings: [Clipping]
+    let bookKey: String
 
     var body: some View {
         GroupBox {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(clippings) { c in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(c.text)
-                            .font(c.kind == .note ? .callout.italic() : .callout)
-                            .textSelection(.enabled)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Label((c.kind == .note ? "Note · " : "") + [c.location, c.added].filter { !$0.isEmpty }.joined(separator: " · "),
-                              systemImage: c.kind == .note ? "note.text" : "highlighter")
-                            .font(.caption).foregroundStyle(.secondary)
-                    }
-                    if c.id != clippings.last?.id { Divider() }
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(clippings.suffix(3).reversed()) { c in
+                    Text(c.displayText)
+                        .font(c.kind == .note ? .callout.italic() : .callout)
+                        .lineLimit(3)
+                        .foregroundStyle(.primary)
                 }
-                Button("Copier tout") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(clippings.map(\.text).joined(separator: "\n\n"), forType: .string)
+                Button(clippings.count <= 3 ? "Ouvrir dans Notes" : "Voir les \(clippings.count) notes et surlignages") {
+                    kindle.notesRequest = bookKey
                 }
                 .controlSize(.small)
             }

@@ -160,3 +160,41 @@ func makeFakeKindle() throws -> URL {
         #expect(KindleClippings.load(url) == merged)
     }
 }
+
+@Suite struct ClippingEditingTests {
+    func clip(_ title: String, _ loc: String, _ text: String, kind: Clipping.Kind = .highlight) -> Clipping {
+        Clipping(title: title, author: "A", kind: kind, location: loc, added: "", text: text)
+    }
+
+    @Test func editsAndDeletionsSurviveReimport() {
+        var mine = [clip("Livre", "emplacement 10", "Original"), clip("Livre", "emplacement 20", "À supprimer")]
+        mine[0].editedText = "Corrigé"
+        mine[1].hidden = true
+        // Le fichier de la Kindle contient toujours les textes d'origine, plus un nouveau relevé.
+        let fromKindle = [clip("Livre", "emplacement 10", "Original"), clip("Livre", "emplacement 20", "À supprimer"),
+                          clip("Livre", "emplacement 30", "Nouveau")]
+        let merged = KindleClippings.merge(mine, fromKindle)
+        #expect(merged.count == 3)
+        #expect(merged[0].displayText == "Corrigé" && merged[0].isEdited)
+        #expect(merged[1].isHidden)
+        let books = KindleClippings.books(merged)
+        #expect(books.count == 1 && books[0].clippings.map(\.displayText) == ["Corrigé", "Nouveau"])
+    }
+
+    @Test func booksMostRecentFirstAndReadingOrder() {
+        let all = [clip("Ancien", "emplacement 5", "a"), clip("Récent", "page 3 · emplacement 120-121", "b"),
+                   clip("Récent", "emplacement 40", "c")]
+        let books = KindleClippings.books(all)
+        #expect(books.map(\.title) == ["Récent", "Ancien"])
+        #expect(books[0].clippings.sorted { $0.position < $1.position }.map(\.text) == ["c", "b"])
+    }
+
+    @Test func markdownExportUsesEditedText() {
+        var c = clip("Livre", "emplacement 10", "Original")
+        c.editedText = "Corrigé"
+        let md = KindleClippings.markdown(title: "Livre", author: "A", clippings: [c, clip("Livre", "emplacement 12", "Ma note", kind: .note)])
+        #expect(md.hasPrefix("# Livre"))
+        #expect(md.contains("> Corrigé") && !md.contains("Original"))
+        #expect(md.contains("📝 Ma note"))
+    }
+}

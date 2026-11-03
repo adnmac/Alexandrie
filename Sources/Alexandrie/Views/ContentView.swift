@@ -45,6 +45,8 @@ struct ContentView: View {
     @AppStorage("gridMode") private var gridMode = true
     @State private var isDropTargeted = false
     @State private var showReview = false
+    /// Livre annoté choisi dans la vue Notes (titre normalisé).
+    @State private var notesBook: String?
 
     var body: some View {
         Group {
@@ -59,6 +61,13 @@ struct ContentView: View {
             if connected { Task { await kindle.sendPending(library: library) } }
         }
         .sheet(isPresented: $showReview) { CatalogReviewSheet() }
+        // Depuis la fiche : « Voir les notes » ouvre la vue Notes sur ce livre.
+        .onChange(of: kindle.notesRequest) { _, key in
+            guard let key else { return }
+            sidebar = .notes
+            notesBook = key
+            kindle.notesRequest = nil
+        }
         .onAppear { library.undoManager = undoManager }
         .onChange(of: undoManager) { _, manager in library.undoManager = manager }
         // Kindle inconnue : on lui donne un nom, une fois pour toutes.
@@ -93,7 +102,20 @@ struct ContentView: View {
                 if sidebar == .kindle {
                     KindleView(search: search, gridMode: gridMode, selection: $kindleSelection)
                 } else if sidebar == .notes {
-                    NotesView(search: search, selection: $selection)
+                    // Livres annotés (colonne étroite) et notes du livre choisi (large) ; sa fiche est à droite.
+                    HSplitView {
+                        NotesBookList(search: search, selection: $notesBook)
+                            .frame(minWidth: 200, idealWidth: 250, maxWidth: 380)
+                        Group {
+                            if let key = notesBook {
+                                NotesEditor(bookKey: key).id(key)
+                            } else {
+                                ContentUnavailableView("Choisissez un livre", systemImage: "highlighter",
+                                                       description: Text("Ses notes et surlignages s'afficheront ici."))
+                            }
+                        }
+                        .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+                    }
                 } else {
                     LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
                 }
@@ -108,7 +130,18 @@ struct ContentView: View {
             }
             .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série, genre…")
         } detail: {
-            if sidebar == .kindle {
+            if sidebar == .notes {
+                if let key = notesBook, let book = library.books(titleKey: key).first(where: { $0.trashedAt == nil }) {
+                    let identity = library.identity(of: book)
+                    let files = library.visibleBooks.filter { library.identity(of: $0) == identity }
+                    BookDetailView(book: BookGroups.make(files, identities: library.identities).first?.primary ?? book,
+                                   files: files)
+                        .id(book.id)
+                } else {
+                    ContentUnavailableView("Aucune fiche", systemImage: "book.closed",
+                                           description: Text("Le livre annoté n'est pas dans la bibliothèque."))
+                }
+            } else if sidebar == .kindle {
                 if let doc = kindle.documents.first(where: { $0.id == kindleSelection }) {
                     KindleBookDetailView(document: doc).id(doc.id)
                 } else {

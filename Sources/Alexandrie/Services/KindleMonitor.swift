@@ -37,7 +37,7 @@ final class KindleMonitor {
 
     /// Tous les relevés importés des Kindle, conservés même après la suppression du livre de l'appareil.
     private(set) var clippings: [Clipping] = [] {
-        didSet { clippingIndex = Dictionary(grouping: clippings) { ShelfSync.normalize($0.title) } }
+        didSet { clippingIndex = Dictionary(grouping: clippings.filter { !$0.isHidden }) { ShelfSync.normalize($0.title) } }
     }
     @ObservationIgnored private var clippingIndex: [String: [Clipping]] = [:]
 
@@ -50,7 +50,41 @@ final class KindleMonitor {
 
     /// Titres (normalisés) dont une note ou un surlignage contient `query` : la recherche les retrouve.
     func titleKeys(withClippingsMatching query: String) -> Set<String> {
-        Set(clippings.filter { $0.text.localizedStandardContains(query) }.map { ShelfSync.normalize($0.title) })
+        Set(clippings.filter { !$0.isHidden && $0.displayText.localizedStandardContains(query) }
+            .map { ShelfSync.normalize($0.title) })
+    }
+
+    /// Livres annotés, pour la vue Notes (le plus récemment annoté en tête).
+    var clippingBooks: [ClippingBook] { KindleClippings.books(clippings) }
+
+    /// Demande de la fiche : ouvrir la vue Notes sur ce livre (titre normalisé).
+    var notesRequest: String?
+
+    /// Modifie le texte d'un relevé (le texte d'origine est gardé ; texte identique = retour à l'origine).
+    func editClipping(_ id: Clipping.ID, text: String) {
+        updateClipping(id) { c in
+            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            c.editedText = trimmed == c.text ? nil : trimmed
+        }
+    }
+
+    func revertClipping(_ id: Clipping.ID) { updateClipping(id) { $0.editedText = nil } }
+
+    /// Supprime un relevé d'Alexandrie ; il ne revient pas au prochain import.
+    func deleteClipping(_ id: Clipping.ID) { updateClipping(id) { $0.hidden = true } }
+
+    private func updateClipping(_ id: Clipping.ID, _ change: (inout Clipping) -> Void) {
+        guard let i = clippings.firstIndex(where: { $0.id == id }) else { return }
+        change(&clippings[i])
+        saveClippings()
+    }
+
+    private func saveClippings() {
+        do {
+            try KindleClippings.save(clippings, to: directories.clippings)
+        } catch {
+            lastError = "Impossible d'enregistrer les notes : \(error.localizedDescription)"
+        }
     }
 
     /// Lit My Clippings.txt sur une Kindle en disque USB et ajoute les nouveaux relevés.
@@ -64,7 +98,7 @@ final class KindleMonitor {
         let merged = KindleClippings.merge(clippings, found)
         guard merged.count != clippings.count else { return }
         clippings = merged
-        try? KindleClippings.save(merged, to: directories.clippings)
+        saveClippings()
     }
 
     // MARK: - Liseuses connues
@@ -132,6 +166,8 @@ final class KindleMonitor {
             }
         }
         clippings = KindleClippings.load(directories.clippings)
+        // Copie du jour des notes (modifiées dans l'app : elles n'existent nulle part ailleurs).
+        try? IndexBackups.backUpToday(directories.clippings, to: directories.backups, name: "clippings")
         do {
             readers = try ReaderList.load(directories.readers)
         } catch {

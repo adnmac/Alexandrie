@@ -15,7 +15,44 @@ public struct Clipping: Codable, Hashable, Identifiable, Sendable {
     public var location: String
     /// Date telle qu'écrite par la Kindle (« mardi 3 novembre 2026 10:12:33 »).
     public var added: String
+    /// Texte relevé sur la Kindle (sert à reconnaître le relevé ; jamais modifié).
     public var text: String
+    /// Texte modifié dans Alexandrie, s'il l'a été.
+    public var editedText: String?
+    /// Supprimé dans Alexandrie : n'est plus affiché, et ne revient pas au prochain import.
+    public var hidden: Bool?
+
+    public init(title: String, author: String, kind: Kind, location: String, added: String, text: String) {
+        self.title = title
+        self.author = author
+        self.kind = kind
+        self.location = location
+        self.added = added
+        self.text = text
+    }
+
+    /// Texte affiché : la version modifiée si elle existe.
+    public var displayText: String { editedText ?? text }
+    public var isEdited: Bool { editedText != nil }
+    public var isHidden: Bool { hidden == true }
+
+    /// Premier nombre de l'emplacement (ou de la page) : ordre de lecture.
+    public var position: Int {
+        let digits = location.split(whereSeparator: { !$0.isNumber })
+        let emplacement = location.range(of: "emplacement ").map { location[$0.upperBound...] }
+        return Int(emplacement?.prefix { $0.isNumber } ?? digits.first ?? "") ?? Int.max
+    }
+}
+
+/// Livre annoté : ses relevés visibles, pour la liste des livres de la vue Notes.
+public struct ClippingBook: Identifiable, Hashable, Sendable {
+    /// Titre normalisé (voir `ShelfSync.normalize`), qui rattache aussi le livre à la bibliothèque.
+    public let id: String
+    public let title: String
+    public let author: String
+    public let clippings: [Clipping]
+    /// Rang du relevé le plus récent dans le fichier de la Kindle (plus grand = plus récent).
+    public let latest: Int
 }
 
 public enum KindleClippings {
@@ -65,6 +102,37 @@ public enum KindleClippings {
             }
         }
         return ""
+    }
+
+    /// Livres annotés, le plus récemment annoté en tête (relevés supprimés exclus, signets exclus).
+    public static func books(_ clippings: [Clipping]) -> [ClippingBook] {
+        var order: [String] = []
+        var grouped: [String: [Clipping]] = [:]
+        var latest: [String: Int] = [:]
+        for (i, c) in clippings.enumerated() where !c.isHidden && c.kind != .bookmark {
+            let key = ShelfSync.normalize(c.title)
+            if grouped[key] == nil { order.append(key) }
+            grouped[key, default: []].append(c)
+            latest[key] = i
+        }
+        return order.map { key in
+            let list = grouped[key]!
+            return ClippingBook(id: key, title: list[0].title, author: list[0].author, clippings: list, latest: latest[key] ?? 0)
+        }
+        .sorted { $0.latest > $1.latest }
+    }
+
+    /// Export Markdown des relevés d'un livre (texte modifié s'il existe).
+    public static func markdown(title: String, author: String, clippings: [Clipping]) -> String {
+        var out = "# \(title)\n"
+        if !author.isEmpty { out += "\n*\(author)*\n" }
+        for c in clippings {
+            let meta = [c.kind == .note ? "Note" : "Surlignement", c.location, c.added].filter { !$0.isEmpty }
+            out += "\n---\n\n" + (c.kind == .note ? "📝 " : "> ")
+                + c.displayText.replacingOccurrences(of: "\n", with: c.kind == .note ? "\n" : "\n> ")
+                + "\n\n<small>" + meta.joined(separator: " · ") + "</small>\n"
+        }
+        return out
     }
 
     /// Ajoute les relevés nouveaux (même identifiant = déjà connu), dans l'ordre du fichier.

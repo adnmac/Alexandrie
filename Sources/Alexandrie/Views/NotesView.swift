@@ -119,10 +119,14 @@ struct NotesEditor: View {
                     .pickerStyle(.segmented).labelsHidden().fixedSize()
                 Picker("", selection: $order) { ForEach(Order.allCases) { Text($0.rawValue).tag($0) } }
                     .labelsHidden().fixedSize()
-                TextField("Filtrer ces notes", text: $filter).textFieldStyle(.roundedBorder)
-                Text("\(shown.count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Spacer()
+                Text(shown.count == entry.clippings.count ? "\(shown.count) relevés" : "\(shown.count) sur \(entry.clippings.count)")
+                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             }
             .controlSize(.small)
+            TextField("Filtrer ces notes", text: $filter)
+                .textFieldStyle(.roundedBorder)
+                .controlSize(.small)
         }
         .padding(14)
     }

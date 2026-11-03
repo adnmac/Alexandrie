@@ -105,7 +105,7 @@ struct ContentView: View {
                     // Livres annotés (colonne étroite) et notes du livre choisi (large) ; sa fiche est à droite.
                     HSplitView {
                         NotesBookList(search: search, selection: $notesBook)
-                            .frame(minWidth: 200, idealWidth: 250, maxWidth: 380)
+                            .frame(minWidth: 180, idealWidth: 230, maxWidth: 280)
                         Group {
                             if let key = notesBook {
                                 NotesEditor(bookKey: key).id(key)

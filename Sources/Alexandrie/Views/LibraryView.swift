@@ -45,6 +45,12 @@ struct LibraryView: View {
         }
     }
 
+    /// Livres emportés en glissant une carte : toute la sélection si la carte en fait partie.
+    private func dragged(_ g: BookGroup) -> [Book] {
+        guard selection.contains(g.id), selection.count > 1 else { return [g.primary] }
+        return selection.compactMap(resolve)
+    }
+
     // MARK: - Grille : une carte par livre, avec tous ses formats
 
     private var grid: some View {
@@ -55,6 +61,10 @@ struct LibraryView: View {
                              onDevice: g.books.contains(where: kindle.isOnDevice), isSelected: selection.contains(g.id))
                         .onTapGesture { select(g) }
                         .contextMenu { BookActions(book: g.primary) }
+                        // Glisser vers une liseuse de la barre latérale : le livre (ou la sélection) rejoint son étagère.
+                        .draggable(BookDrag.payload(dragged(g))) {
+                            BookCard(book: g.primary, formats: g.formats, isSelected: false).frame(width: 130)
+                        }
                 }
             }
             .padding(20)
@@ -110,6 +120,10 @@ struct LibraryView: View {
                 }
             }
             .width(min: 60, ideal: 120)
+            TableColumn("Genre") { r in
+                if !r.isFile, let g = r.book.genre { Text(g).lineLimit(1) }
+            }
+            .width(min: 50, ideal: 90)
             TableColumn("Format") { r in
                 Text(r.group.map { $0.formats.map(\.label).joined(separator: " · ") } ?? r.book.format.label)
                     .monospaced().lineLimit(1)
@@ -277,6 +291,18 @@ struct CoverImage: View {
             Self.cache.setObject(loaded, forKey: key)
             image = loaded
         }
+    }
+}
+
+/// Livres glissés depuis la grille (identifiants des fichiers principaux), reconnus par leur préfixe.
+enum BookDrag {
+    static let prefix = "alexandrie-livres:"
+
+    static func payload(_ books: [Book]) -> String { prefix + books.map(\.id).joined(separator: "\n") }
+
+    static func ids(_ text: String) -> [Book.ID]? {
+        guard text.hasPrefix(prefix) else { return nil }
+        return text.dropFirst(prefix.count).split(separator: "\n").map(String.init)
     }
 }
 

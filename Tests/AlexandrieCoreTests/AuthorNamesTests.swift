@@ -198,3 +198,22 @@ import Testing
                             book("/e/z/c.epub", "Poutine", ["Frédéric Pons"])]) == [1, 1, 1])
     }
 }
+
+@Suite struct GenreNamesTests {
+    func book(_ path: String, _ title: String, genre: String?) -> Book {
+        var b = Book(path: path, format: .epub, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
+                     title: title, authors: ["Auteur"], tags: [], hasCover: false, isDRMProtected: false, isImported: false, asin: "A")
+        b.genre = genre
+        return b
+    }
+
+    @Test func groupsGenresAndCountsBooks() {
+        let books = [book("/a.epub", "A", genre: "Roman"), book("/a.azw3", "A", genre: "Roman"),
+                     book("/b.epub", "B", genre: "roman "), book("/c.epub", "C", genre: "Essai"),
+                     book("/d.epub", "D", genre: nil)]
+        let groups = GenreNames.groups(books)
+        #expect(groups.map(\.name) == ["Essai", "Roman"])
+        // Deux fichiers du même livre comptent pour un livre.
+        #expect(groups.first { $0.name == "Roman" }?.bookCount == 2)
+    }
+}

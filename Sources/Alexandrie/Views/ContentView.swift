@@ -15,6 +15,8 @@ enum SidebarItem: Hashable {
     case author(String)
     /// Clé de regroupement de série (voir `SeriesNames`).
     case series(String)
+    /// Clé de regroupement de genre (voir `GenreNames`).
+    case genre(String)
 }
 
 extension EnvironmentValues {
@@ -215,6 +217,7 @@ struct ContentView: View {
         case .sent: list = list.filter { $0.lastSentAt != nil }
         case .pending: list = list.filter(\.isPendingSend)
         case .shelf(let reader): list = list.filter { $0.shelfIDs.contains(reader) }
+        case .genre(let key): list = list.filter { $0.genre.map(GenreNames.key) == key }
         case .toReview: list = list.filter { !$0.catalogSuggestions.isEmpty }
         case .series(let key):
             // Classement par numéro de tome, les livres sans numéro à la fin.

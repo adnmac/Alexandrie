@@ -9,6 +9,7 @@ struct SidebarView: View {
     @AppStorage("sidebarAuthorsExpanded") private var authorsExpanded = false
     @AppStorage("sidebarFormatsExpanded") private var formatsExpanded = true
     @AppStorage("sidebarSeriesExpanded") private var seriesExpanded = false
+    @AppStorage("sidebarGenresExpanded") private var genresExpanded = false
 
     var body: some View {
         List(selection: $selection) {
@@ -73,6 +74,13 @@ struct SidebarView: View {
                             .badge(library.shelfCount(reader.id))
                             .tag(SidebarItem.shelf(reader.id))
                             .help(connected ? "Étagère de \(reader.name) — branchée" : "Étagère de \(reader.name)")
+                            // Livres glissés depuis la grille : ajoutés à cette étagère.
+                            .dropDestination(for: String.self) { items, _ in
+                                let books = items.compactMap(BookDrag.ids).flatMap { $0 }.compactMap(library.book(id:))
+                                guard !books.isEmpty else { return false }
+                                library.addToShelf(books, reader: reader.id)
+                                return true
+                            }
                     }
                 }
             }
@@ -95,6 +103,16 @@ struct SidebarView: View {
                     ForEach(series) { s in
                         row(s.name, "books.vertical", .series(s.key), count: s.bookCount)
                             .help(s.variants.count > 1 ? "Noms regroupés : " + s.variants.joined(separator: " · ") : s.name)
+                    }
+                }
+            }
+
+            let genres = GenreNames.groups(library.visibleBooks, identities: library.identities)
+            if !genres.isEmpty {
+                Section {
+                    CollapsibleHeader(title: "Genres", count: genres.count, tint: .purple, isExpanded: $genresExpanded)
+                    if genresExpanded {
+                        ForEach(genres) { g in row(g.name, "theatermasks", .genre(g.key), count: g.bookCount) }
                     }
                 }
             }

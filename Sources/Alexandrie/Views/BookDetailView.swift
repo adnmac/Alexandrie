@@ -108,6 +108,13 @@ struct BookDetailView: View {
                     info("Taille", ByteCountFormatter.string(fromByteCount: draft.fileSize, countStyle: .file))
                     info("Ajouté le", draft.addedAt.formatted(date: .long, time: .omitted))
                     if let sent = draft.lastSentAt { info("Envoyé le", sent.formatted(date: .long, time: .shortened)) }
+                    // Par liseuse : étagères et derniers envois (liseuses oubliées ignorées).
+                    let shelfNames = kindle.readers.filter { draft.shelfIDs.contains($0.id) }.map(\.name)
+                    if !shelfNames.isEmpty { info("Étagères", shelfNames.joined(separator: ", ")) }
+                    ForEach(kindle.readers.filter { draft.sentTo?[$0.id] != nil }) { reader in
+                        info("Sur « \(reader.name) »",
+                             "envoyé le " + draft.sentTo![reader.id]!.formatted(date: .long, time: .shortened))
+                    }
                     info("Emplacement", draft.isImported ? "Imports d'Alexandrie" : draft.path)
                 }
                 .font(.callout)

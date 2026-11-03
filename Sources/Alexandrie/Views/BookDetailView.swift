@@ -28,7 +28,7 @@ struct BookDetailView: View {
                 HStack {
                     if isTrashed {
                         Button {
-                            library.restoreFromTrash(draft)
+                            library.undoable("Restaurer") { library.restoreFromTrash(draft) }
                         } label: {
                             Label("Restaurer", systemImage: "arrow.uturn.backward")
                                 .frame(maxWidth: .infinity)
@@ -37,7 +37,7 @@ struct BookDetailView: View {
                         .controlSize(.large)
                     } else if isPending && !kindle.isConnected {
                         Button {
-                            library.removeFromKindleQueue([draft.id])
+                            library.undoable("Retirer de la file d'envoi") { library.removeFromKindleQueue([draft.id]) }
                         } label: {
                             Label("Retirer de la file d'envoi", systemImage: "xmark.circle")
                                 .frame(maxWidth: .infinity)
@@ -98,7 +98,7 @@ struct BookDetailView: View {
 
                 if let hint = draft.seriesHint { seriesHintBox(hint) }
 
-                CatalogSection(book: $draft)
+                CatalogSection(book: $draft, fileIDs: files.isEmpty ? [draft.id] : files.map(\.id))
 
                 let hiddenCopies = library.hiddenCopies(of: draft)
                 if files.count > 1 || !hiddenCopies.isEmpty { filesSection(hiddenCopies: hiddenCopies) }
@@ -120,6 +120,13 @@ struct BookDetailView: View {
                 .font(.callout)
             }
             .padding(20)
+        }
+        // Après ⌘Z : les informations annulées reviennent dans la fiche ouverte.
+        .onChange(of: library.undoGeneration) {
+            guard let stored = library.book(id: draft.id) else { return }
+            draft.edits = stored.edits
+            draft.tags = stored.tags
+            draft.catalogDismissed = stored.catalogDismissed
         }
         .onChange(of: library.book(id: draft.id)) { _, new in
             // Mise à jour externe (envoi terminé, rescan) sans écraser une saisie en cours.
@@ -279,6 +286,8 @@ struct MultiSelectionView: View {
 struct CatalogSection: View {
     @Environment(LibraryStore.self) private var library
     @Binding var book: Book
+    /// Fichiers du livre : leur état est mémorisé avant une correction, pour ⌘Z.
+    var fileIDs: [Book.ID] = []
 
     var body: some View {
         GroupBox {
@@ -419,8 +428,9 @@ struct CatalogSection: View {
                 if d.field == .publisher {
                     // La couverture confirme la valeur actuelle : on la garde ; sinon on adopte celle de la couverture.
                     Button(value == d.current ? "Garder « \(value) »" : "Utiliser « \(value) »") {
+                        library.prepareUndo("Corriger l'éditeur", ids: fileIDs)
                         book.publisher = value
-                        dismiss([.publisher])
+                        book.catalogDismissed = (book.catalogDismissed ?? []).union([.publisher])
                     }
                     .controlSize(.small).fixedSize()
                 }
@@ -438,12 +448,14 @@ struct CatalogSection: View {
     /// Modifie le brouillon de la fiche (enregistré automatiquement), pour ne pas être écrasé par lui.
     private func apply(_ fields: Set<CatalogField>) {
         guard let record = book.catalogRecord else { return }
+        library.prepareUndo(fields.count == 1 ? "Appliquer « \(fields.first!.label) »" : "Appliquer la notice", ids: fileIDs)
         var edits = book.edits
         CatalogComparison.apply(fields, from: record, to: &edits)
         book.edits = edits
     }
 
     private func dismiss(_ fields: Set<CatalogField>) {
+        library.prepareUndo("Ignorer des propositions", ids: fileIDs)
         book.catalogDismissed = (book.catalogDismissed ?? []).union(fields)
     }
 }

@@ -78,7 +78,7 @@ struct SidebarView: View {
                             .dropDestination(for: String.self) { items, _ in
                                 let books = items.compactMap(BookDrag.ids).flatMap { $0 }.compactMap(library.book(id:))
                                 guard !books.isEmpty else { return false }
-                                library.addToShelf(books, reader: reader.id)
+                                library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
                                 return true
                             }
                     }

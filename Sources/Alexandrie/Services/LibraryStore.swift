@@ -35,6 +35,8 @@ final class LibraryStore {
         covers = CoverStore(directory: directories.covers)
         do {
             books = try LibraryIndex.load(directories.index)
+            // Copie du jour, faite avant tout changement : on peut revenir à l'état du matin.
+            try? IndexBackups.backUpToday(directories.index, to: directories.backups)
         } catch {
             // Index illisible : mis de côté plutôt qu'écrasé, la bibliothèque est réindexée.
             let moved = try? LibraryIndex.quarantine(directories.index)
@@ -437,6 +439,70 @@ final class LibraryStore {
             }
         }
         if sync { writeQueue.sync(execute: work) } else { writeQueue.async(execute: work) }
+    }
+
+    // MARK: - Annulation (⌘Z)
+
+    /// Gestionnaire d'annulation de la fenêtre principale (fourni par ContentView).
+    @ObservationIgnored weak var undoManager: UndoManager?
+    /// Augmente à chaque annulation : la fiche ouverte recharge alors les informations du livre.
+    private(set) var undoGeneration = 0
+
+    /// Exécute une modification annulable : seuls les livres réellement changés sont mémorisés.
+    /// Les ajouts et retraits de fichiers (rescan, corbeille vidée) ne s'annulent pas.
+    func undoable(_ name: String, _ body: () -> Void) {
+        let before = books
+        body()
+        guard books.count == before.count else { return }
+        let changed = before.indices.filter { before[$0] != books[$0] && before[$0].id == books[$0].id }.map { before[$0] }
+        registerUndo(name, restoring: changed)
+    }
+
+    /// Mémorise l'état actuel de ces fichiers avant une modification faite ailleurs (fiche ouverte).
+    func prepareUndo(_ name: String, ids: [Book.ID]) {
+        registerUndo(name, restoring: ids.compactMap { book(id: $0) })
+    }
+
+    private func registerUndo(_ name: String, restoring snapshot: [Book]) {
+        guard let undoManager, !snapshot.isEmpty else { return }
+        undoManager.registerUndo(withTarget: self) { store in
+            MainActor.assumeIsolated { store.restore(snapshot, name: name) }
+        }
+        undoManager.setActionName(name)
+    }
+
+    /// Rétablit les fichiers mémorisés et inscrit l'opération inverse (« Rétablir »).
+    private func restore(_ snapshot: [Book], name: String) {
+        let current = snapshot.compactMap { book(id: $0.id) }
+        let index = Dictionary(books.indices.map { (books[$0].id, $0) }, uniquingKeysWith: { a, _ in a })
+        var copy = books
+        for b in snapshot { if let i = index[b.id] { copy[i] = b } }
+        books = copy
+        save()
+        undoGeneration += 1
+        registerUndo(name, restoring: current)
+    }
+
+    // MARK: - Sauvegardes de l'index
+
+    var backups: [IndexBackups.Backup] { IndexBackups.list(directories.backups) }
+
+    /// Revient à une sauvegarde ; l'état actuel est d'abord mis de côté (« library-avant-restauration-… »).
+    func restoreBackup(_ backup: IndexBackups.Backup) async {
+        saveNow()
+        do {
+            let restored = try LibraryIndex.load(backup.url)
+            let stamp = Date().formatted(.iso8601.year().month().day().dateSeparator(.dash).time(includingFractionalSeconds: false)
+                .timeSeparator(.omitted))
+            let aside = directories.backups.appendingPathComponent("library-avant-restauration-\(stamp).json")
+            try? FileManager.default.copyItem(at: directories.index, to: aside)
+            books = restored
+            saveNow()
+            write(sync: true)
+            await rescan()
+        } catch {
+            lastError = "Impossible de restaurer la sauvegarde : \(error.localizedDescription)"
+        }
     }
 
     func book(id: Book.ID?) -> Book? {

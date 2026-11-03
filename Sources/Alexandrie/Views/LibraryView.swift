@@ -317,17 +317,23 @@ struct ShelfActions: View {
         let current = books.compactMap { library.book(id: $0.id) }
         let available = kindle.readers.filter { r in !current.allSatisfy { $0.shelfIDs.contains(r.id) } }
         if available.count == 1, let reader = available.first {
-            Button("Ajouter à l'étagère « \(reader.name) »") { library.addToShelf(books, reader: reader.id) }
+            Button("Ajouter à l'étagère « \(reader.name) »") {
+                library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
+            }
         } else if available.count > 1 {
             Menu("Ajouter à l'étagère") {
                 ForEach(available) { reader in
-                    Button(reader.name) { library.addToShelf(books, reader: reader.id) }
+                    Button(reader.name) {
+                        library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
+                    }
                 }
             }
         }
         if case .shelf(let id) = list, let reader = kindle.readers.first(where: { $0.id == id }),
            current.contains(where: { $0.shelfIDs.contains(id) }) {
-            Button("Retirer de l'étagère « \(reader.name) »") { library.removeFromShelf(books, reader: id) }
+            Button("Retirer de l'étagère « \(reader.name) »") {
+                library.undoable("Retirer de l'étagère") { library.removeFromShelf(books, reader: id) }
+            }
         }
     }
 }
@@ -349,7 +355,7 @@ struct BookActions: View {
 
     /// Livre dans la corbeille : le restaurer, ou placer ses fichiers dans la Corbeille de macOS.
     @ViewBuilder private var trashActions: some View {
-        Button("Restaurer") { library.restoreFromTrash(book) }
+        Button("Restaurer") { library.undoable("Restaurer") { library.restoreFromTrash(book) } }
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         Divider()
         Button("Supprimer définitivement…", role: .destructive) {
@@ -370,10 +376,14 @@ struct BookActions: View {
         ShelfActions(books: [book])
         // Retirer d'une liste ne supprime rien : le livre reste dans la bibliothèque.
         if isPending {
-            Button("Retirer de la liste « En attente d'envoi »") { library.removeFromKindleQueue([book.id]) }
+            Button("Retirer de la liste « En attente d'envoi »") {
+                library.undoable("Retirer de la file d'envoi") { library.removeFromKindleQueue([book.id]) }
+            }
         }
         if list == .sent, library.book(id: book.id)?.lastSentAt != nil {
-            Button("Retirer de la liste « Envoyés à la Kindle »") { library.forgetSent(book) }
+            Button("Retirer de la liste « Envoyés à la Kindle »") {
+                library.undoable("Retirer des envoyés") { library.forgetSent(book) }
+            }
         }
         if [.mobi, .azw3, .azw].contains(book.format) {
             Button("Exporter en EPUB…") { Task { await Panels.exportEPUB(book, library: library) } }
@@ -386,7 +396,7 @@ struct BookActions: View {
         // (envoyés, en attente…), le menu ne propose que de retirer le livre de la liste.
         if list == .all {
             Divider()
-            Button("Mettre à la corbeille") { library.moveToTrash(book) }
+            Button("Mettre à la corbeille") { library.undoable("Mettre à la corbeille") { library.moveToTrash(book) } }
         }
     }
 }

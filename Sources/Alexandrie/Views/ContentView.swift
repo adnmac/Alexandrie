@@ -33,6 +33,7 @@ struct ContentView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
     @Environment(UpdateMonitor.self) private var updates
+    @Environment(\.undoManager) private var undoManager
     @State private var sidebar: SidebarItem? = .all
     /// Identifiants de lignes : livre seul, groupe (`group:…`) ou fichier d'un groupe.
     @State private var selection = Set<String>()
@@ -56,6 +57,8 @@ struct ContentView: View {
             if connected { Task { await kindle.sendPending(library: library) } }
         }
         .sheet(isPresented: $showReview) { CatalogReviewSheet() }
+        .onAppear { library.undoManager = undoManager }
+        .onChange(of: undoManager) { _, manager in library.undoManager = manager }
         // Kindle inconnue : on lui donne un nom, une fois pour toutes.
         .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {
             NameReaderSheet()

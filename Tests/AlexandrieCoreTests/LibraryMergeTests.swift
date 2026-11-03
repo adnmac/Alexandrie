@@ -234,3 +234,25 @@ func tempDirectory() -> URL {
         #expect(fresh.sentTo == book.sentTo)
     }
 }
+
+@Suite struct IndexBackupsTests {
+    @Test func oneBackupPerDayKeepingTheMostRecent() throws {
+        let dir = tempDirectory(), backups = dir.appendingPathComponent("Sauvegardes")
+        let index = dir.appendingPathComponent("library.json")
+        try Data("[]".utf8).write(to: index)
+        let day: (Int) -> Date = { Date(timeIntervalSince1970: TimeInterval($0) * 86_400 + 3_600) }
+        #expect(try IndexBackups.backUpToday(index, to: backups, now: day(1), keep: 3) != nil)
+        // Même jour : pas de seconde copie (elle garderait l'état d'avant les changements du jour).
+        #expect(try IndexBackups.backUpToday(index, to: backups, now: day(1), keep: 3) == nil)
+        for d in 2...5 { try IndexBackups.backUpToday(index, to: backups, now: day(d), keep: 3) }
+        let kept = IndexBackups.list(backups)
+        #expect(kept.count == 3)
+        #expect(kept.first?.date ?? .distantPast > kept.last?.date ?? .distantFuture)
+        #expect(kept.map(\.url.lastPathComponent) == ["library-1970-01-06.json", "library-1970-01-05.json", "library-1970-01-04.json"])
+    }
+
+    @Test func noIndexNoBackup() throws {
+        let dir = tempDirectory()
+        #expect(try IndexBackups.backUpToday(dir.appendingPathComponent("library.json"), to: dir.appendingPathComponent("S")) == nil)
+    }
+}

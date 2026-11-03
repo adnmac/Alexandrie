@@ -2,6 +2,38 @@ import AlexandrieCore
 import AppKit
 import SwiftUI
 
+/// Sauvegardes de l'index : dernière copie, restauration (avec confirmation).
+struct BackupsRow: View {
+    @Environment(LibraryStore.self) private var library
+    @State private var chosen: IndexBackups.Backup?
+
+    var body: some View {
+        let backups = library.backups
+        LabeledContent("Dernière sauvegarde") {
+            HStack {
+                Text(backups.first.map { $0.date.formatted(date: .long, time: .omitted) } ?? "aucune")
+                    .foregroundStyle(.secondary)
+                Menu("Restaurer…") {
+                    ForEach(backups, id: \.url) { b in
+                        Button(b.date.formatted(date: .complete, time: .omitted)) { chosen = b }
+                    }
+                }
+                .fixedSize()
+                .disabled(backups.isEmpty)
+                Button("Afficher") { NSWorkspace.shared.activateFileViewerSelecting([library.directories.backups]) }
+            }
+        }
+        .confirmationDialog("Revenir à la sauvegarde du \(chosen?.date.formatted(date: .long, time: .omitted) ?? "") ?",
+                            isPresented: Binding(get: { chosen != nil }, set: { if !$0 { chosen = nil } })) {
+            Button("Restaurer") {
+                if let b = chosen { Task { await library.restoreBackup(b) } }
+            }
+        } message: {
+            Text("Les corrections, étagères et autres changements faits depuis seront remplacés. L'état actuel est d'abord mis de côté dans le dossier des sauvegardes ; vos fichiers de livres ne sont pas touchés.")
+        }
+    }
+}
+
 /// Liseuse dans les réglages : renommer, oublier.
 struct ReaderRow: View {
     @Environment(KindleMonitor.self) private var kindle
@@ -93,6 +125,11 @@ struct SettingsView: View {
                     }
                 }
                 Text("Seul l'identifiant de la version installée est envoyé à GitHub (github.com/\(UpdateChecker.repository)).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Section("Sauvegardes") {
+                BackupsRow()
+                Text("Chaque jour, au premier lancement, l'index (vos corrections, étagères, corbeille…) est copié avant tout changement ; les 10 dernières copies sont gardées.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             Section("Liseuses") {

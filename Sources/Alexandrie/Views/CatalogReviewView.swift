@@ -160,7 +160,11 @@ struct CatalogReviewSheet: View {
 
     private func act(apply: Bool) {
         let chosen = rows.filter { selected.contains($0.id) }
-        if apply { library.applyReview(chosen) } else { library.dismissReview(chosen) }
+        if apply {
+            library.undoable("Appliquer la revue") { library.applyReview(chosen) }
+        } else {
+            library.undoable("Ignorer des propositions") { library.dismissReview(chosen) }
+        }
         selected.removeAll()
         reload()
     }

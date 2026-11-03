@@ -167,7 +167,7 @@ final class KindleMonitor {
         }
         clippings = KindleClippings.load(directories.clippings)
         // Copie du jour des notes (modifiées dans l'app : elles n'existent nulle part ailleurs).
-        try? IndexBackups.backUpToday(directories.clippings, to: directories.backups, name: "clippings")
+        _ = try? IndexBackups.backUpToday(directories.clippings, to: directories.backups, name: "clippings")
         do {
             readers = try ReaderList.load(directories.readers)
         } catch {

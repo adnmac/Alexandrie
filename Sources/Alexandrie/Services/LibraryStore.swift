@@ -36,7 +36,7 @@ final class LibraryStore {
         do {
             books = try LibraryIndex.load(directories.index)
             // Copie du jour, faite avant tout changement : on peut revenir à l'état du matin.
-            try? IndexBackups.backUpToday(directories.index, to: directories.backups)
+            _ = try? IndexBackups.backUpToday(directories.index, to: directories.backups)
         } catch {
             // Index illisible : mis de côté plutôt qu'écrasé, la bibliothèque est réindexée.
             let moved = try? LibraryIndex.quarantine(directories.index)

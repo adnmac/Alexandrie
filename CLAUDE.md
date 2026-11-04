@@ -20,13 +20,16 @@ correspondance ci-dessous à la place des commandes du modèle.
 | `swift test` | `scripts/test.sh` (charge les plugins de macros si seules les Command Line Tools sont actives) ; `ALEXANDRIE_FIXTURES=/dossier scripts/test.sh` pour les vrais livres |
 | Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |
 | Swift 6, isolation par défaut | Swift 6 (`swiftLanguageModes: [.v6]`), **sans** isolation `MainActor` par défaut : annoter `@MainActor` |
-| `APP_STORE=/tmp/...` | **Absent.** `Library(base:)` accepte un dossier, mais l'app utilise toujours `~/Library/Application Support/Alexandrie/`. À ajouter avant toute capture d'écran automatisée |
+| `APP_STORE=/tmp/...` | `ALEXANDRIE_STORE=/tmp/...` : dossier de données de test (index, couvertures, conversions, imports). Le dossier de livres vient alors de `ALEXANDRIE_BOOKS` (jamais du signet de l'utilisateur), sans vérification en ligne ni recherche de mises à jour. Les autres réglages (`UserDefaults`) restent partagés |
 | `APP_SNAPSHOT` / `tools/snap.sh` | **Absent.** Captures manuelles avec `screencapture -l <fenêtre>` ou via un pont de debug (voir `build-and-verify/existing-app.md`) |
-| `--selftest` | **Absent.** |
+| `--selftest` / `tools/selftest.sh` | `scripts/selftest.sh` : compile en debug, vide `/tmp/alexandrie-selftest`, lance `Alexandrie --selftest` sans fenêtre (`Sources/Alexandrie/SelfTest.swift`). PASS/FAIL par étape, code 0 si tout passe. Refuse de tourner sans `ALEXANDRIE_STORE` ou sur un dossier non vide |
 | `release` | `scripts/release.sh X.Y.Z` (publie sur GitHub, l'app propose la mise à jour) |
 
 Ne jamais faire de captures ni de tests contre les vraies données de
-`~/Library/Application Support/Alexandrie/`.
+`~/Library/Application Support/Alexandrie/` : toujours `ALEXANDRIE_STORE` dans `/tmp`.
+
+Après un changement dans `LibraryStore` ou ses services : `scripts/test.sh` puis `scripts/selftest.sh`.
+Une nouvelle fonction de `LibraryStore` reçoit une étape dans `SelfTest.swift`.
 
 ## Pièges
 

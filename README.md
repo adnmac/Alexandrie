@@ -20,7 +20,7 @@ scripts/bundle.sh               # construit build/Alexandrie.app (release, signa
 open build/Alexandrie.app
 ```
 
-Autres scripts : `scripts/build.sh [release]`, `scripts/test.sh`.
+Autres scripts : `scripts/build.sh [release]`, `scripts/test.sh`, `scripts/selftest.sh` (self-test de l'app sur des données de test dans `/tmp`).
 
 ### Signature et versions
 

@@ -176,8 +176,19 @@ public enum FolderScanner {
 public struct AppDirectories: Sendable {
     public let base: URL
 
+    /// Dossier de données de test (`ALEXANDRIE_STORE`) : self-test et captures n'écrivent jamais dans les vraies données.
+    public static var testStore: URL? {
+        ProcessInfo.processInfo.environment["ALEXANDRIE_STORE"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
+    }
+
+    /// Dossier de données réel de l'app.
+    public static var realBase: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Alexandrie", isDirectory: true)
+    }
+
     public init(base: URL? = nil) {
-        self.base = base ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        self.base = base ?? Self.testStore ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Alexandrie", isDirectory: true)
         for d in [covers, conversions, imports] {
             try? FileManager.default.createDirectory(at: d, withIntermediateDirectories: true)

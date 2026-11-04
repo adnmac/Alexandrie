@@ -31,7 +31,7 @@ final class UpdateMonitor {
     private static let dismissedKey = "updateDismissedSHA"
 
     init() {
-        if autoCheck { Task { await check() } }
+        if autoCheck, AppDirectories.testStore == nil { Task { await check() } }
     }
 
     var autoCheck: Bool {

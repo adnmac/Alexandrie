@@ -2,7 +2,6 @@ import AlexandrieCore
 import AppKit
 import SwiftUI
 
-@main
 struct AlexandrieApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
     @State private var library = LibraryStore()

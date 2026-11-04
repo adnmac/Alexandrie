@@ -53,7 +53,10 @@ final class LibraryStore {
             }
         }
         if changed { save() }
-        rootURL = Self.restoreBookmark()
+        // Données de test : le dossier de livres vient de `ALEXANDRIE_BOOKS`, jamais du réglage de l'utilisateur.
+        rootURL = AppDirectories.testStore == nil
+            ? Self.restoreBookmark()
+            : ProcessInfo.processInfo.environment["ALEXANDRIE_BOOKS"].map { URL(fileURLWithPath: $0, isDirectory: true) }
         startWatching()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
                                                queue: .main) { [weak self] _ in
@@ -182,7 +185,8 @@ final class LibraryStore {
     // MARK: - Dossier source
 
     func chooseFolder(_ url: URL) {
-        if let data = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
+        if AppDirectories.testStore == nil,
+           let data = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
             UserDefaults.standard.set(data, forKey: Self.bookmarkKey)
         }
         rootURL = url
@@ -306,7 +310,12 @@ final class LibraryStore {
 
     /// Vérifie automatiquement les livres qui apparaissent dans la bibliothèque.
     var autoCheckCatalog: Bool {
-        get { access(keyPath: \.autoCheckCatalog); return UserDefaults.standard.object(forKey: "catalogAutoCheck") as? Bool ?? true }
+        get {
+            access(keyPath: \.autoCheckCatalog)
+            // Données de test : pas de requête vers la BnF ni Open Library.
+            guard AppDirectories.testStore == nil else { return false }
+            return UserDefaults.standard.object(forKey: "catalogAutoCheck") as? Bool ?? true
+        }
         set { withMutation(keyPath: \.autoCheckCatalog) { UserDefaults.standard.set(newValue, forKey: "catalogAutoCheck") } }
     }
 

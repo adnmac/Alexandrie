@@ -176,8 +176,8 @@ struct ContentView: View {
         .overlay {
             if isDropTargeted {
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8]))
-                    .padding(6)
+                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8]))  // grid: ok épaisseur de trait, pas un espacement
+                    .padding(Space.sm)
                     .allowsHitTesting(false)
             }
         }
@@ -331,7 +331,7 @@ struct NameReaderSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Space.lg) {
             Label("Nouvelle liseuse", systemImage: "ipad.landscape.badge.play").font(.title3.weight(.semibold))
             Text("Cette Kindle est branchée pour la première fois. Donnez-lui un nom : Alexandrie la reconnaîtra ensuite automatiquement et lui tiendra une étagère de livres.")
                 .foregroundStyle(.secondary)
@@ -412,9 +412,9 @@ struct ReleaseBanner: View {
     let release: ReleaseInfo
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: Space.md) {
             Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(.blue)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Alexandrie \(release.version) est disponible (vous avez la \(updates.currentVersion))")
                     .font(.callout.weight(.semibold))
                 if case .failed(let why) = updates.installState {
@@ -438,7 +438,7 @@ struct ReleaseBanner: View {
             }
         }
         .controlSize(.small)
-        .padding(10)
+        .padding(Space.md)
         .background(.blue.opacity(0.12))
         .overlay(alignment: .bottom) { Divider() }
     }
@@ -451,9 +451,9 @@ struct UpdateBanner: View {
     let info: UpdateInfo
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
+        HStack(alignment: .top, spacing: Space.md) {
             Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(.blue)
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Une mise à jour d'Alexandrie est disponible sur GitHub").font(.callout.weight(.semibold))
                 Text(info.newCommits == 1 ? "1 modification" : "\(info.newCommits) modifications")
                     + Text(info.latestMessage.isEmpty ? "" : " · dernière : \(info.latestMessage)")
@@ -469,7 +469,7 @@ struct UpdateBanner: View {
             Button("Plus tard") { updates.dismiss() }
         }
         .controlSize(.small)
-        .padding(10)
+        .padding(Space.md)
         .background(.blue.opacity(0.12))
         .overlay(alignment: .bottom) { Divider() }
     }
@@ -479,7 +479,7 @@ struct OnboardingView: View {
     @Environment(LibraryStore.self) private var library
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: Space.xl) {
             Image(systemName: "books.vertical")
                 .font(.system(size: 56, weight: .light))
                 .foregroundStyle(.secondary)

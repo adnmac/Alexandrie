@@ -17,7 +17,7 @@ correspondance ci-dessous à la place des commandes du modèle.
 | `./build.sh` | `scripts/bundle.sh` (release, construit `build/Alexandrie.app`, signé « Alexandrie Dev » ou ad hoc) |
 | `./build.sh --debug` | `scripts/build.sh` (debug, sans bundle) |
 | `./build.sh --open` | `scripts/bundle.sh && open build/Alexandrie.app` (quitter l'app avant) |
-| `tools/grid-lint.sh` | `.claude/skills/new-mac-app/template/tools/grid-lint.sh Sources` (pas de jetons d'espacement : 58 lignes hors grille de 4 pt au 4 novembre 2026, à traiter avec `layout-grid`) |
+| `UI/Grid.swift`, `tools/grid-lint.sh`, `tools/check-layout.swift`, `APP_GRID=1` | `Sources/Alexandrie/UI/Grid.swift` (jetons `Space`, sondes `.gridArea`/`.gridProbe`), `scripts/grid-lint.sh` (vues seulement), `swift scripts/check-layout.swift /tmp/alexandrie-shots/*-layout.json` (fichiers écrits par `scripts/snap.sh`), `ALEXANDRIE_GRID=1` dessine la grille. Sondes posées sur la fiche du livre (zone `fiche`) |
 | `swift test` | `scripts/test.sh` (charge les plugins de macros si seules les Command Line Tools sont actives) ; `ALEXANDRIE_FIXTURES=/dossier scripts/test.sh` pour les vrais livres |
 | Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |
 | Swift 6, isolation par défaut | Swift 6 (`swiftLanguageModes: [.v6]`), **sans** isolation `MainActor` par défaut : annoter `@MainActor` |
@@ -29,7 +29,7 @@ correspondance ci-dessous à la place des commandes du modèle.
 Ne jamais faire de captures ni de tests contre les vraies données de
 `~/Library/Application Support/Alexandrie/` : toujours `ALEXANDRIE_STORE` dans `/tmp`.
 
-Après un changement d'interface : `scripts/snap.sh`, puis regarder les PNG des pages touchées (clair et sombre).
+Après un changement d'interface : `scripts/grid-lint.sh`, `scripts/snap.sh`, `swift scripts/check-layout.swift /tmp/alexandrie-shots/*-layout.json`, puis regarder les PNG des pages touchées (clair et sombre).
 Sans l'autorisation Enregistrement de l'écran, les captures passent par un rendu de secours (matériaux et verre non fidèles).
 
 Après un changement dans `LibraryStore` ou ses services : `scripts/test.sh` puis `scripts/selftest.sh`.

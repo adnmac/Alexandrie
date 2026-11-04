@@ -55,7 +55,7 @@ struct KindleView: View {
     @ViewBuilder private var offShelfBanner: some View {
         let off = kindle.offShelfDocuments(in: library)
         if let reader = kindle.currentReader, !off.isEmpty {
-            HStack(spacing: 10) {
+            HStack(spacing: Space.md) {
                 Image(systemName: "tray.and.arrow.up.fill").font(.title2).foregroundStyle(.orange)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(off.count == 1
@@ -74,7 +74,7 @@ struct KindleView: View {
                     .disabled(kindle.isBusy)
             }
             .controlSize(.small)
-            .padding(10)
+            .padding(Space.md)
             .background(.orange.opacity(0.12))
             .confirmationDialog(pendingTidy.count == 1 ? "Retirer ce livre de la Kindle ?" : "Retirer ces \(pendingTidy.count) livres de la Kindle ?",
                                 isPresented: Binding(get: { !pendingTidy.isEmpty }, set: { if !$0 { pendingTidy = [] } })) {
@@ -93,7 +93,7 @@ struct KindleView: View {
     @ViewBuilder private var missingBanner: some View {
         let missing = kindle.missingFromShelf(in: library)
         if let reader = kindle.currentReader, !missing.isEmpty {
-            HStack(spacing: 10) {
+            HStack(spacing: Space.md) {
                 Image(systemName: "books.vertical.circle.fill").font(.title2).foregroundStyle(.blue)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(missing.count == 1
@@ -112,7 +112,7 @@ struct KindleView: View {
                 .disabled(kindle.isBusy)
             }
             .controlSize(.small)
-            .padding(10)
+            .padding(Space.md)
             .background(.blue.opacity(0.12))
             Divider()
         }
@@ -143,7 +143,7 @@ struct KindleView: View {
                 Task { await kindle.eject() }
             } label: {
                 if kindle.isEjecting {
-                    HStack(spacing: 6) { ProgressView().controlSize(.small); Text("Éjection…") }
+                    HStack(spacing: Space.sm) { ProgressView().controlSize(.small); Text("Éjection…") }
                 } else {
                     Label("Éjecter", systemImage: "eject")
                 }
@@ -188,7 +188,7 @@ struct KindleView: View {
     private var table: some View {
         Table(documents, selection: $selection) {
             TableColumn("Titre") { d in
-                HStack(spacing: 6) {
+                HStack(spacing: Space.sm) {
                     Text(title(d)).lineLimit(1)
                     if kindle.libraryBook(for: d, in: library) != nil {
                         Image(systemName: "books.vertical.fill").foregroundStyle(.secondary).help("Dans la bibliothèque")
@@ -232,7 +232,7 @@ struct KindleBookCard: View {
 
     var body: some View {
         let info = kindle.infos[document.id]
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Space.sm) {
             CoverImage(url: info.flatMap(kindle.catalog.coverURL), cacheKey: info?.coverKey ?? document.id,
                        title: info?.title ?? document.name, subtitle: info?.authorLine ?? "")
                 .frame(height: 200)
@@ -249,11 +249,11 @@ struct KindleBookCard: View {
                                 .help("Aussi dans la bibliothèque")
                         }
                     }
-                    .padding(6)
+                    .padding(Space.sm)
                 }
                 .overlay {
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
                 }
                 .overlay {
                     if info == nil { ProgressView().controlSize(.small) }
@@ -261,7 +261,7 @@ struct KindleBookCard: View {
             // Format entre la couverture et le titre, comme dans la bibliothèque.
             Text(info?.format ?? document.fileExtension.uppercased())
                 .font(.caption2.weight(.bold))
-                .padding(.horizontal, 5).padding(.vertical, 2)
+                .padding(.horizontal, Space.sm).padding(.vertical, 2)
                 .background(.quaternary, in: Capsule())
                 .lineLimit(1)
             Text(info?.title ?? document.name)
@@ -321,7 +321,7 @@ struct KindleBookDetailView: View {
                         .font(.callout)
                 }
 
-                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.md, verticalSpacing: Space.sm) {
                     row("Format", info?.format ?? document.fileExtension.uppercased())
                     row("Taille", ByteCountFormatter.string(fromByteCount: document.size, countStyle: .file))
                     if let l = info?.language { row("Langue", l) }

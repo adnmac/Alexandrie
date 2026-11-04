@@ -111,6 +111,9 @@ enum Snapshot {
         }
         NSApp.activate()
         window.makeKeyAndOrderFront(nil)
+        // Sondes de mise en page à côté de chaque PNG (scripts/check-layout.swift).
+        GridProbes.shared.write(to: path.replacingOccurrences(of: ".png", with: "-layout.json"),
+                                window: window.contentView?.bounds.size ?? .zero)
         try? FileManager.default.removeItem(atPath: path)
         for _ in 1...3 {
             let shot = Process()

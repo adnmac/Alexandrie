@@ -92,7 +92,7 @@ struct NotesEditor: View {
                                 Divider()
                             }
                         }
-                        .padding(.horizontal, 14)
+                        .padding(.horizontal, Space.lg)
                     }
                 }
             }
@@ -142,7 +142,7 @@ struct NotesEditor: View {
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.small)
         }
-        .padding(14)
+        .padding(Space.lg)
     }
 
     private var kindPicker: some View {
@@ -200,12 +200,12 @@ struct NoteRow: View {
     @State private var confirmDelete = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Space.sm) {
             if editing {
                 TextEditor(text: $draft)
                     .font(.body)
-                    .frame(minHeight: 90)
-                    .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(.quaternary))
+                    .frame(minHeight: 88)
+                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.quaternary))
                 HStack {
                     if clipping.isEdited {
                         Text("Texte d'origine : « \(clipping.text) »").font(.caption).foregroundStyle(.secondary).lineLimit(2)
@@ -245,7 +245,7 @@ struct NoteRow: View {
                 .buttonStyle(.borderless)
             }
         }
-        .padding(.vertical, 10)
+        .padding(.vertical, Space.md)
         .confirmationDialog("Supprimer ce relevé d'Alexandrie ?", isPresented: $confirmDelete) {
             Button("Supprimer", role: .destructive) { kindle.deleteClipping(clipping.id) }
         } message: {

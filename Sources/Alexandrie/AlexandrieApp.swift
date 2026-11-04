@@ -15,6 +15,8 @@ struct AlexandrieApp: App {
                 .environment(kindle)
                 .environment(updates)
                 .frame(minWidth: 960, minHeight: 600)
+                // ALEXANDRIE_GRID=1 : grille de 8 pt, zones et sondes dessinées sur la fenêtre.
+                .overlay { if GridOverlay.enabled { GridOverlay() } }
         }
         .commands {
             CommandGroup(after: .appInfo) {

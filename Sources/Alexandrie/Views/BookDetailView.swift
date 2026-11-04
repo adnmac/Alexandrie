@@ -16,10 +16,11 @@ struct BookDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: Space.xl) {
                 CoverView(book: draft)
                     .frame(height: 280)
                     .frame(maxWidth: .infinity)
+                    .gridProbe("couverture", area: "fiche")
                 if !files.contains(where: \.hasCover), !draft.hasCover {
                     CoverSearchButton(book: draft)
                 }
@@ -65,6 +66,7 @@ struct BookDetailView: View {
                     .fixedSize()
                     .controlSize(.large)
                 }
+                .gridProbe("actions", area: "fiche")
                 if isTrashed {
                     Label("Dans la corbeille d'Alexandrie : ses fichiers sont intacts tant qu'elle n'est pas vidée.",
                           systemImage: "trash")
@@ -96,7 +98,8 @@ struct BookDetailView: View {
                     }
                 }
                 .formStyle(.grouped)
-                .padding(.horizontal, -20)
+                // Le formulaire groupé a sa propre marge : il s'étend sur celle de la fiche.
+                .padding(.horizontal, -Space.margin)
                 .onChange(of: draft) { _, new in library.update(new, propagatingTo: files.map(\.id)) }
 
                 if let hint = draft.seriesHint { seriesHintBox(hint) }
@@ -109,7 +112,7 @@ struct BookDetailView: View {
 
                 if files.count > 1 || !hiddenCopies.isEmpty { filesSection(hiddenCopies: hiddenCopies) }
 
-                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 12, verticalSpacing: 6) {
+                Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.md, verticalSpacing: Space.sm) {
                     info("Format", draft.format.label)
                     info("Taille", ByteCountFormatter.string(fromByteCount: draft.fileSize, countStyle: .file))
                     info("Ajouté le", draft.addedAt.formatted(date: .long, time: .omitted))
@@ -124,8 +127,11 @@ struct BookDetailView: View {
                     info("Emplacement", draft.isImported ? "Imports d'Alexandrie" : draft.path)
                 }
                 .font(.callout)
+                // Bord à part : le formulaire et les sections entre « actions » et lui ne sont pas sondés.
+                .gridProbe("details", area: "fiche", edge: "details")
             }
-            .padding(20)
+            .padding(Space.margin)
+            .gridArea("fiche")
         }
         // Après ⌘Z : les informations annulées reviennent dans la fiche ouverte.
         .onChange(of: library.undoGeneration) {
@@ -186,14 +192,14 @@ struct BookDetailView: View {
     /// Fichiers du même livre : celui de la fiche (envoyé à la Kindle) est marqué.
     private func filesSection(hiddenCopies: [Book]) -> some View {
         GroupBox {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: Space.sm) {
                 ForEach(files.sorted { $0.format.rawValue < $1.format.rawValue }) { f in
                     HStack {
                         Text(f.format.label).font(.caption.weight(.bold).monospaced()).frame(width: 44, alignment: .leading)
                         Text((f.path as NSString).lastPathComponent).lineLimit(1).truncationMode(.middle)
                             .help(f.path)
                         if f.id == draft.id {
-                            Text("principal").font(.caption2).padding(.horizontal, 5).background(.quaternary, in: Capsule())
+                            Text("principal").font(.caption2).padding(.horizontal, Space.sm).background(.quaternary, in: Capsule())
                                 .help("Fichier affiché ici et envoyé à la Kindle")
                         }
                         Spacer()
@@ -283,7 +289,7 @@ struct MultiSelectionView: View {
                 Text("\(done) envoyé(s), \(failed) échec(s)").foregroundStyle(failed > 0 ? .orange : .secondary)
             }
         }
-        .padding(30)
+        .padding(Space.section)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
@@ -351,7 +357,7 @@ struct CatalogSection: View {
 
     var body: some View {
         GroupBox {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Space.md) {
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -406,7 +412,7 @@ struct CatalogSection: View {
                     Button("Tout ignorer") { dismiss(Set(suggestions.map(\.field))) }
                 }
                 if library.coverReading.contains(book.fingerprint) {
-                    HStack(spacing: 6) {
+                    HStack(spacing: Space.sm) {
                         ProgressView().controlSize(.mini)
                         Text("Lecture de la couverture…")
                     }
@@ -424,7 +430,7 @@ struct CatalogSection: View {
                     Spacer()
                     checkButton("Revérifier").controlSize(.small).fixedSize()
                 }
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: Space.sm) {
                     recordInfo(record)
                     checkButton("Revérifier").controlSize(.small).fixedSize()
                 }
@@ -453,7 +459,7 @@ struct CatalogSection: View {
 
     /// Libellé et boutons sur une ligne, valeurs en dessous sur toute la largeur : lisible même dans une colonne étroite.
     private func row(_ d: CatalogDifference, verdict: CoverVerdict?) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: Space.xs) {
             HStack {
                 Text(d.field.label).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 Spacer()

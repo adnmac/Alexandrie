@@ -31,7 +31,7 @@ struct MetadataFields: View {
         HStack {
             TextField("Série", text: optional(\.series), prompt: Text("ex. Brunetti"))
             TextField("N°", text: seriesIndexText, prompt: Text("—"))
-                .frame(width: 70)
+                .frame(width: 72)
                 .disabled(edits.series == nil)
         }
         if showsGenre {

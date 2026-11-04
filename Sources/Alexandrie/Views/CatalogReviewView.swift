@@ -46,7 +46,7 @@ struct CatalogReviewSheet: View {
             }
             .frame(width: 220)
         }
-        .padding(14)
+        .padding(Space.lg)
     }
 
     private var footer: some View {
@@ -79,7 +79,7 @@ struct CatalogReviewSheet: View {
                 .keyboardShortcut(.defaultAction)
                 .disabled(selected.isEmpty)
         }
-        .padding(14)
+        .padding(Space.lg)
     }
 
     // MARK: - Tableau

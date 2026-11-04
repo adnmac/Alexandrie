@@ -154,7 +154,7 @@ struct CollapsibleHeader: View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
         } label: {
-            HStack(spacing: 6) {
+            HStack(spacing: Space.sm) {
                 Text(title).font(.subheadline.weight(.semibold))
                 Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 Spacer()
@@ -165,8 +165,8 @@ struct CollapsibleHeader: View {
             }
             .foregroundStyle(.primary)
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
-            .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
+            .padding(.vertical, Space.xs)
+            .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

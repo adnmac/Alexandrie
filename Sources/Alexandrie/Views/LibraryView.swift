@@ -63,7 +63,7 @@ struct LibraryView: View {
                         .contextMenu { BookActions(book: g.primary) }
                         // Glisser vers une liseuse de la barre latérale : le livre (ou la sélection) rejoint son étagère.
                         .draggable(BookDrag.payload(dragged(g))) {
-                            BookCard(book: g.primary, formats: g.formats, isSelected: false).frame(width: 130)
+                            BookCard(book: g.primary, formats: g.formats, isSelected: false).frame(width: 128)
                         }
                 }
             }
@@ -91,7 +91,7 @@ struct LibraryView: View {
     private var table: some View {
         Table(LibraryRow.rows(groups), children: \.children, selection: $selection) {
             TableColumn("Titre") { r in
-                HStack(spacing: 6) {
+                HStack(spacing: Space.sm) {
                     if r.isFile {
                         Image(systemName: "doc").foregroundStyle(.secondary)
                         Text((r.book.path as NSString).lastPathComponent).lineLimit(1).foregroundStyle(.secondary)
@@ -99,7 +99,7 @@ struct LibraryView: View {
                         Text(r.book.title).lineLimit(1)
                         if let g = r.group {
                             Text("\(g.books.count) fichiers")
-                                .font(.caption2).padding(.horizontal, 5).padding(.vertical, 1)
+                                .font(.caption2).padding(.horizontal, Space.sm).padding(.vertical, 1)
                                 .background(.quaternary, in: Capsule())
                         }
                     }
@@ -154,13 +154,13 @@ struct BookCard: View {
     let isSelected: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: Space.sm) {
             CoverView(book: book)
                 .frame(height: 200)
                 .overlay(alignment: .topTrailing) { badges }
                 .overlay {
-                    RoundedRectangle(cornerRadius: 6)
-                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)
+                    RoundedRectangle(cornerRadius: 4)
+                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
                 }
             formatRow
             Text(book.title)
@@ -180,7 +180,7 @@ struct BookCard: View {
             ForEach(formats.isEmpty ? [book.format] : formats, id: \.self) { f in
                 Text(f.label)
                     .font(.caption2.weight(.bold))
-                    .padding(.horizontal, 5).padding(.vertical, 2)
+                    .padding(.horizontal, Space.sm).padding(.vertical, 2)
                     .background(.quaternary, in: Capsule())
             }
             if fileCount > max(1, formats.count) {
@@ -213,11 +213,11 @@ struct BookCard: View {
             if onDevice {
                 Image(systemName: "checkmark.circle.fill").font(.caption)
                     .foregroundStyle(.green)
-                    .padding(3).background(.ultraThinMaterial, in: Circle())
+                    .padding(Space.xs).background(.ultraThinMaterial, in: Circle())
                     .help("Présent sur la Kindle")
             }
         }
-        .padding(6)
+        .padding(Space.sm)
     }
 }
 
@@ -253,25 +253,25 @@ struct CoverImage: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: 4))
         .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
         .task(id: "\(cacheKey)|\(url?.path ?? "")") { await load() }
     }
 
     private var placeholder: some View {
         let hue = Double(abs(title.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }) % 360) / 360
-        return RoundedRectangle(cornerRadius: 6)
+        return RoundedRectangle(cornerRadius: 4)
             .fill(LinearGradient(colors: [Color(hue: hue, saturation: 0.45, brightness: 0.55),
                                           Color(hue: hue, saturation: 0.55, brightness: 0.35)],
                                  startPoint: .top, endPoint: .bottom))
             .aspectRatio(2 / 3, contentMode: .fit)
             .overlay {
-                VStack(spacing: 6) {
+                VStack(spacing: Space.sm) {
                     Text(title).font(.headline).multilineTextAlignment(.center).lineLimit(4)
                     Text(subtitle).font(.caption).lineLimit(2)
                 }
                 .foregroundStyle(.white)
-                .padding(10)
+                .padding(Space.md)
             }
     }
 

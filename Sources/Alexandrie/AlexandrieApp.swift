@@ -18,6 +18,9 @@ struct AlexandrieApp: App {
                 .frame(minWidth: 960, minHeight: 600)
         }
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("Rechercher les mises à jour…") { Task { await updates.checkManually() } }
+            }
             CommandGroup(after: .newItem) {
                 Button("Importer des livres…") { Panels.importBooks(into: library) }
                     .keyboardShortcut("o")

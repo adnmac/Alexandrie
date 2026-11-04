@@ -57,20 +57,46 @@ final class UpdateMonitor {
     func check() async {
         guard status != .checking else { return }
         status = .checking
-        if let release = try? await checker.newerRelease(than: currentVersion) {
-            status = .release(release)
-            return
-        }
+        var releasesReached = false
+        do {
+            if let release = try await checker.newerRelease(than: currentVersion) {
+                status = .release(release)
+                return
+            }
+            releasesReached = true
+        } catch {}
         guard let currentCommit else {
-            status = .upToDate
+            status = releasesReached ? .upToDate : .failed("versions publiées inaccessibles")
             return
         }
         do {
             status = try await checker.check(currentCommit: currentCommit).map(Status.available) ?? .upToDate
         } catch {
-            // Hors ligne, quota de l'API atteint, ou commit local absent de GitHub : rien à signaler.
-            status = .failed(error.localizedDescription)
+            // Commit local pas encore sur GitHub (app construite sur ce Mac) : à jour si GitHub a répondu pour
+            // les versions ; sinon hors ligne ou quota de l'API atteint.
+            status = releasesReached ? .upToDate : .failed(error.localizedDescription)
         }
+    }
+
+    /// Recherche demandée par l'utilisateur (menu) : les versions écartées par « Plus tard » sont de nouveau
+    /// proposées ; sans mise à jour, un message le dit.
+    func checkManually() async {
+        UserDefaults.standard.removeObject(forKey: Self.dismissedReleaseKey)
+        UserDefaults.standard.removeObject(forKey: Self.dismissedKey)
+        await check()
+        let alert = NSAlert()
+        switch status {
+        case .release, .available:
+            return  // le bandeau s'affiche dans la fenêtre principale
+        case .failed(let why):
+            alert.alertStyle = .warning
+            alert.messageText = "Vérification impossible"
+            alert.informativeText = "GitHub n'a pas pu être interrogé (\(why)). Vérifiez la connexion Internet et réessayez."
+        default:
+            alert.messageText = "Alexandrie est à jour"
+            alert.informativeText = "Vous avez la version \(currentVersion), la plus récente publiée."
+        }
+        alert.runModal()
     }
 
     func dismissRelease() {

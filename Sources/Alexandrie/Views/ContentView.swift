@@ -111,7 +111,7 @@ struct ContentView: View {
                     // Livres annotés (colonne étroite) et notes du livre choisi (large) ; sa fiche est à droite.
                     HSplitView {
                         NotesBookList(search: search, selection: $notesBook)
-                            .frame(minWidth: 180, idealWidth: 230, maxWidth: 280)
+                            .frame(minWidth: 160, idealWidth: 220, maxWidth: 280)
                         Group {
                             if let key = notesBook {
                                 NotesEditor(bookKey: key).id(key)
@@ -120,7 +120,7 @@ struct ContentView: View {
                                                        description: Text("Ses notes et surlignages s'afficheront ici."))
                             }
                         }
-                        .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+                        .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
                     }
                 } else {
                     LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
@@ -136,35 +136,39 @@ struct ContentView: View {
             }
             .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série, genre…")
         } detail: {
-            if sidebar == .notes {
-                if let key = notesBook, let book = library.books(titleKey: key).first(where: { $0.trashedAt == nil }) {
-                    let identity = library.identity(of: book)
-                    let files = library.visibleBooks.filter { library.identity(of: $0) == identity }
-                    BookDetailView(book: BookGroups.make(files, identities: library.identities).first?.primary ?? book,
-                                   files: files)
+            Group {
+                if sidebar == .notes {
+                    if let key = notesBook, let book = library.books(titleKey: key).first(where: { $0.trashedAt == nil }) {
+                        let identity = library.identity(of: book)
+                        let files = library.visibleBooks.filter { library.identity(of: $0) == identity }
+                        BookDetailView(book: BookGroups.make(files, identities: library.identities).first?.primary ?? book,
+                                       files: files)
+                            .id(book.id)
+                    } else {
+                        ContentUnavailableView("Aucune fiche", systemImage: "book.closed",
+                                               description: Text("Le livre annoté n'est pas dans la bibliothèque."))
+                    }
+                } else if sidebar == .kindle {
+                    if let doc = kindle.documents.first(where: { $0.id == kindleSelection }) {
+                        KindleBookDetailView(document: doc).id(doc.id)
+                    } else {
+                        ContentUnavailableView("Aucun livre sélectionné", systemImage: "book.closed",
+                                               description: Text("Choisissez un livre de la Kindle pour voir sa fiche."))
+                    }
+                } else if selected.count > 1 {
+                    MultiSelectionView(books: selected)
+                } else if let book = selected.first {
+                    // Les autres fichiers du même livre reçoivent les corrections et sont listés dans la fiche.
+                    let files = groups.first { $0.books.contains { $0.id == book.id } }?.books ?? [book]
+                    BookDetailView(book: book, files: files)
                         .id(book.id)
                 } else {
-                    ContentUnavailableView("Aucune fiche", systemImage: "book.closed",
-                                           description: Text("Le livre annoté n'est pas dans la bibliothèque."))
-                }
-            } else if sidebar == .kindle {
-                if let doc = kindle.documents.first(where: { $0.id == kindleSelection }) {
-                    KindleBookDetailView(document: doc).id(doc.id)
-                } else {
                     ContentUnavailableView("Aucun livre sélectionné", systemImage: "book.closed",
-                                           description: Text("Choisissez un livre de la Kindle pour voir sa fiche."))
+                                           description: Text("Choisissez un livre pour voir sa fiche."))
                 }
-            } else if selected.count > 1 {
-                MultiSelectionView(books: selected)
-            } else if let book = selected.first {
-                // Les autres fichiers du même livre reçoivent les corrections et sont listés dans la fiche.
-                let files = groups.first { $0.books.contains { $0.id == book.id } }?.books ?? [book]
-                BookDetailView(book: book, files: files)
-                    .id(book.id)
-            } else {
-                ContentUnavailableView("Aucun livre sélectionné", systemImage: "book.closed",
-                                       description: Text("Choisissez un livre pour voir sa fiche."))
             }
+            // Sans minimum, la fiche était écrasée à 170 pt dans la vue Notes (boutons et titres tronqués).
+            .navigationSplitViewColumnWidth(min: 300, ideal: 360)
         }
         .toolbar { toolbar(selected) }
         .environment(\.libraryList, sidebar)

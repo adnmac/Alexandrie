@@ -214,7 +214,7 @@ struct KindleView: View {
     }
 
     private var disconnectedHelp: String {
-        var s = "Branchez votre Kindle au Mac avec un câble USB et déverrouillez-la."
+        var s = "Branchez votre Kindle au Mac avec un câble USB et déverrouillez\u{2011}la."
         if kindle.mtpAvailable {
             s += "\nLes Kindle récentes (MTP) sont détectées automatiquement ; fermez Android File Transfer s'il est ouvert."
         } else {

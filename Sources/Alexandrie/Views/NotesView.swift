@@ -10,6 +10,12 @@ struct NotesBookList: View {
     let search: String
     @Binding var selection: String?
 
+    /// « 2 surl. · 1 note » : chaque partie seulement si elle n'est pas vide, au singulier pour 1.
+    static func countLine(highlights: Int, notes: Int) -> String {
+        [highlights > 0 ? "\(highlights) surl." : nil, notes > 0 ? (notes == 1 ? "1 note" : "\(notes) notes") : nil]
+            .compactMap { $0 }.joined(separator: " · ")
+    }
+
     var body: some View {
         let books = filtered
         if books.isEmpty {
@@ -27,7 +33,7 @@ struct NotesBookList: View {
                         Text(book?.authorLine ?? b.author).lineLimit(1)
                         Spacer()
                         let notes = b.clippings.filter { $0.kind == .note }.count
-                        Text(notes > 0 ? "\(b.clippings.count - notes) surl. · \(notes) notes" : "\(b.clippings.count) surl.")
+                        Text(Self.countLine(highlights: b.clippings.count - notes, notes: notes))
                             .monospacedDigit()
                     }
                     .font(.caption).foregroundStyle(.secondary)
@@ -114,14 +120,22 @@ struct NotesEditor: View {
                 }
                 .fixedSize()
             }
-            HStack {
-                Picker("", selection: $kind) { ForEach(KindFilter.allCases) { Text($0.rawValue).tag($0) } }
-                    .pickerStyle(.segmented).labelsHidden().fixedSize()
-                Picker("", selection: $order) { ForEach(Order.allCases) { Text($0.rawValue).tag($0) } }
-                    .labelsHidden().fixedSize()
-                Spacer()
-                Text(shown.count == entry.clippings.count ? "\(shown.count) relevés" : "\(shown.count) sur \(entry.clippings.count)")
-                    .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            // Colonne étroite : l'ordre passe sous le filtre plutôt que d'écraser le compteur.
+            ViewThatFits(in: .horizontal) {
+                HStack {
+                    kindPicker
+                    orderPicker
+                    Spacer(minLength: 8)
+                    count(entry, shown: shown)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    kindPicker
+                    HStack {
+                        orderPicker
+                        Spacer(minLength: 8)
+                        count(entry, shown: shown)
+                    }
+                }
             }
             .controlSize(.small)
             TextField("Filtrer ces notes", text: $filter)
@@ -129,6 +143,22 @@ struct NotesEditor: View {
                 .controlSize(.small)
         }
         .padding(14)
+    }
+
+    private var kindPicker: some View {
+        Picker("Afficher", selection: $kind) { ForEach(KindFilter.allCases) { Text($0.rawValue).tag($0) } }
+            .pickerStyle(.segmented).labelsHidden().fixedSize()
+    }
+
+    private var orderPicker: some View {
+        Picker("Ordre", selection: $order) { ForEach(Order.allCases) { Text($0.rawValue).tag($0) } }
+            .labelsHidden().fixedSize()
+    }
+
+    private func count(_ entry: ClippingBook, shown: [Clipping]) -> some View {
+        Text(shown.count == entry.clippings.count ? "\(shown.count) relevés" : "\(shown.count) sur \(entry.clippings.count)")
+            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            .lineLimit(1).fixedSize()
     }
 
     private func visible(_ clippings: [Clipping]) -> [Clipping] {

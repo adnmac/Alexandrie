@@ -16,7 +16,9 @@ struct MetadataFields: View {
     }
 
     var body: some View {
-        TextField("Titre", text: $edits.title)
+        // Un titre long passe à la ligne au lieu d'être coupé.
+        TextField("Titre", text: $edits.title, axis: .vertical)
+            .lineLimit(1...4)
         TextField("Auteurs", text: $authorsText, prompt: Text("Séparés par des virgules"))
             .onChange(of: authorsText) { _, text in
                 edits.authors = Self.parseAuthors(text)

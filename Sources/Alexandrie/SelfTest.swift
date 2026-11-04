@@ -137,21 +137,7 @@ struct SelfTest {
     }
 
     private static func makeEPUB(title: String, author: String, in folder: URL) throws -> URL {
-        var epub = EPUBBuilder(metadata: BookMetadata(title: title, authors: [author], language: "fr"))
-        let png = Data(base64Encoded: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==")!
-        epub.add("Images/cover.png", mediaType: "image/png", data: png)
-        epub.coverPath = "Images/cover.png"
-        let html = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
-            <head><title>\(title)</title></head>
-            <body><h1>Chapitre 1</h1><p>Un paragraphe de « \(title) », avec des accents : été, œuvre.</p></body>
-            </html>
-            """
-        epub.add("Text/chapter1.xhtml", mediaType: "application/xhtml+xml", data: Data(html.utf8), inSpine: true)
-        epub.toc = [TOCNode(title: "Chapitre 1", path: "Text/chapter1.xhtml")]
-        let url = folder.appendingPathComponent(title.safeFilename + ".epub")
-        try epub.write(to: url)
-        return url
+        try SeedData.makeEPUB(BookMetadata(title: title, authors: [author], language: "fr"),
+                              cover: SeedData.coverPNG(title: title, color: .systemBlue), in: folder)
     }
 }

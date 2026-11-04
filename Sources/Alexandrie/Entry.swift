@@ -7,6 +7,7 @@ enum Entry {
         if CommandLine.arguments.contains("--selftest") {
             SelfTest.launch()
         } else {
+            SeedData.seedIfRequested()
             AlexandrieApp.main()
         }
     }

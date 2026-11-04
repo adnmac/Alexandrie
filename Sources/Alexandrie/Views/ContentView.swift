@@ -36,6 +36,7 @@ struct ContentView: View {
     @Environment(KindleMonitor.self) private var kindle
     @Environment(UpdateMonitor.self) private var updates
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.openSettings) private var openSettings
     @State private var sidebar: SidebarItem? = .all
     /// Identifiants de lignes : livre seul, groupe (`group:…`) ou fichier d'un groupe.
     @State private var selection = Set<String>()
@@ -69,6 +70,11 @@ struct ContentView: View {
             kindle.notesRequest = nil
         }
         .onAppear { library.undoManager = undoManager }
+        .task {
+            guard Snapshot.directory != nil else { return }
+            await Snapshot.run(library: library, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
+                               openSettings: openSettings)
+        }
         .onChange(of: undoManager) { _, manager in library.undoManager = manager }
         // Kindle inconnue : on lui donne un nom, une fois pour toutes.
         .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {

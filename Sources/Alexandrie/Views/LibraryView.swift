@@ -155,13 +155,12 @@ struct BookCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
-            CoverView(book: book)
-                .frame(height: 200)
-                .overlay(alignment: .topTrailing) { badges }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 4)
-                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
-                }
+            CoverView(book: book) {
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
+                    .overlay(alignment: .topTrailing) { badges }
+            }
+            .frame(height: 200)
             formatRow
             Text(book.title)
                 .font(.callout.weight(.medium))
@@ -222,25 +221,36 @@ struct BookCard: View {
 }
 
 /// Couverture d'un livre de la bibliothèque.
-struct CoverView: View {
+struct CoverView<Decoration: View>: View {
     @Environment(LibraryStore.self) private var library
     let book: Book
+    @ViewBuilder var decoration: Decoration
 
     var body: some View {
         CoverImage(url: library.coverURL(book), cacheKey: book.fingerprint, title: book.title,
-                   subtitle: book.authorLine)
+                   subtitle: book.authorLine) { decoration }
     }
 }
 
+extension CoverView where Decoration == EmptyView {
+    init(book: Book) { self.init(book: book) { EmptyView() } }
+}
+
 /// Couverture mise en cache, avec une couverture générée à défaut.
-struct CoverImage: View {
+/// Couvertures déjà lues, partagées par toutes les vues (hors du type générique).
+@MainActor private let coverCache = NSCache<NSString, NSImage>()
+
+/// `decoration` (pastilles, contour de sélection) se pose sur la couverture elle-même,
+/// pas sur le cadre plus large qui la centre.
+struct CoverImage<Decoration: View>: View {
     let url: URL?
     let cacheKey: String
     let title: String
     let subtitle: String
+    @ViewBuilder var decoration: Decoration
     @State private var image: NSImage?
 
-    private static let cache = NSCache<NSString, NSImage>()
+    private static var cache: NSCache<NSString, NSImage> { coverCache }
 
     var body: some View {
         ZStack {
@@ -252,9 +262,10 @@ struct CoverImage: View {
                 placeholder
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipShape(RoundedRectangle(cornerRadius: 4))
+        .overlay { decoration }
         .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task(id: "\(cacheKey)|\(url?.path ?? "")") { await load() }
     }
 
@@ -291,6 +302,12 @@ struct CoverImage: View {
             Self.cache.setObject(loaded, forKey: key)
             image = loaded
         }
+    }
+}
+
+extension CoverImage where Decoration == EmptyView {
+    init(url: URL?, cacheKey: String, title: String, subtitle: String) {
+        self.init(url: url, cacheKey: cacheKey, title: title, subtitle: subtitle) { EmptyView() }
     }
 }
 

@@ -234,30 +234,29 @@ struct KindleBookCard: View {
         let info = kindle.infos[document.id]
         VStack(alignment: .leading, spacing: Space.sm) {
             CoverImage(url: info.flatMap(kindle.catalog.coverURL), cacheKey: info?.coverKey ?? document.id,
-                       title: info?.title ?? document.name, subtitle: info?.authorLine ?? "")
-                .frame(height: 200)
-                .overlay(alignment: .topTrailing) {
-                    VStack(alignment: .trailing, spacing: 4) {
-                        if info?.isDRMProtected == true {
-                            Image(systemName: "lock.fill").font(.caption)
-                                .padding(4).background(.ultraThinMaterial, in: Circle())
-                                .help("Protégé par DRM")
+                       title: info?.title ?? document.name, subtitle: info?.authorLine ?? "") {
+                RoundedRectangle(cornerRadius: 4)
+                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
+                    .overlay(alignment: .topTrailing) {
+                        VStack(alignment: .trailing, spacing: 4) {
+                            if info?.isDRMProtected == true {
+                                Image(systemName: "lock.fill").font(.caption)
+                                    .padding(4).background(.ultraThinMaterial, in: Circle())
+                                    .help("Protégé par DRM")
+                            }
+                            if kindle.libraryBook(for: document, in: library) != nil {
+                                Image(systemName: "books.vertical.fill").font(.caption)
+                                    .padding(4).background(.ultraThinMaterial, in: Circle())
+                                    .help("Aussi dans la bibliothèque")
+                            }
                         }
-                        if kindle.libraryBook(for: document, in: library) != nil {
-                            Image(systemName: "books.vertical.fill").font(.caption)
-                                .padding(4).background(.ultraThinMaterial, in: Circle())
-                                .help("Aussi dans la bibliothèque")
-                        }
+                        .padding(Space.sm)
                     }
-                    .padding(Space.sm)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: 4)
-                        .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
-                }
-                .overlay {
-                    if info == nil { ProgressView().controlSize(.small) }
-                }
+            }
+            .frame(height: 200)
+            .overlay {
+                if info == nil { ProgressView().controlSize(.small) }
+            }
             // Format entre la couverture et le titre, comme dans la bibliothèque.
             Text(info?.format ?? document.fileExtension.uppercased())
                 .font(.caption2.weight(.bold))

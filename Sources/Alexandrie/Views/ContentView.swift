@@ -170,6 +170,7 @@ struct ContentView: View {
             // Sans minimum, la fiche était écrasée à 170 pt dans la vue Notes (boutons et titres tronqués).
             .navigationSplitViewColumnWidth(min: 300, ideal: 360)
         }
+        .navigationTitle(pageTitle)
         .toolbar { toolbar(selected) }
         .environment(\.libraryList, sidebar)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
@@ -180,6 +181,26 @@ struct ContentView: View {
                     .padding(Space.sm)
                     .allowsHitTesting(false)
             }
+        }
+    }
+
+    /// Titre de la fenêtre : la page affichée, comme dans la barre latérale.
+    private var pageTitle: String {
+        switch sidebar {
+        case .all, nil: "Tous les livres"
+        case .recent: "Ajoutés récemment"
+        case .sent: "Envoyés à la Kindle"
+        case .toReview: "À vérifier"
+        case .notes: "Notes et surlignages"
+        case .trash: "Corbeille"
+        case .kindle: kindle.displayName ?? "Kindle"
+        case .pending: "En attente d'envoi"
+        case .shelf(let id): kindle.readers.first { $0.id == id }?.name ?? "Étagère"
+        case .format(let f): f.label
+        case .author(let key): AuthorNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? "Auteur"
+        case .series(let key): SeriesNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? "Série"
+        case .genre(let key):
+            GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? "Genre"
         }
     }
 

@@ -424,7 +424,7 @@ Acceptance:
 - [self] La copie envoyée a des pages plus petites que l'original ; l'original n'est pas modifié.
 - [snap] La fiche d'un PDF montre le choix « Tel quel / Marges rognées ».
 - [manual] Sur la Kindle, le PDF rogné remplit l'écran.
-Status: doing
+Status: done
 
 ### S-065 Envoyer un PDF en texte redimensionnable
 Pour un PDF surtout textuel, le choix « Texte redimensionnable » envoie un livre Kindle dont je règle la taille du texte.

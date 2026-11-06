@@ -29,13 +29,7 @@ struct AlexandrieApp: App {
                     .keyboardShortcut("r")
             }
             LibraryViewCommands()
-            // Menu Kindle : toujours actif (les menus ne suivent pas l'état de l'app) ; sans Kindle à éjecter,
-            // un message l'explique.
-            CommandMenu("Kindle") {
-                Button("Actualiser") { Task { await kindle.refresh() } }
-                Button("Éjecter la Kindle") { Task { await kindle.eject() } }
-                    .keyboardShortcut("e")
-            }
+            KindleCommands(kindle: kindle)
         }
 
         Settings {
@@ -45,6 +39,25 @@ struct AlexandrieApp: App {
                 .environment(updates)
         }
         .windowResizability(.contentSize)
+    }
+}
+
+/// Menu Kindle. Envoyer agit sur la sélection de la fenêtre au premier plan (`BookCommands`) ;
+/// Actualiser et Éjecter restent actifs : sans Kindle à éjecter, un message l'explique.
+struct KindleCommands: Commands {
+    let kindle: KindleMonitor
+    @FocusedValue(\.bookCommands) private var books
+
+    var body: some Commands {
+        CommandMenu("Kindle") {
+            Button(books?.sendTitle ?? "Envoyer à la Kindle") { books?.send() }
+                .keyboardShortcut("k")
+                .disabled(books?.canSend != true)
+            Divider()
+            Button("Actualiser") { Task { await kindle.refresh() } }
+            Button("Éjecter la Kindle") { Task { await kindle.eject() } }
+                .keyboardShortcut("e")
+        }
     }
 }
 

@@ -244,7 +244,7 @@ UX:
 - States: sans sélection, grisé ; envoi en cours, barre dans la fiche ; échec, message sous le bouton avec la cause ; plusieurs livres, « 3 envoyé(s), 1 échec(s) »
 - Words: « Envoyer à la Kindle » / « Envoyer à la connexion » (suit l'état, comme le bouton de la fiche) ; bulle « Copier les livres sélectionnés sur la Kindle (⌘K) »
 - Access: VoiceOver lit le même intitulé que le menu ; l'état n'est jamais porté par la seule couleur
-Status: todo
+Status: done
 
 ### S-041 Mettre la sélection à la corbeille avec la touche Supprimer
 ⌘⌫ (ou Supprimer dans la grille) met les livres sélectionnés à la corbeille ; ⌘Z les rend.

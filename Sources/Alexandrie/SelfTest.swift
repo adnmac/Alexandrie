@@ -124,6 +124,26 @@ struct SelfTest {
         try? await Task.sleep(for: .seconds(3))
         check("démarrage des moniteurs", withExtendedLifetime((kindle, updates)) { true })
 
+        // Commandes de la barre des menus, sur une sélection, comme la fenêtre les publie.
+        let undo = UndoManager()
+        library.undoManager = undo
+        let selection = library.visibleBooks.filter { $0.title != "Livre importé" }
+        if kindle.isConnected {
+            print("SKIP Kindle > Envoyer : une Kindle est branchée, le self-test n'y envoie rien")
+        } else {
+            let commands = BookCommands(books: selection, list: .all, library: library, kindle: kindle)
+            check("Kindle > Envoyer active sur la sélection", commands.canSend && commands.sendTitle.hasPrefix("Envoyer à la connexion"),
+                  commands.sendTitle)
+            commands.send()
+            check("Kindle > Envoyer met la sélection en attente", selection.allSatisfy { library.book(id: $0.id)?.isPendingSend == true })
+            let again = BookCommands(books: selection.compactMap { library.book(id: $0.id) }, list: .all, library: library, kindle: kindle)
+            check("Kindle > Envoyer grisée quand tout est déjà en attente", !again.canSend)
+            undo.undo()
+            check("⌘Z retire de l'attente", selection.allSatisfy { library.book(id: $0.id)?.isPendingSend == false })
+            let none = BookCommands(books: [], list: .all, library: library, kindle: kindle)
+            check("Kindle > Envoyer grisée sans sélection", !none.canSend)
+        }
+
         library.saveNow()
         check("index relu après fermeture", ((try? LibraryIndex.load(directories.index)) ?? []).count == 3)
     }

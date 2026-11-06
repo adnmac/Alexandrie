@@ -172,6 +172,11 @@ struct ContentView: View {
         }
         .navigationTitle(pageTitle)
         .toolbar { toolbar(selected) }
+        // Barre des menus : commandes sur la sélection de cette fenêtre (pas sur les pages Kindle et Notes,
+        // qui ont leur propre sélection).
+        .focusedSceneValue(\.bookCommands, BookCommands(
+            books: sidebar == .kindle || sidebar == .notes ? [] : selected,
+            list: sidebar, library: library, kindle: kindle))
         .environment(\.libraryList, sidebar)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
         .overlay {
@@ -264,8 +269,8 @@ struct ContentView: View {
                 Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
             }
             .disabled(!selected.contains(where: \.canSendToKindle) || kindle.isBusy || sidebar == .trash)
-            .help(kindle.isConnected ? "Envoyer la sélection sur la Kindle"
-                  : "La Kindle n'est pas branchée : la sélection sera envoyée dès sa connexion")
+            .help(kindle.isConnected ? "Copier les livres sélectionnés sur la Kindle (⌘K)"
+                  : "Mettre les livres sélectionnés en attente : ils partiront dès que la Kindle sera branchée (⌘K)")
         }
     }
 
@@ -402,7 +407,15 @@ struct KindleSendButton<Content: View>: View {
 
     var body: some View {
         if kindle.isConnected || kindle.readers.count < 2 {
-            Button { Task { await kindle.sendOrQueue(books, library: library) } } label: { label() }
+            Button {
+                if kindle.isConnected {
+                    Task { await kindle.send(books, library: library) }
+                } else {
+                    // Mise en attente annulable (⌘Z), comme la commande Kindle > Envoyer.
+                    let reader = kindle.readers.first.map(\.id)
+                    library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader) }
+                }
+            } label: { label() }
         } else {
             Menu {
                 Section("Envoyer à la connexion de") {

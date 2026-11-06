@@ -64,7 +64,8 @@ struct LibraryView: View {
                         .onTapGesture { select(g) }
                         .contextMenu { BookActions(book: g.primary) }
                         // Glisser vers une liseuse de la barre latérale : le livre (ou la sélection) rejoint son étagère.
-                        .draggable(BookDrag.payload(dragged(g))) {
+                        // Vers le Finder : une copie du fichier ; vers une liseuse : la sélection, pour son étagère.
+                        .draggable(BookDragItem(payload: BookDrag.payload(dragged(g)), file: g.primary.url)) {
                             BookCard(book: g.primary, formats: g.formats, isSelected: false).frame(width: 128)
                         }
                 }
@@ -330,6 +331,22 @@ enum BookDrag {
     static func ids(_ text: String) -> [Book.ID]? {
         guard text.hasPrefix(prefix) else { return nil }
         return text.dropFirst(prefix.count).split(separator: "\n").map(String.init)
+    }
+}
+
+/// Livre glissé hors de la grille, sous deux formes :
+/// - un fichier, que le Finder ou le bureau reçoivent en copie (le fichier source n'est jamais déplacé) ;
+/// - la liste des livres, lue seulement par l'app (liseuses de la barre latérale).
+struct BookDragItem: Transferable {
+    let payload: String
+    let file: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(exportedContentType: .data) { item in
+            SentTransferredFile(item.file, allowAccessingOriginalFile: false)
+        }
+        ProxyRepresentation(exporting: \.payload)
+            .visibility(.ownProcess)
     }
 }
 

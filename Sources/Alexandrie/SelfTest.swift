@@ -172,6 +172,16 @@ struct SelfTest {
             check("menus actifs avec un livre sélectionné", withBook.canOpen && withBook.canReveal && withBook.canTrash)
             check("menus grisés sans sélection", !empty.canSend && !empty.canTrash && !empty.canQuickLook
                   && !empty.canOpen && !empty.canReveal && !empty.canExportEPUB)
+            // Glisser une carte : une copie du fichier pour le Finder, la liste des livres pour une liseuse.
+            // Transferable.exported(as:) n'existe qu'à partir de macOS 15.2.
+            if #available(macOS 15.2, *) {
+                let item = BookDragItem(payload: BookDrag.payload([first.primary]), file: first.primary.url)
+                let fileData = try? await item.exported(as: .data)
+                check("glisser vers le Finder : copie identique du fichier",
+                      fileData != nil && fileData == (try? Data(contentsOf: first.primary.url)))
+                let text = (try? await item.exported(as: .utf8PlainText)).flatMap { String(data: $0, encoding: .utf8) }
+                check("glisser vers une liseuse : livres relus", text.flatMap(BookDrag.ids) == [first.primary.id], text ?? "rien")
+            }
             for page: SidebarItem in [.sent, .pending, .trash] {
                 let other = BookCommands(books: [first.primary], list: page, library: library, kindle: kindle)
                 check("Mettre à la corbeille grisée dans \(page)", !other.canTrash)

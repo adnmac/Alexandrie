@@ -317,12 +317,25 @@ Screens: tous
 Depends: S-014
 Acceptance:
 - [manual] Le Finder reçoit un vrai fichier ; le glisser vers une liseuse marche toujours.
-Status: todo
+- [self] Le glisser exporte une copie identique du fichier et la liste des livres, lue seulement par l'app.
+UX:
+- Flow: glisser une carte de la grille vers le Finder ou le bureau -> une copie du fichier principal y apparaît ; glisser vers une liseuse de la barre latérale -> le livre (ou la sélection) rejoint son étagère, ⌘Z l'en retire
+- Surface: glisser-déposer, sans dialogue (le Finder montre le résultat)
+- States: plusieurs livres sélectionnés : le Finder reçoit le fichier de la carte saisie (une copie par glisser), la liseuse reçoit toute la sélection ; livre dans la Corbeille : glisser vers le Finder reste possible
+- Words: aucun nouveau texte
+- Access: même résultat au clavier par Livre > Afficher dans le Finder (⇧⌘R) ; le fichier source n'est jamais déplacé, seulement copié
+Status: done
 
 ### S-051 Partager un livre
 Le menu du livre propose Partager (AirDrop, Mail…) avec le fichier du livre.
 Acceptance:
 - [manual] Partager > AirDrop envoie le fichier source, intact.
+UX:
+- Flow: menu du livre > Partager > AirDrop, Mail, Messages… -> feuille système du service choisi -> Échap l'annule
+- Surface: sous-menu Partager du menu du livre (`ShareLink`, liste du système), aussi dans le menu Livre
+- States: plusieurs livres sélectionnés : tous leurs fichiers principaux sont partagés ; rien de sélectionné : Livre > Partager grisé
+- Words: « Partager » (nom d'Apple) ; services nommés par le système
+- Access: VoiceOver lit « Partager, sous-menu »
 Status: todo
 
 ### S-052 Être prévenu quand la file d'attente est partie
@@ -331,6 +344,12 @@ Depends: S-011
 Acceptance:
 - [unit] Le texte de la notification suit le nombre (1 livre, n livres, échecs).
 - [manual] La permission est demandée au premier envoi en attente, pas au lancement.
+UX:
+- Flow: Kindle branchée -> la file d'attente part -> notification « 3 livres envoyés sur « Kindle de Léa » » ; un clic sur la notification ouvre la page de la liseuse
+- Surface: notification du système (information sans action requise, l'app peut être en arrière-plan)
+- States: permission demandée au premier envoi en attente, jamais au lancement ; refusée : rien ne s'affiche, l'envoi marche quand même ; échecs : « 2 livres envoyés, 1 échec » ; un seul livre : son titre
+- Words: titre « Livres envoyés sur la Kindle » ; corps « 3 livres envoyés sur « Kindle de Léa » » / « « Le Port des brumes » envoyé sur « Kindle de Léa » » / « 2 livres envoyés, 1 échec »
+- Access: le texte se suffit sans icône ni couleur
 Status: todo
 
 ### S-053 Envoyer un livre depuis Raccourcis
@@ -338,6 +357,12 @@ Une action Raccourcis « Envoyer à la Kindle » prend un livre de la bibliothè
 Depends: S-040
 Acceptance:
 - [manual] L'action apparaît dans Raccourcis et met le livre en attente sans Kindle.
+UX:
+- Flow: Raccourcis > action « Envoyer à la Kindle » d'Alexandrie -> paramètre Livre (choisi dans la liste ou par titre) -> le livre part, ou passe en attente sans Kindle -> l'action rend « Envoyé » ou « En attente »
+- Surface: action App Intents, sans ouvrir de fenêtre
+- States: titre introuvable : l'action échoue avec « Aucun livre « … » dans la bibliothèque » ; livre protégé ou format non pris en charge : « « … » ne peut pas être envoyé sur la Kindle »
+- Words: action « Envoyer à la Kindle », paramètre « Livre » ; résumé « Envoyer ${Livre} à la Kindle »
+- Access: utilisable par Siri et Spotlight avec les mêmes mots
 Status: todo
 
 ## Later

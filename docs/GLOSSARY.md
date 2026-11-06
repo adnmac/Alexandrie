@@ -44,3 +44,4 @@ L'interface est en français ; menus et boutons suivent la casse d'Apple en fran
 | Afficher dans le Finder | Montrer le fichier dans le Finder | révéler |
 | Coup d'œil | Aperçu du fichier sans l'ouvrir (Espace) | aperçu rapide, Quick Look |
 | Annuler | ⌘Z, défait la dernière action nommée | défaire |
+| Partager | Envoyer le fichier par AirDrop, Mail… (sous-menu du système) | exporter, envoyer (réservé à la Kindle) |

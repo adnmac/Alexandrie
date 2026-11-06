@@ -16,9 +16,9 @@ correspondance ci-dessous à la place des commandes du modèle.
 
 | Pièce du modèle BAMA | Équivalent dans Alexandrie |
 | --- | --- |
-| `./build.sh` | `scripts/bundle.sh` (release, construit `build/Alexandrie.app`, signé Apple Development, sinon « Alexandrie Dev », sinon ad hoc) |
+| `./build.sh` | `scripts/bundle.sh` (release, construit `build/Alexandrie.app`, signé Apple Development, sinon « Alexandrie Dev », sinon ad hoc, puis copié dans `~/Applications` ; `ALEXANDRIE_INSTALL=0` pour s'en passer) |
 | `./build.sh --debug` | `scripts/build.sh` (debug, sans bundle) |
-| `./build.sh --open` | `scripts/bundle.sh && open build/Alexandrie.app` (quitter l'app avant) |
+| `./build.sh --open` | `scripts/bundle.sh && open ~/Applications/Alexandrie.app` (quitter l'app avant, sinon la copie n'est pas mise à jour) |
 | `UI/Grid.swift`, `tools/grid-lint.sh`, `tools/check-layout.swift`, `APP_GRID=1` | `Sources/Alexandrie/UI/Grid.swift` (jetons `Space`, sondes `.gridArea`/`.gridProbe`), `scripts/grid-lint.sh` (vues seulement), `swift scripts/check-layout.swift /tmp/alexandrie-shots/*-layout.json` (fichiers écrits par `scripts/snap.sh`), `ALEXANDRIE_GRID=1` dessine la grille. Sondes posées sur la fiche du livre (zone `fiche`) |
 | `swift test` | `scripts/test.sh` (charge les plugins de macros si seules les Command Line Tools sont actives) ; `ALEXANDRIE_FIXTURES=/dossier scripts/test.sh` pour les vrais livres |
 | Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |

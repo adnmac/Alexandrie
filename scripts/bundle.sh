@@ -2,6 +2,7 @@
 # Construit build/Alexandrie.app (release). Signé avec un certificat Apple Development s'il existe,
 # sinon « Alexandrie Dev » (identité stable : macOS garde les autorisations d'une version à l'autre), sinon ad hoc.
 # Autre certificat : ALEXANDRIE_SIGN_IDENTITY="Nom du certificat" scripts/bundle.sh
+# Copie ensuite l'app dans ~/Applications (ALEXANDRIE_INSTALL=0 pour s'en passer).
 set -e
 source "${0:A:h}/env.sh"
 cd "$ROOT"
@@ -80,3 +81,19 @@ else
   echo "⚠️  certificat « $IDENTITY » introuvable : signature ad hoc (macOS peut redemander ses autorisations à chaque version)"
 fi
 echo "✅ $APP"
+# Copie dans ~/Applications : Raccourcis et le Finder trouvent une seule Alexandrie, toujours à jour.
+# La copie de build/ est retirée de LaunchServices. ALEXANDRIE_INSTALL=0 garde seulement build/.
+if [[ "${ALEXANDRIE_INSTALL:-1}" != 0 ]]; then
+  DEST="$HOME/Applications/Alexandrie.app"
+  LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
+  if pgrep -f "$DEST/Contents/MacOS/Alexandrie" >/dev/null; then
+    echo "⚠️  Alexandrie est ouverte : quittez-la puis relancez scripts/bundle.sh pour mettre à jour $DEST"
+  else
+    mkdir -p "$HOME/Applications"
+    rm -rf "$DEST"
+    ditto "$APP" "$DEST"
+    "$LSREGISTER" -u "$APP" 2>/dev/null || true
+    "$LSREGISTER" -f "$DEST"
+    echo "📦 installé dans $DEST"
+  fi
+fi

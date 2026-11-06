@@ -16,7 +16,7 @@ Biblioth√®que de livres pour macOS qui charge vos livres sur une Kindle **par c√
 ## Compiler et lancer
 
 ```bash
-scripts/bundle.sh               # construit build/Alexandrie.app (release, signature ad hoc)
+scripts/bundle.sh               # construit build/Alexandrie.app (release) et la copie dans ~/Applications
 open build/Alexandrie.app
 ```
 

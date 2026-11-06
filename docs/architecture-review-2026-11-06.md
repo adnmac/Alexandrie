@@ -64,3 +64,16 @@ le plus modifié. Faite à la fin de M5. Les trois autres cartes attendent ton c
 Considéré, non recommandé :
 - `EPUBToAZW3.swift` (647 lignes) : stable, peu modifié, couvert par `RealBookTests` ; le découper n'apporte rien maintenant.
 - Protocoles pour `KindleMonitor` : un seul usage réel, les tests passent par le cœur.
+
+## Fin du jalon M6 (même jour)
+
+M6 a ajouté des fichiers courts (`SendNotifier`, `SendToKindleIntent`, `AppServices`) sans grossir les
+points chauds : `LibraryStore.swift` reste à 752 lignes, `ContentView.swift` à 372. Aucune nouvelle carte
+`Strong`, donc rien de refait sans ton choix.
+
+- La carte « Actions du livre en un seul endroit » gagne un argument : Partager s'est écrit deux fois
+  (menu du livre et menu Livre), comme la corbeille en M5.
+- Nouvelle carte [Speculative] : `bundle.sh` dépend du chemin interne de SwiftPM
+  (`.build/out/Intermediates.noindex/…/Alexandrie-primary.swiftconstvalues`). Si une version de SwiftPM
+  le change, l'action Raccourcis disparaît avec un simple avertissement. À surveiller à chaque mise à jour
+  des outils plutôt qu'à corriger maintenant.

@@ -5,14 +5,41 @@
 set -e
 source "${0:A:h}/env.sh"
 cd "$ROOT"
-swift build -c release "${SWIFT_FLAGS[@]}"
-BIN="$(swift build -c release --show-bin-path "${SWIFT_FLAGS[@]}")/Alexandrie"
+# Valeurs constantes des types App Intents (Metadata.appintents, plus bas), comme Xcode les demande.
+PROTOCOLS="$ROOT/scripts/appintents-protocols.json"
+CONST_FLAGS=(-Xswiftc -emit-const-values -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$PROTOCOLS")
+swift build -c release "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}"
+BIN="$(swift build -c release --show-bin-path "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}")/Alexandrie"
 APP="$ROOT/build/Alexandrie.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Alexandrie"
 # Icône : Assets.car (Liquid Glass, macOS 26+) et AppIcon.icns (macOS 14-15), compilés par scripts/make-icon.sh.
 for f in Assets.car AppIcon.icns; do [[ -f "$ROOT/Resources/$f" ]] && cp "$ROOT/Resources/$f" "$APP/Contents/Resources/"; done
+# Action Raccourcis « Envoyer à la Kindle » (App Intents) : Raccourcis ne la voit que si le bundle contient
+# Metadata.appintents, que Xcode produit d'habitude. On lance le même outil sur les valeurs constantes que
+# le compilateur écrit pendant la build release. Sans Xcode : l'app marche, sans l'action Raccourcis.
+XCODE_DEV=/Applications/Xcode.app/Contents/Developer
+INTENTS_TOOL="$XCODE_DEV/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor"
+CONSTS="$ROOT/.build/out/Intermediates.noindex/Alexandrie.build/Release/Alexandrie-p.build/Objects-normal/arm64/Alexandrie-primary.swiftconstvalues"
+# La build release passe toujours CONST_FLAGS : chaque recompilation réécrit ces valeurs.
+if [[ -x "$INTENTS_TOOL" && -f "$CONSTS" ]]; then
+  WORK=$(mktemp -d)
+  find "$ROOT/Sources/Alexandrie" -name '*.swift' > "$WORK/sources.txt"
+  echo "$CONSTS" > "$WORK/consts.txt"
+  "$INTENTS_TOOL" --output "$APP/Contents/Resources" \
+    --toolchain-dir "$XCODE_DEV/Toolchains/XcodeDefault.xctoolchain" --module-name Alexandrie \
+    --sdk-root "$(DEVELOPER_DIR=$XCODE_DEV xcrun --sdk macosx --show-sdk-path)" \
+    --xcode-version "$(DEVELOPER_DIR=$XCODE_DEV xcodebuild -version | awk '/Build version/ {print $3}')" \
+    --platform-family macOS --deployment-target 14.0 --target-triple arm64-apple-macos14.0 \
+    --source-file-list "$WORK/sources.txt" --swift-const-vals-list "$WORK/consts.txt" --quiet-warnings 2>/dev/null
+  rm -rf "$WORK"
+fi
+if [[ -f "$APP/Contents/Resources/Metadata.appintents/extract.actionsdata" ]]; then
+  echo "🧩 action Raccourcis « Envoyer à la Kindle »"
+else
+  echo "⚠️  pas de Metadata.appintents (Xcode absent ?) : l'action Raccourcis ne sera pas proposée"
+fi
 # Commit compilé : l'app le compare à GitHub pour signaler les mises à jour.
 COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 VERSION="$(cat "$ROOT/VERSION" 2>/dev/null || echo 0.0.0)"

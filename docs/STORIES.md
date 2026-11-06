@@ -358,13 +358,14 @@ Une action Raccourcis « Envoyer à la Kindle » prend un livre de la bibliothè
 Depends: S-040
 Acceptance:
 - [manual] L'action apparaît dans Raccourcis et met le livre en attente sans Kindle.
+- [self] `SendToKindle.run` met le livre en attente sans Kindle et répond « En attente de la Kindle ».
 UX:
 - Flow: Raccourcis > action « Envoyer à la Kindle » d'Alexandrie -> paramètre Livre (choisi dans la liste ou par titre) -> le livre part, ou passe en attente sans Kindle -> l'action rend « Envoyé » ou « En attente »
 - Surface: action App Intents, sans ouvrir de fenêtre
 - States: titre introuvable : l'action échoue avec « Aucun livre « … » dans la bibliothèque » ; livre protégé ou format non pris en charge : « « … » ne peut pas être envoyé sur la Kindle »
 - Words: action « Envoyer à la Kindle », paramètre « Livre » ; résumé « Envoyer ${Livre} à la Kindle »
 - Access: utilisable par Siri et Spotlight avec les mêmes mots
-Status: todo
+Status: done
 
 ## Later
 

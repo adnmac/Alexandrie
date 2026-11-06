@@ -142,6 +142,13 @@ struct SelfTest {
             check("⌘Z retire de l'attente", selection.allSatisfy { library.book(id: $0.id)?.isPendingSend == false })
             let none = BookCommands(books: [], list: .all, library: library, kindle: kindle)
             check("Kindle > Envoyer grisée sans sélection", !none.canSend)
+            // Raccourcis > Envoyer à la Kindle : sans Kindle, le livre passe en attente.
+            if let target = selection.first {
+                let answer = await SendToKindle.run(target, library: library, kindle: kindle)
+                check("Raccourcis > Envoyer à la Kindle met en attente", answer == "En attente de la Kindle"
+                      && library.book(id: target.id)?.isPendingSend == true, answer)
+                library.removeFromKindleQueue([target.id])
+            }
         }
 
         // Livre > Mettre à la corbeille (⌘⌫) : la sélection part, le suivant est sélectionné, ⌘Z la rend.

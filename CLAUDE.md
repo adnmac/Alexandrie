@@ -42,3 +42,8 @@ Une nouvelle fonction de `LibraryStore` reçoit une étape dans `SelfTest.swift`
 
 - La CI GitHub (`macos-15`) a un Swift plus ancien que le Swift local : éviter les
   fonctions de langage trop récentes.
+- L'action Raccourcis (`SendToKindleIntent`) n'apparaît que si le bundle contient `Metadata.appintents`.
+  `scripts/bundle.sh` le produit avec `appintentsmetadataprocessor` de Xcode, à partir des
+  `.swiftconstvalues` de la build release ; sans Xcode, il prévient et l'app n'a pas l'action.
+- Les menus (`Commands`) ne lisent ni l'état observé ni `@FocusedValue` : ils reçoivent les valeurs
+  de `MenuState` par l'`App` (voir `docs/FIXLOG.md`).

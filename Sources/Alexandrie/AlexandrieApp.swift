@@ -4,9 +4,10 @@ import SwiftUI
 
 struct AlexandrieApp: App {
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
-    @State private var library = LibraryStore()
-    @State private var kindle = KindleMonitor()
-    @State private var updates = UpdateMonitor()
+    // Partagés avec les actions Raccourcis (AppServices), qui n'ont pas de vue.
+    @State private var library = AppServices.shared.library
+    @State private var kindle = AppServices.shared.kindle
+    @State private var updates = AppServices.shared.updates
     /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
     @ObservedObject private var menu = MenuState.shared
 

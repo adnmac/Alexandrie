@@ -68,6 +68,10 @@ il est renommé en `library.corrupt-<date>.json` et la bibliothèque est réinde
   - `Kindle/` détection et transfert (disque monté, MTP)
 - `Sources/CMTPShim` : pont C vers libmtp (dlopen)
 - `Sources/Alexandrie` : app SwiftUI
+  - `Views/` une vue par fichier (`ContentView` : la fenêtre principale ; `Navigation` : pages de la barre latérale)
+  - `Services/` état de l'app (`LibraryStore`, `KindleMonitor`, `UpdateMonitor`) et `BookCommands`, les commandes
+    sur la sélection partagées par la barre des menus et le self-test
+  - `UI/` jetons du système de design (voir `design/DESIGN-SYSTEM.md`)
 
 ## Tests
 

@@ -125,15 +125,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
 @MainActor
 enum Panels {
-    static func chooseLibraryFolder(_ library: LibraryStore) {
+    /// Accueil (premier dossier) et Réglages > Bibliothèque > Ajouter un dossier….
+    static func addLibraryFolder(_ library: LibraryStore) {
         let panel = NSOpenPanel()
-        panel.title = "Choisir le dossier de livres"
+        panel.title = library.folders.isEmpty ? "Choisir le dossier de livres" : "Ajouter un dossier de livres"
         panel.message = "Alexandrie indexe ce dossier sans jamais le modifier."
-        panel.prompt = "Choisir"
+        panel.prompt = library.folders.isEmpty ? "Choisir" : "Ajouter"
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
-        if panel.runModal() == .OK, let url = panel.url { library.chooseFolder(url) }
+        guard panel.runModal() == .OK, let url = panel.url, let refusal = library.addFolder(url) else { return }
+        let alert = NSAlert()
+        alert.messageText = "Dossier non ajouté"
+        alert.informativeText = refusal
+        alert.runModal()
     }
 
     static func importBooks(into library: LibraryStore) {

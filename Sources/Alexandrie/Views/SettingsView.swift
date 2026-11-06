@@ -2,6 +2,46 @@ import AlexandrieCore
 import AppKit
 import SwiftUI
 
+/// Un dossier de livres dans Réglages > Bibliothèque : chemin, nombre de livres, retrait confirmé (S-060, S-063).
+struct FolderRow: View {
+    @Environment(LibraryStore.self) private var library
+    let folder: LibraryFolders.Entry
+    @State private var confirming = false
+
+    var body: some View {
+        let unavailable = library.unavailableFolders.contains(folder.path)
+        let count = library.books(inFolder: folder.path).count
+        LabeledContent {
+            HStack {
+                Text(unavailable ? "Indisponible" : count == 1 ? "1 livre" : "\(count) livres")
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+                Button("Retirer…") { confirming = true }
+                    .disabled(library.folders.count < 2)
+                    .help(library.folders.count < 2 ? "La bibliothèque garde au moins un dossier de livres"
+                          : "Retirer ce dossier de la bibliothèque ; ses fichiers restent sur le disque")
+            }
+        } label: {
+            Label {
+                VStack(alignment: .leading, spacing: Space.xs) {
+                    Text(LibraryFolders.name(of: folder.path))
+                    Text(folder.path).font(.caption).foregroundStyle(.secondary)
+                        .lineLimit(1).truncationMode(.middle)
+                }
+            } icon: {
+                Image(systemName: unavailable ? "externaldrive.badge.xmark" : "folder")
+            }
+            .help(unavailable ? "Disque débranché ou dossier introuvable : ses livres reviendront quand il sera rebranché" : folder.path)
+        }
+        .confirmationDialog("Retirer « \(LibraryFolders.name(of: folder.path)) » de la bibliothèque ?", isPresented: $confirming) {
+            Button("Retirer le dossier", role: .destructive) { library.removeFolder(folder.path) }
+        } message: {
+            Text(count == 1 ? "1 livre quitte la bibliothèque, avec sa place sur les étagères et dans l'attente d'envoi. Le fichier reste sur le disque."
+                 : "\(count) livres quittent la bibliothèque, avec leur place sur les étagères et dans l'attente d'envoi. Les fichiers restent sur le disque.")
+        }
+    }
+}
+
 /// Sauvegardes de l'index : dernière copie, restauration (avec confirmation).
 struct BackupsRow: View {
     @Environment(LibraryStore.self) private var library
@@ -132,15 +172,16 @@ struct SettingsView: View {
             .tag(SettingsTab.general)
 
             Form {
-                Section("Bibliothèque") {
-                    LabeledContent("Dossier de livres") {
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text(library.rootURL?.path ?? "Aucun").lineLimit(1).truncationMode(.middle)
-                            Button("Changer…") { Panels.chooseLibraryFolder(library) }
-                        }
+                Section("Dossiers de livres") {
+                    ForEach(library.folders, id: \.path) { folder in FolderRow(folder: folder) }
+                    LabeledContent {
+                        Button("Ajouter un dossier…") { Panels.addLibraryFolder(library) }
+                    } label: {
+                        Text("Ces dossiers sont lus sans jamais être modifiés. Les livres importés, les couvertures et les conversions sont stockés dans le dossier de l'app.")
+                            .font(.caption).foregroundStyle(.secondary)
                     }
-                    Text("Ce dossier est lu sans jamais être modifié. Les livres importés, les couvertures et les conversions sont stockés dans le dossier de l'app.")
-                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Section("Bibliothèque") {
                     LabeledContent("Données de l'app") {
                         Button("Afficher dans le Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting([library.directories.base])

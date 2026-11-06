@@ -15,6 +15,8 @@ enum SeedData {
         var year: String
         var cover: NSColor? = .systemBlue
         var azw3 = false
+        /// Dans le second dossier de livres (« Disque externe ») plutôt que dans « Livres ».
+        var external = false
     }
 
     static let samples: [Sample] = [
@@ -28,9 +30,9 @@ enum SeedData {
                index: 3, year: "2018", cover: .systemRed),
         Sample(title: "Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours",
                authors: ["Inès Garnier"], genre: "Histoire", year: "2011", cover: .systemOrange),
-        Sample(title: "Orbite", authors: ["Samuel Okafor"], genre: "Science-fiction", year: "2021", cover: .black),
+        Sample(title: "Orbite", authors: ["Samuel Okafor"], genre: "Science-fiction", year: "2021", cover: .black, external: true),
         Sample(title: "Les Jardins de Titan", authors: ["Samuel Okafor"], genre: "Science-fiction", series: "Cycle de Saturne",
-               index: 1, year: "2023", cover: .systemPurple),
+               index: 1, year: "2023", cover: .systemPurple, external: true),
         Sample(title: "Sel", authors: ["Léa Fontaine"], genre: "Poésie", year: "2020", cover: nil),
         Sample(title: "Petit traité de la patience", authors: ["Marc Aubert", "Julie Roy"], genre: "Essai", year: "2017",
                cover: .systemGreen),
@@ -40,16 +42,23 @@ enum SeedData {
         Sample(title: "Carnet de voyage", authors: ["Paul Martin"], genre: "Récit", year: "2009", cover: .systemMint),
     ]
 
-    /// Avant le lancement de l'app : remplit un dossier de test vide et y fait pointer `ALEXANDRIE_BOOKS`.
+    /// Second dossier de livres des captures (page « dossier-exemple »).
+    static var externalFolder: URL? {
+        AppDirectories.testStore?.appendingPathComponent("Disque externe", isDirectory: true)
+    }
+
+    /// Avant le lancement de l'app : remplit deux dossiers de test vides et y fait pointer `ALEXANDRIE_BOOKS`.
     static func seedIfRequested() {
         let env = ProcessInfo.processInfo.environment
-        guard env["ALEXANDRIE_SEED"] == "1", let store = AppDirectories.testStore else { return }
+        guard env["ALEXANDRIE_SEED"] == "1", let store = AppDirectories.testStore, let external = externalFolder else { return }
         let folder = store.appendingPathComponent("Livres", isDirectory: true)
-        setenv("ALEXANDRIE_BOOKS", folder.path, 1)
+        // Troisième dossier jamais créé : un disque débranché, pour la capture de l'état indisponible (S-062).
+        let unplugged = store.appendingPathComponent("Clé USB", isDirectory: true)
+        setenv("ALEXANDRIE_BOOKS", [folder, external, unplugged].map(\.path).joined(separator: ":"), 1)
         guard !FileManager.default.fileExists(atPath: folder.path) else { return }
         do {
-            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            for s in samples { try write(s, in: folder) }
+            for f in [folder, external] { try FileManager.default.createDirectory(at: f, withIntermediateDirectories: true) }
+            for s in samples { try write(s, in: s.external ? external : folder) }
             try KindleClippings.save(clippings, to: AppDirectories(base: store).clippings)
         } catch {
             FileHandle.standardError.write(Data("SEED échec : \(error.localizedDescription)\n".utf8))

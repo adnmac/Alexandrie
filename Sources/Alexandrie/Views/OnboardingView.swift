@@ -15,7 +15,7 @@ struct OnboardingView: View {
             Text("Choisissez le dossier où se trouvent vos livres (EPUB, MOBI, AZW3, PDF).\nIl sera indexé en lecture seule : aucun fichier n'y sera modifié.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            Button("Choisir le dossier…") { Panels.chooseLibraryFolder(library) }
+            Button("Choisir le dossier…") { Panels.addLibraryFolder(library) }
                 .controlSize(.large)
                 .buttonStyle(.borderedProminent)
         }

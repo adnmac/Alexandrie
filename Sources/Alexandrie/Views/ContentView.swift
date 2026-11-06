@@ -198,6 +198,7 @@ struct ContentView: View {
         case .series(let key): SeriesNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? "Série"
         case .genre(let key):
             GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? "Genre"
+        case .folder(let path): LibraryFolders.name(of: path)
         }
     }
 
@@ -230,6 +231,7 @@ struct ContentView: View {
         case .series(let key): SeriesNames.groups(books).contains { $0.key == key }
         case .genre(let key): GenreNames.groups(books, identities: library.identities).contains { $0.key == key }
         case .shelf(let id): kindle.readers.contains { $0.id == id }
+        case .folder(let path): library.folders.count > 1 && library.folders.contains { $0.path == path }
         default: true
         }
         sidebar = exists ? page : .all
@@ -337,6 +339,9 @@ struct ContentView: View {
                 .sorted { ($0.seriesIndex ?? .infinity, $0.title) < ($1.seriesIndex ?? .infinity, $1.title) }
         case .format(let f): list = list.filter { $0.format == f }
         case .author(let key): list = list.filter { AuthorNames.keys(of: $0).contains(key) }
+        case .folder(let path):
+            let prefix = LibraryFolders.prefix(path)
+            list = list.filter { !$0.isImported && $0.path.hasPrefix(prefix) }
         default: break
         }
         let query = search.trimmingCharacters(in: .whitespaces)

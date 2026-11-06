@@ -8,6 +8,7 @@ struct SidebarView: View {
     /// États replié/déplié mémorisés : la liste des auteurs peut compter des centaines d'entrées.
     @AppStorage("sidebarAuthorsExpanded") private var authorsExpanded = false
     @AppStorage("sidebarFormatsExpanded") private var formatsExpanded = true
+    @AppStorage("sidebarFoldersExpanded") private var foldersExpanded = true
     @AppStorage("sidebarSeriesExpanded") private var seriesExpanded = false
     @AppStorage("sidebarGenresExpanded") private var genresExpanded = false
 
@@ -86,6 +87,23 @@ struct SidebarView: View {
                                 library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
                                 return true
                             }
+                    }
+                }
+            }
+
+            // Dossiers de livres : une page par dossier dès qu'il y en a deux (S-061, S-062).
+            if library.folders.count > 1 {
+                Section {
+                    CollapsibleHeader(title: "Dossiers", count: library.folders.count, isExpanded: $foldersExpanded)
+                    if foldersExpanded {
+                        ForEach(library.folders, id: \.path) { folder in
+                            let unavailable = library.unavailableFolders.contains(folder.path)
+                            row(LibraryFolders.name(of: folder.path), unavailable ? "externaldrive.badge.xmark" : "folder",
+                                .folder(folder.path), count: library.books(inFolder: folder.path).count)
+                                .foregroundStyle(unavailable ? .secondary : .primary)
+                                .help(unavailable ? "Indisponible : disque débranché ou dossier introuvable. Ses livres restent dans la bibliothèque et reviendront au rebranchement."
+                                      : folder.path)
+                        }
                     }
                 }
             }

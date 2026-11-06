@@ -69,7 +69,7 @@ struct SelfTest {
         await Self.wait { !library.isScanning }
 
         // Indexation : choix du dossier, comme le panneau « Choisir le dossier de livres ».
-        library.chooseFolder(folder)
+        library.addFolder(folder)
         await Self.wait { !library.isScanning && library.books.count == 2 }
         let titles = Set(library.books.map(\.title))
         check("indexation du dossier", titles == ["Le Livre d'Essai", "Second Livre"], "\(titles)")
@@ -202,12 +202,77 @@ struct SelfTest {
 
         // Page de la barre latérale gardée d'un lancement à l'autre (@SceneStorage) : aller-retour en texte.
         let pages: [SidebarItem] = [.all, .recent, .sent, .toReview, .kindle, .pending, .trash, .notes, .shelf("A1B2"),
-                                    .format(.azw3), .author("dupont jeanne"), .series("commissaire: vidal"), .genre("policier")]
+                                    .format(.azw3), .author("dupont jeanne"), .series("commissaire: vidal"), .genre("policier"),
+                                    .folder("/Volumes/Disque: livres/Romans")]
         let lost = pages.filter { SidebarItem(storageKey: $0.storageKey) != $0 }
         check("page de la barre latérale gardée au lancement", lost.isEmpty && SidebarItem(storageKey: "inconnu") == nil, "\(lost)")
 
         library.saveNow()
         check("index relu après fermeture", ((try? LibraryIndex.load(directories.index)) ?? []).count == 3)
+
+        await testFolders(library: library, first: folder, sources: sources, store: store)
+    }
+
+    /// Plusieurs dossiers de livres (S-060 à S-063), sur la bibliothèque déjà indexée.
+    private mutating func testFolders(library: LibraryStore, first folder: URL, sources: [URL], store: URL) async {
+        let fm = FileManager.default
+        let second = store.appendingPathComponent("Disque", isDirectory: true)
+        let spare = store.appendingPathComponent("Disque (copie)", isDirectory: true)
+        let before = library.books.count
+        do {
+            try fm.createDirectory(at: second, withIntermediateDirectories: true)
+            _ = try Self.makeEPUB(title: "Livre du disque", author: "Nina Weber", in: second)
+            // Même fichier que dans le premier dossier : un doublon, pas un livre de plus.
+            try fm.copyItem(at: sources[1], to: second.appendingPathComponent(sources[1].lastPathComponent))
+            try fm.copyItem(at: second, to: spare)
+        } catch {
+            check("second dossier de livres généré", false, error.localizedDescription)
+            return
+        }
+
+        // S-060 : ajout d'un dossier, ses livres rejoignent « Tous les livres ».
+        let refusal = library.addFolder(second)
+        await Self.wait { !library.isScanning && library.books.count == before + 2 }
+        check("second dossier de livres ajouté", refusal == nil && library.books.contains { $0.title == "Livre du disque" },
+              refusal ?? "\(library.books.count) fichiers")
+        let copies = library.books.filter { $0.title == "Second Livre" }
+        check("même fichier dans deux dossiers rassemblé en doublon",
+              copies.count == 2 && library.visibleBooks.filter { $0.title == "Second Livre" }.count == 1, "\(copies.count) fichiers")
+        check("dossier déjà lu refusé", library.addFolder(second) != nil
+              && library.addFolder(folder.appendingPathComponent("Sous-dossier")) != nil && library.folders.count == 2)
+        let saved = LibraryFolders.load(library.directories.folders, legacy: nil).map(\.path)
+        check("liste des dossiers relue au lancement",
+              saved == [folder, second].map { $0.standardizedFileURL.path }, "\(saved)")
+
+        // S-061 : la page d'un dossier ne montre que ses livres.
+        let inSecond = Set(library.books(inFolder: second.path).map(\.title))
+        let inFirst = Set(library.books(inFolder: folder.path).map(\.title))
+        check("page d'un dossier : ses livres seulement", inSecond.contains("Livre du disque") && !inFirst.contains("Livre du disque")
+              && !inFirst.contains("Livre importé"), "\(inSecond) / \(inFirst)")
+        check("page d'un dossier gardée au lancement",
+              SidebarItem(storageKey: SidebarItem.folder(second.path).storageKey) == .folder(second.path))
+
+        // S-062 : disque débranché (dossier absent) puis rebranché.
+        try? fm.removeItem(at: second)
+        await library.rescan()
+        let absent = library.books.first { $0.title == "Livre du disque" }
+        check("dossier débranché : livres gardés, indisponibles",
+              library.unavailableFolders.contains(second.standardizedFileURL.path) && library.books.count == before + 2
+              && absent.map(library.isUnavailable) == true, "\(library.unavailableFolders)")
+        try? fm.copyItem(at: spare, to: second)
+        await library.rescan()
+        check("dossier rebranché : livres disponibles", library.unavailableFolders.isEmpty
+              && library.book(id: absent?.id).map(library.isUnavailable) == false && library.books.count == before + 2)
+
+        // S-063 : retrait d'un dossier, fichiers intacts, attente d'envoi nettoyée.
+        if let book = library.book(id: absent?.id) { library.queueForKindle([book], reader: nil) }
+        library.removeFolder(second.path)
+        check("dossier retiré : ses livres quittent la bibliothèque",
+              library.folders.count == 1 && !library.books.contains { $0.title == "Livre du disque" }
+              && !library.pendingSends.contains { $0.id == absent?.id } && library.books.count == before)
+        check("dossier retiré : fichiers intacts", ((try? fm.contentsOfDirectory(atPath: second.path))?.count ?? 0) == 2)
+        library.removeFolder(folder.path)
+        check("dernier dossier jamais retiré", library.folders.count == 1 && library.books.count == before)
     }
 
     /// Attend une condition (au plus `timeout` secondes) en laissant tourner les tâches de l'app.

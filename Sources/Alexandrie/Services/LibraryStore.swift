@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 import Observation
 
-/// État de la bibliothèque : dossier source (lecture seule), imports, index JSON.
+/// État de la bibliothèque : dossiers de livres (lecture seule), imports, index JSON.
 @MainActor @Observable
 final class LibraryStore {
     let directories = AppDirectories()
@@ -11,7 +11,10 @@ final class LibraryStore {
     private(set) var books: [Book] = [] {
         didSet { positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil }
     }
-    private(set) var rootURL: URL?
+    /// Dossiers de livres, dans l'ordre d'ajout (voir `LibraryFolders`).
+    private(set) var folders: [LibraryFolders.Entry] = []
+    /// Dossiers introuvables au dernier parcours (disque débranché) : leurs livres restent, indisponibles.
+    private(set) var unavailableFolders: Set<String> = []
     private(set) var isScanning = false
     private(set) var progress: (done: Int, total: Int)?
     /// Taille des couvertures et des conversions, calculée à la demande (réglages).
@@ -29,7 +32,8 @@ final class LibraryStore {
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "alexandrie.index", qos: .utility)
-    private static let bookmarkKey = "libraryFolderBookmark"
+    /// Signet du dossier unique d'avant M7, repris une fois dans `folders.json`.
+    private static let legacyBookmarkKey = "libraryFolderBookmark"
 
     init() {
         covers = CoverStore(directory: directories.covers)
@@ -53,10 +57,7 @@ final class LibraryStore {
             }
         }
         if changed { save() }
-        // Données de test : le dossier de livres vient de `ALEXANDRIE_BOOKS`, jamais du réglage de l'utilisateur.
-        rootURL = AppDirectories.testStore == nil
-            ? Self.restoreBookmark()
-            : ProcessInfo.processInfo.environment["ALEXANDRIE_BOOKS"].map { URL(fileURLWithPath: $0, isDirectory: true) }
+        loadFolders()
         startWatching()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
                                                queue: .main) { [weak self] _ in
@@ -66,10 +67,20 @@ final class LibraryStore {
                                                queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.saveNow() }
         }
+        // Disque branché ou débranché : un dossier de livres revient ou devient indisponible.
+        for name in [NSWorkspace.didMountNotification, NSWorkspace.didUnmountNotification] {
+            NSWorkspace.shared.notificationCenter.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated {
+                    guard let self else { return }
+                    self.refreshFolders()
+                    Task { await self.rescan() }
+                }
+            }
+        }
         Task { await rescan() }
     }
 
-    var hasLibrary: Bool { rootURL != nil || !books.isEmpty }
+    var hasLibrary: Bool { !folders.isEmpty || !books.isEmpty }
 
     // MARK: - Copies en double (masquées, jamais supprimées)
 
@@ -182,33 +193,87 @@ final class LibraryStore {
         return books.filter { hidden.contains($0.id) && ids[$0.id] == key }
     }
 
-    // MARK: - Dossier source
+    // MARK: - Dossiers de livres (S-060 à S-063)
 
-    func chooseFolder(_ url: URL) {
-        if AppDirectories.testStore == nil,
-           let data = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
-            UserDefaults.standard.set(data, forKey: Self.bookmarkKey)
+    /// Lit `folders.json`. Données de test : sans liste enregistrée, les dossiers viennent de
+    /// `ALEXANDRIE_BOOKS` (chemins séparés par « : »), jamais du réglage de l'utilisateur.
+    private func loadFolders() {
+        if let test = AppDirectories.testStore.flatMap({ _ in ProcessInfo.processInfo.environment["ALEXANDRIE_BOOKS"] }),
+           !FileManager.default.fileExists(atPath: directories.folders.path) {
+            folders = test.split(separator: ":").map { LibraryFolders.Entry(URL(fileURLWithPath: String($0), isDirectory: true)) }
+        } else {
+            let legacy = AppDirectories.testStore == nil ? UserDefaults.standard.data(forKey: Self.legacyBookmarkKey) : nil
+            folders = LibraryFolders.load(directories.folders, legacy: legacy)
         }
-        rootURL = url
-        books.removeAll { !$0.isImported }
-        startWatching()
-        Task { await rescan() }
+        refreshFolders()
+        if !folders.isEmpty, !FileManager.default.fileExists(atPath: directories.folders.path) { saveFolders() }
     }
 
-    private static func restoreBookmark() -> URL? {
-        guard let data = UserDefaults.standard.data(forKey: bookmarkKey) else { return nil }
-        var stale = false
-        guard let url = try? URL(resolvingBookmarkData: data, options: [], relativeTo: nil, bookmarkDataIsStale: &stale)
-        else { return nil }
-        // Dossier déplacé ou renommé : le signet est renouvelé pour rester valable.
-        if stale, let fresh = try? url.bookmarkData(options: [], includingResourceValuesForKeys: nil, relativeTo: nil) {
-            UserDefaults.standard.set(fresh, forKey: bookmarkKey)
+    /// Suit les dossiers déplacés ou renommés (signets) et note ceux qui sont introuvables.
+    private func refreshFolders() {
+        var changed = false
+        folders = folders.map { entry in
+            let (resolved, didChange) = entry.resolved()
+            changed = changed || didChange
+            return resolved
         }
-        return url
+        if changed { saveFolders() }
+        unavailableFolders = Set(folders.map(\.path).filter { !FileManager.default.fileExists(atPath: $0) })
+    }
+
+    private func saveFolders() {
+        do {
+            try LibraryFolders.save(folders, to: directories.folders)
+        } catch {
+            lastError = "Impossible d'enregistrer les dossiers de livres : \(error.localizedDescription)"
+        }
+    }
+
+    /// Ajoute un dossier de livres ; ses livres rejoignent la bibliothèque au parcours qui suit.
+    /// Renvoie la raison d'un refus (dossier déjà lu, en entier ou en partie).
+    @discardableResult
+    func addFolder(_ url: URL) -> String? {
+        if let conflict = LibraryFolders.conflict(adding: url.path, to: folders.map(\.path)) { return conflict.message }
+        folders.append(LibraryFolders.Entry(url))
+        saveFolders()
+        refreshFolders()
+        startWatching()
+        Task { await rescan() }
+        return nil
+    }
+
+    /// Retire un dossier : ses livres quittent la bibliothèque (étagères et attente d'envoi comprises),
+    /// ses fichiers restent sur le disque. Le dernier dossier ne se retire pas.
+    func removeFolder(_ path: String) {
+        guard folders.count > 1, folders.contains(where: { $0.path == path }) else { return }
+        let prefix = LibraryFolders.prefix(path)
+        folders.removeAll { $0.path == path }
+        saveFolders()
+        refreshFolders()
+        books.removeAll { !$0.isImported && $0.path.hasPrefix(prefix) }
+        save()
+        startWatching()
+    }
+
+    /// Dossier de livres d'un fichier (nil : livre importé).
+    func folder(of book: Book) -> String? {
+        book.isImported ? nil : LibraryFolders.owner(of: book.path, among: folders.map(\.path))
+    }
+
+    /// Livres visibles d'un dossier de livres.
+    func books(inFolder path: String) -> [Book] {
+        let prefix = LibraryFolders.prefix(path)
+        return visibleBooks.filter { !$0.isImported && $0.path.hasPrefix(prefix) }
+    }
+
+    /// Livre d'un dossier débranché : affiché, mais ni envoyé ni lu tant que le disque manque.
+    func isUnavailable(_ book: Book) -> Bool {
+        guard !unavailableFolders.isEmpty, let folder = folder(of: book) else { return false }
+        return unavailableFolders.contains(folder)
     }
 
     private var roots: [URL] {
-        [rootURL, directories.imports].compactMap { $0 }
+        folders.map { URL(fileURLWithPath: $0.path, isDirectory: true) } + [directories.imports]
     }
 
     private func startWatching() {
@@ -235,6 +300,7 @@ final class LibraryStore {
             }
         }
         // Dossier injoignable (disque débranché, partage absent) : ses livres sont gardés tels quels.
+        refreshFolders()
         let unreachable = self.roots.filter { !FileManager.default.fileExists(atPath: $0.path) }.map { $0.path + "/" }
         let roots = self.roots.filter { !unreachable.contains($0.path + "/") }
         let isOffline: (Book) -> Bool = { b in unreachable.contains { b.path.hasPrefix($0) } }

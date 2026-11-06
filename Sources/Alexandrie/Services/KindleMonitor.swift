@@ -273,7 +273,14 @@ final class KindleMonitor {
             lastError = KindleError.notConnected.localizedDescription
             return
         }
-        let sendable = books.filter { $0.canSendToKindle && $0.trashedAt == nil }
+        // Livre d'un dossier débranché (S-062) : il reste en attente, il partira quand le disque reviendra.
+        let unavailable = books.filter { library.isUnavailable($0) }
+        if let first = unavailable.first {
+            lastError = unavailable.count == 1
+                ? "« \(first.title) » est indisponible : son dossier de livres est introuvable (disque débranché ?)."
+                : "\(unavailable.count) livres sont indisponibles : leur dossier de livres est introuvable (disque débranché ?)."
+        }
+        let sendable = books.filter { $0.canSendToKindle && $0.trashedAt == nil && !library.isUnavailable($0) }
         for b in sendable { transfers[b.id] = .queued }
         isBusy = true
         defer { isBusy = false }

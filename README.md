@@ -2,7 +2,7 @@
 
 Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par câble USB**, sans Calibre.
 
-- Indexe un dossier de livres existant (EPUB, MOBI, AZW3, AZW, PDF) **sans jamais le modifier**.
+- Indexe un ou plusieurs dossiers de livres existants (EPUB, MOBI, AZW3, AZW, PDF) **sans jamais les modifier** ; un dossier sur un disque débranché garde ses livres, indisponibles jusqu'au rebranchement.
 - Extrait titre, auteurs, langue, éditeur, résumé et couverture ; recherche, tri, filtres par format et auteur.
 - Titre, auteurs, éditeur, date de publication, ISBN, langue, résumé et étiquettes corrigeables dans l'app ;
   les corrections sont appliquées aux copies envoyées sur la Kindle (le fichier source reste intact).

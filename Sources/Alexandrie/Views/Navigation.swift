@@ -18,6 +18,8 @@ enum SidebarItem: Hashable {
     case series(String)
     /// Clé de regroupement de genre (voir `GenreNames`).
     case genre(String)
+    /// Dossier de livres (chemin), quand la bibliothèque en a plusieurs.
+    case folder(String)
 }
 
 extension EnvironmentValues {
@@ -34,7 +36,7 @@ extension SidebarItem {
     /// Pages où « Mettre à la corbeille » est proposé (menu du livre, menu Livre, touche Supprimer).
     var allowsTrash: Bool {
         switch self {
-        case .all, .recent, .toReview, .format, .author, .series, .genre: true
+        case .all, .recent, .toReview, .format, .author, .series, .genre, .folder: true
         case .sent, .pending, .shelf, .trash, .kindle, .notes: false
         }
     }
@@ -57,6 +59,7 @@ extension SidebarItem {
         case .author(let key): "author:" + key
         case .series(let key): "series:" + key
         case .genre(let key): "genre:" + key
+        case .folder(let path): "folder:" + path
         }
     }
 
@@ -76,6 +79,7 @@ extension SidebarItem {
         case ("author", let key?): self = .author(key)
         case ("series", let key?): self = .series(key)
         case ("genre", let key?): self = .genre(key)
+        case ("folder", let path?): self = .folder(path)
         default: return nil
         }
     }

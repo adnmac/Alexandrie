@@ -40,7 +40,7 @@ enum Snapshot {
             Page(name: "genre", item: .genre(GenreNames.key("Policier"))),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),
                  book: "Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours"),
-        ]
+        ] + (SeedData.externalFolder.map { [Page(name: "dossier-exemple", item: .folder($0.standardizedFileURL.path), book: "Orbite")] } ?? [])
     }
 
     static func run(library: LibraryStore, kindle: KindleMonitor, sidebar: Binding<SidebarItem?>, selection: Binding<Set<String>>,

@@ -386,7 +386,7 @@ Acceptance:
 - [self] Après ajout d'un second dossier, ses livres sont indexés, et la liste des dossiers survit au redémarrage du magasin.
 - [self] Un même fichier présent dans deux dossiers est rassemblé comme doublon (S-021), pas compté deux fois.
 - [snap] Réglages > Bibliothèque liste les deux dossiers avec leur nombre de livres.
-Status: todo
+Status: done
 
 ### S-061 Parcourir un seul dossier de livres
 Avec deux dossiers ou plus, la barre latérale montre une section « Dossiers » ; un clic n'affiche que les livres de ce dossier.
@@ -395,7 +395,7 @@ Depends: S-060
 Acceptance:
 - [snap] La section « Dossiers » apparaît avec deux dossiers, absente avec un seul.
 - [self] Le filtre d'un dossier ne rend que ses livres ; recherche et tri s'y appliquent.
-Status: todo
+Status: done
 
 ### S-062 Retrouver un dossier sur un disque débranché
 Quand le disque d'un dossier est débranché, ses livres restent dans la bibliothèque, marqués indisponibles, puis reviennent seuls au rebranchement.
@@ -405,7 +405,7 @@ Acceptance:
 - [self] Un dossier introuvable ne retire aucun livre de l'index ; ses livres sont marqués indisponibles et ne peuvent être ni envoyés ni lus.
 - [snap] Le dossier indisponible est grisé dans la barre latérale, avec une bulle qui dit pourquoi.
 - [manual] Rebrancher le disque rend les livres disponibles sans relancer l'app.
-Status: todo
+Status: doing
 
 ### S-063 Retirer un dossier de livres
 Dans Réglages > Bibliothèque, je retire un dossier : ses livres quittent la bibliothèque, ses fichiers restent sur le disque.
@@ -414,7 +414,7 @@ Acceptance:
 - [self] Retirer un dossier enlève ses livres de l'index, des étagères et de l'attente d'envoi ; aucun fichier n'est touché.
 - [self] Le dernier dossier ne peut pas être retiré (bouton grisé).
 - [manual] Une confirmation dit combien de livres quittent la bibliothèque.
-Status: todo
+Status: doing
 
 ### S-064 Envoyer un PDF aux marges rognées
 Dans la fiche d'un PDF, je choisis « Sur la Kindle : marges rognées » ; la Kindle reçoit une copie sans marges blanches, le texte paraît plus grand.

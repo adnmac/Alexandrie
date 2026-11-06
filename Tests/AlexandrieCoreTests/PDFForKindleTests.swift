@@ -103,6 +103,32 @@ func makePDF(pages: [[String]], at url: URL, left: CGFloat = 100, top: CGFloat =
         ])
     }
 
+    /// Cas réel (essai de 316 pages) : texte en 12,2 pt, en-tête courant en 10,3, notes en 9,8,
+    /// appels de note en exposant, ponctuation isolée par l'extraction, caractère de contrôle U+0007.
+    @Test func pageFurnitureIsSortedBySize() {
+        let o = PDFReflow.noteOpen, c = PDFReflow.noteClose
+        let lines: [(text: String, size: CGFloat)] = [
+            ("le problème à trois corps du capitalisme", 10.3),
+            ("conduit à ouvrir de nouveaux fronts, en une série de crises « qui s’entre-stimulent", 12.2),
+            ("les unes les autres", 12.2), ("»", 12.2),
+            ("\(o)6\(c). Le principe de la « polycrise » se résume ainsi, sans", 12.2),
+            ("détacher un problème numéro un\(o)7\(c)", 12.2), (".", 12.2),
+            ("5 Adam Tooze, « Welcome to the world of polycrisis », Financial", 9.8),
+            ("Times, 28 octobre 2022.", 9.8), ("6 Edgar Morin, Terre Patrie, Seuil, 1993.", 9.8),
+            ("16", 10.5),
+        ]
+        let page = PDFReflow.pageText(lines, bodySize: 12.2)
+        #expect(!page.body.contains("le problème à trois corps du capitalisme"))
+        #expect(page.notes.count == 3)
+        #expect(PDFReflow.noteParagraphs(page.notes) == [
+            "5 Adam Tooze, « Welcome to the world of polycrisis », Financial Times, 28 octobre 2022.",
+            "6 Edgar Morin, Terre Patrie, Seuil, 1993.",
+        ])
+        let paragraph = PDFReflow.paragraphs(pages: [page.body.joined(separator: "\n")])
+        #expect(paragraph == ["conduit à ouvrir de nouveaux fronts, en une série de crises « qui s’entre-stimulent les unes les autres »\(o)6\(c). Le principe de la « polycrise » se résume ainsi, sans détacher un problème numéro un\(o)7\(c)."])
+        #expect(PDFReflow.escape("autres\u{7} »\(o)6\(c) & <fin>") == "autres »<sup>6</sup> &amp; &lt;fin&gt;")
+    }
+
     @Test func pageNumbersAreRecognized() {
         for line in ["12", "- 12 -", "xiv", "Page 3"] { #expect(PDFReflow.isPageNumber(line), "\(line)") }
         for line in ["Il pleuvait.", "1984 fut une année étrange"] { #expect(!PDFReflow.isPageNumber(line), "\(line)") }

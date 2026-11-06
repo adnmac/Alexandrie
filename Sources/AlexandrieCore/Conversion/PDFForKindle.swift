@@ -1,3 +1,4 @@
+import AppKit
 import CoreGraphics
 import Foundation
 import PDFKit
@@ -126,6 +127,9 @@ public enum PDFCrop {
 // MARK: - Texte redimensionnable (S-065)
 
 public enum PDFReflow {
+    /// Version de l'extraction : la changer refait les livres déjà convertis en cache.
+    public static let version = 2
+
     /// Le PDF contient-il du texte (et non des pages scannées) ? Lu sur les premières pages.
     public static func hasText(_ url: URL) -> Bool {
         guard let document = PDFDocument(url: url) else { return false }
@@ -150,6 +154,7 @@ public enum PDFReflow {
             // Fin de page : aucune ligne vide forcée, un paragraphe peut continuer sur la suivante.
             lines += content.drop { $0.isEmpty }
         }
+        lines = mergingPunctuation(lines)
         let lengths = lines.filter { !$0.isEmpty }.map(\.count).sorted()
         // Longueur d'une ligne pleine : les fins de paragraphe, plus courtes, ne la font pas baisser.
         let typical = lengths.isEmpty ? 0 : lengths[min(lengths.count - 1, lengths.count * 4 / 5)]
@@ -168,11 +173,116 @@ public enum PDFReflow {
             } else {
                 current += " " + line
             }
-            let endsSentence = line.last.map { ".!?…:»\"”)".contains($0) } ?? false
+            let endsSentence = lastVisible(line).map { ".!?…:»\"”)".contains($0) } ?? false
             if endsSentence && Double(line.count) < Double(typical) * 0.8 { flush() }
         }
         flush()
         return paragraphs
+    }
+
+    /// Ponctuation isolée par l'extraction (« » », « . », « ; quant à… ») recollée à la ligne d'avant,
+    /// guillemet ouvrant en fin de ligne recollé à la suivante.
+    static func mergingPunctuation(_ lines: [String]) -> [String] {
+        var merged: [String] = []
+        for line in lines {
+            guard let last = merged.last, !last.isEmpty, let first = line.first else {
+                merged.append(line)
+                continue
+            }
+            if ".,)]…".contains(first) || line.hasPrefix(noteOpen) {
+                merged[merged.count - 1] = last + line
+            } else if "»;:!?”".contains(first) || last.hasSuffix("«") {
+                merged[merged.count - 1] = last + " " + line
+            } else {
+                merged.append(line)
+            }
+        }
+        return merged
+    }
+
+    /// Dernier caractère lu, appel de note en exposant mis à part.
+    static func lastVisible(_ line: String) -> Character? {
+        line.replacingOccurrences(of: "\(noteOpen)[0-9]+\(noteClose)$", with: "", options: .regularExpression).last
+    }
+
+    /// Notes de bas de page : une note commence par son numéro.
+    static func noteParagraphs(_ lines: [String]) -> [String] {
+        var notes: [String] = []
+        for line in mergingPunctuation(lines) where !line.isEmpty {
+            if line.range(of: #"^[0-9]+[.\s]"#, options: .regularExpression) != nil || notes.isEmpty {
+                notes.append(line)
+            } else if notes[notes.count - 1].hasSuffix("-"), line.first?.isLowercase == true {
+                notes[notes.count - 1] = String(notes[notes.count - 1].dropLast()) + line
+            } else {
+                notes[notes.count - 1] += " " + line
+            }
+        }
+        return notes
+    }
+
+    // MARK: Texte d'une page, d'après la taille des caractères
+
+    /// Marques d'un appel de note en exposant, remplacées par <sup> dans le livre produit.
+    static let noteOpen = "\u{E000}", noteClose = "\u{E001}"
+
+    /// Une page : texte courant (en-tête courant retiré, appels de note marqués) et notes de bas de page.
+    struct PageText: Equatable {
+        var body: [String]
+        var notes: [String]
+    }
+
+    /// Taille du texte courant : la plus fréquente, comptée en caractères sur un échantillon de pages.
+    static func bodySize(of document: PDFDocument) -> CGFloat? {
+        var weights: [Int: Int] = [:]
+        let step = max(1, document.pageCount / 24)
+        for index in stride(from: 0, to: document.pageCount, by: step) {
+            guard let text = document.page(at: index)?.attributedString else { continue }
+            text.enumerateAttribute(.font, in: NSRange(location: 0, length: text.length)) { value, range, _ in
+                guard let font = value as? NSFont else { return }
+                weights[Int((font.pointSize * 2).rounded()), default: 0] += range.length
+            }
+        }
+        return weights.max { $0.value < $1.value }.map { CGFloat($0.key) / 2 }
+    }
+
+    /// Lignes d'une page avec la taille dominante de chacune ; les chiffres en très petit corps
+    /// deviennent des appels de note (recollés à la ligne d'avant s'ils ouvrent une ligne).
+    static func lines(of text: NSAttributedString, bodySize: CGFloat) -> [(text: String, size: CGFloat)] {
+        let string = text.string as NSString
+        var lines: [(text: String, size: CGFloat)] = []
+        var location = 0
+        while location < string.length {
+            let range = string.lineRange(for: NSRange(location: location, length: 0))
+            var line = "", weights: [CGFloat: Int] = [:]
+            text.enumerateAttribute(.font, in: range) { value, run, _ in
+                let size = (value as? NSFont)?.pointSize ?? bodySize
+                let piece = string.substring(with: run)
+                let digits = piece.trimmingCharacters(in: .whitespacesAndNewlines)
+                if size < bodySize * 0.75, !digits.isEmpty, digits.allSatisfy(\.isNumber) {
+                    line += noteOpen + digits + noteClose
+                } else {
+                    line += piece
+                    weights[size, default: 0] += piece.trimmingCharacters(in: .whitespacesAndNewlines).count
+                }
+            }
+            lines.append((line.trimmingCharacters(in: .whitespacesAndNewlines), weights.max { $0.value < $1.value }?.key ?? bodySize))
+            location = NSMaxRange(range)
+        }
+        return lines
+    }
+
+    /// Sépare l'en-tête courant (première ligne en plus petit corps), le texte et les notes
+    /// (lignes en plus petit corps en bas de page, au-dessus du numéro de page).
+    static func pageText(_ lines: [(text: String, size: CGFloat)], bodySize: CGFloat) -> PageText {
+        let small: (CGFloat) -> Bool = { $0 < bodySize * 0.9 }
+        var start = 0
+        while start < lines.count, lines[start].text.isEmpty { start += 1 }
+        if start < lines.count, small(lines[start].size) { start += 1 }
+        var end = lines.count
+        while end > start, lines[end - 1].text.isEmpty || isPageNumber(lines[end - 1].text) { end -= 1 }
+        var noteStart = end
+        while noteStart > start, lines[noteStart - 1].text.isEmpty || small(lines[noteStart - 1].size) { noteStart -= 1 }
+        return PageText(body: lines[start..<noteStart].map(\.text), notes: lines[noteStart..<end].map(\.text).filter { !$0.isEmpty })
     }
 
     /// Lignes qui reviennent en haut ou en bas de la plupart des pages (titre courant, nom de l'auteur).
@@ -229,9 +339,24 @@ public enum PDFReflow {
         var meta = BookMetadata(title: edits.title, authors: edits.authors, language: edits.language ?? "fr")
         meta.apply(edits)
         var epub = EPUBBuilder(metadata: meta)
+        let size = bodySize(of: document)
         for (n, chapter) in chapters(of: document, title: edits.title).enumerated() {
-            let texts = chapter.pages.compactMap { document.page(at: $0)?.string }
-            let body = paragraphs(pages: texts).map { "<p>\(escape($0))</p>" }.joined(separator: "\n")
+            var texts: [String] = [], notes: [String] = []
+            for index in chapter.pages {
+                guard let page = document.page(at: index) else { continue }
+                if let size, let attributed = page.attributedString {
+                    let text = pageText(lines(of: attributed, bodySize: size), bodySize: size)
+                    texts.append(text.body.joined(separator: "\n"))
+                    notes += text.notes
+                } else {
+                    texts.append(page.string ?? "")
+                }
+            }
+            var body = paragraphs(pages: texts).map { "<p>\(escape($0))</p>" }.joined(separator: "\n")
+            let noteList = noteParagraphs(notes)
+            if !noteList.isEmpty {
+                body += "\n<h3>Notes</h3>\n" + noteList.map { "<p class=\"note\">\(escape($0))</p>" }.joined(separator: "\n")
+            }
             let path = "Text/chapter\(n + 1).xhtml"
             let html = """
                 <?xml version="1.0" encoding="utf-8"?>
@@ -248,9 +373,17 @@ public enum PDFReflow {
         try epub.write(to: output)
     }
 
+    /// Texte sûr pour XHTML : caractères interdits en XML retirés (le PDF en contient parfois,
+    /// comme U+0007), appels de note en exposant.
     static func escape(_ s: String) -> String {
-        s.replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
+        var allowed = String.UnicodeScalarView()
+        for u in s.unicodeScalars where u == "\t" || u == "\n" || u == "\r" || (0x20...0xD7FF).contains(u.value)
+            || (0xE000...0xFFFD).contains(u.value) || u.value >= 0x10000 {
+            allowed.append(u)
+        }
+        return String(allowed).replacingOccurrences(of: "&", with: "&amp;").replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;").replacingOccurrences(of: "\"", with: "&quot;")
+            .replacingOccurrences(of: noteOpen, with: "<sup>").replacingOccurrences(of: noteClose, with: "</sup>")
     }
 
     /// Titre et auteurs corrigés, lus par la Kindle dans le PDF.

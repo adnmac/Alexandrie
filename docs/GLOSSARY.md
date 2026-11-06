@@ -9,7 +9,11 @@ L'interface est en français ; menus et boutons suivent la casse d'Apple en fran
 | Terme | Sens | Pas |
 | --- | --- | --- |
 | Bibliothèque | Tous les livres connus d'Alexandrie : le dossier de livres plus les imports | collection, catalogue |
-| Dossier de livres | Le dossier choisi par la personne ; lu, jamais modifié | source, racine |
+| Dossier de livres | Un dossier choisi par la personne (il peut y en avoir plusieurs) ; lu, jamais modifié | source, racine |
+| Indisponible | Livre d'un dossier de livres introuvable (disque débranché) ; reste dans la bibliothèque | hors ligne, manquant |
+| Fenêtre de lecture | La fenêtre où on lit un livre dans Alexandrie | liseuse (réservé aux Kindle), lecteur, visionneuse |
+| Position de lecture | L'endroit où la lecture s'est arrêtée dans un livre ; montrée en « % lu » | signet, marque-page |
+| Sur la Kindle | Choix d'envoi d'un PDF : Tel quel, Marges rognées, Texte redimensionnable | format de sortie, mode |
 | Livre | Une œuvre, avec un ou plusieurs fichiers (formats) | titre, ouvrage, élément |
 | Fichier | Un exemplaire d'un livre dans un format | copie (sauf pour les doublons masqués) |
 | Format | EPUB, MOBI, AZW3, AZW, PDF | type, extension |
@@ -20,7 +24,7 @@ L'interface est en français ; menus et boutons suivent la casse d'Apple en fran
 | Étagère | Les livres qu'une liseuse doit avoir | collection, liste de lecture |
 | En attente d'envoi | Livres qui partiront à la prochaine connexion de la Kindle | file, queue |
 | Corbeille | Livres retirés de la bibliothèque, restaurables | supprimés, poubelle |
-| Notes et surlignages | Ce que la personne a noté ou surligné sur la Kindle | annotations, clippings |
+| Notes et surlignages | Ce que la personne a noté ou surligné, sur la Kindle ou dans la fenêtre de lecture | annotations, clippings |
 | Proposition | Une différence trouvée par la vérification en ligne, à appliquer ou ignorer | suggestion, correction (pour ce qui n'est pas appliqué) |
 | Doublons | Fichiers du même livre dans le même format ; un seul est affiché | copies |
 | Réglages | La fenêtre ⌘, | Préférences, Paramètres |
@@ -45,3 +49,6 @@ L'interface est en français ; menus et boutons suivent la casse d'Apple en fran
 | Coup d'œil | Aperçu du fichier sans l'ouvrir (Espace) | aperçu rapide, Quick Look |
 | Annuler | ⌘Z, défait la dernière action nommée | défaire |
 | Partager | Envoyer le fichier par AirDrop, Mail… (sous-menu du système) | exporter, envoyer (réservé à la Kindle) |
+| Lire | Ouvrir le livre dans la fenêtre de lecture | ouvrir (réservé à Importer), afficher |
+| Surligner | Marquer un passage dans la fenêtre de lecture | annoter, souligner |
+| Ajouter un dossier… / Retirer le dossier… | Changer les dossiers de livres de la bibliothèque (Réglages > Bibliothèque) | monter, connecter |

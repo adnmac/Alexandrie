@@ -144,6 +144,24 @@ struct SelfTest {
             check("Kindle > Envoyer grisée sans sélection", !none.canSend)
         }
 
+        // Livre > Mettre à la corbeille (⌘⌫) : la sélection part, le suivant est sélectionné, ⌘Z la rend.
+        let groups = BookGroups.make(library.visibleBooks, identities: library.identities)
+        if let first = groups.first {
+            var picked: Set<String> = [first.id]
+            let trashCommand = BookCommands(books: [first.primary], list: .all, library: library, kindle: kindle,
+                                            afterTrash: { picked = ContentView.nextSelection(after: picked, in: groups) })
+            check("Livre > Mettre à la corbeille active dans Tous les livres", trashCommand.canTrash)
+            trashCommand.trash()
+            check("Livre > Mettre à la corbeille", library.trashedBooks.contains { $0.id == first.primary.id })
+            check("sélection passée au livre suivant", picked == (groups.count > 1 ? [groups[1].id] : []), "\(picked)")
+            undo.undo()
+            check("⌘Z rend le livre mis à la corbeille", library.visibleBooks.contains { $0.id == first.primary.id })
+            for page: SidebarItem in [.sent, .pending, .trash] {
+                let other = BookCommands(books: [first.primary], list: page, library: library, kindle: kindle)
+                check("Mettre à la corbeille grisée dans \(page)", !other.canTrash)
+            }
+        }
+
         library.saveNow()
         check("index relu après fermeture", ((try? LibraryIndex.load(directories.index)) ?? []).count == 3)
     }

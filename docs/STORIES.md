@@ -259,7 +259,7 @@ UX:
 - States: dans la Corbeille, la commande devient grisée ; « Supprimer définitivement… » garde son menu et sa confirmation
 - Words: « Mettre à la corbeille », « Annuler Mettre à la corbeille »
 - Access: la sélection suivante est annoncée par VoiceOver ; le focus reste dans la grille
-Status: todo
+Status: done
 
 ### S-042 Prévisualiser un livre avec Espace
 J'appuie sur Espace dans la grille ou la liste : Coup d'œil montre le fichier ; Espace le ferme.

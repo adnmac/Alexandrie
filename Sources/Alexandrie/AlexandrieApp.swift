@@ -29,6 +29,7 @@ struct AlexandrieApp: App {
                     .keyboardShortcut("r")
             }
             LibraryViewCommands()
+            BookMenuCommands()
             KindleCommands(kindle: kindle)
         }
 
@@ -39,6 +40,19 @@ struct AlexandrieApp: App {
                 .environment(updates)
         }
         .windowResizability(.contentSize)
+    }
+}
+
+/// Menu Livre : commandes sur les livres sélectionnés dans la fenêtre au premier plan.
+struct BookMenuCommands: Commands {
+    @FocusedValue(\.bookCommands) private var books
+
+    var body: some Commands {
+        CommandMenu("Livre") {
+            Button("Mettre à la corbeille") { books?.trash() }
+                .keyboardShortcut(.delete)
+                .disabled(books?.canTrash != true)
+        }
     }
 }
 

@@ -124,6 +124,11 @@ struct ContentView: View {
                     }
                 } else {
                     LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
+                        // Touche Supprimer dans la grille ou la liste : même action que Livre > Mettre à la corbeille.
+                        .onDeleteCommand {
+                            BookCommands(books: selected, list: sidebar, library: library, kindle: kindle,
+                                         afterTrash: { selection = Self.nextSelection(after: selection, in: groups) }).trash()
+                        }
                 }
             }
             .navigationSplitViewColumnWidth(min: 420, ideal: 640)
@@ -176,7 +181,8 @@ struct ContentView: View {
         // qui ont leur propre sélection).
         .focusedSceneValue(\.bookCommands, BookCommands(
             books: sidebar == .kindle || sidebar == .notes ? [] : selected,
-            list: sidebar, library: library, kindle: kindle))
+            list: sidebar, library: library, kindle: kindle,
+            afterTrash: { selection = Self.nextSelection(after: selection, in: groups) }))
         .environment(\.libraryList, sidebar)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
         .overlay {
@@ -207,6 +213,14 @@ struct ContentView: View {
         case .genre(let key):
             GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? "Genre"
         }
+    }
+
+    /// Livre à sélectionner quand la sélection quitte la page : celui qui la suivait, sinon celui d'avant.
+    static func nextSelection(after removed: Set<String>, in groups: [BookGroup]) -> Set<String> {
+        let ids = groups.map(\.id)
+        guard let last = ids.lastIndex(where: removed.contains) else { return [] }
+        if let next = ids[(last + 1)...].first(where: { !removed.contains($0) }) { return [next] }
+        return ids[..<last].last(where: { !removed.contains($0) }).map { [$0] } ?? []
     }
 
     @ToolbarContentBuilder

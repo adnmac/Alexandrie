@@ -15,6 +15,8 @@ struct BookCommands {
     let list: SidebarItem?
     let library: LibraryStore
     let kindle: KindleMonitor
+    /// Après « Mettre à la corbeille » : la fenêtre sélectionne le livre suivant.
+    var afterTrash: () -> Void = {}
 
     // MARK: Envoyer à la Kindle
 
@@ -38,6 +40,31 @@ struct BookCommands {
         } else {
             let reader = kindle.readers.count == 1 ? kindle.readers[0].id : nil
             library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader) }
+        }
+    }
+}
+
+extension BookCommands {
+    // MARK: Mettre à la corbeille
+
+    /// Seulement dans les pages de la bibliothèque : dans « Envoyés », « En attente » ou une étagère,
+    /// le menu du livre propose de le retirer de la liste, pas de le jeter.
+    var canTrash: Bool { !books.isEmpty && list?.allowsTrash == true }
+
+    /// Met les livres sélectionnés à la corbeille d'Alexandrie, en une action annulable (⌘Z).
+    func trash() {
+        guard canTrash else { return }
+        library.undoable("Mettre à la corbeille") { books.forEach(library.moveToTrash) }
+        afterTrash()
+    }
+}
+
+extension SidebarItem {
+    /// Pages où « Mettre à la corbeille » est proposé (menu du livre, menu Livre, touche Supprimer).
+    var allowsTrash: Bool {
+        switch self {
+        case .all, .recent, .toReview, .format, .author, .series, .genre: true
+        case .sent, .pending, .shelf, .trash, .kindle, .notes: false
         }
     }
 }

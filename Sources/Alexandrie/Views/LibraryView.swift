@@ -409,9 +409,9 @@ struct BookActions: View {
         Divider()
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         Button("Ouvrir") { NSWorkspace.shared.open(book.url) }
-        // Mettre à la corbeille ne se fait que depuis « Tous les livres » : dans les autres listes
-        // (envoyés, en attente…), le menu ne propose que de retirer le livre de la liste.
-        if list == .all {
+        // Pas de corbeille dans les listes « Envoyés », « En attente » ou une étagère : le menu propose
+        // d'y retirer le livre de la liste (règle partagée avec Livre > Mettre à la corbeille).
+        if list?.allowsTrash == true {
             Divider()
             Button("Mettre à la corbeille") { library.undoable("Mettre à la corbeille") { library.moveToTrash(book) } }
         }

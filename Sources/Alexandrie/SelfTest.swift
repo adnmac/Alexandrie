@@ -158,6 +158,11 @@ struct SelfTest {
             check("⌘Z rend le livre mis à la corbeille", library.visibleBooks.contains { $0.id == first.primary.id })
             check("Livre > Coup d'œil active avec une sélection, grisée sans",
                   trashCommand.canQuickLook && !BookCommands(books: [], list: .all, library: library, kindle: kindle).canQuickLook)
+            let one = BookCommands(books: [first.primary], list: .all, library: library, kindle: kindle)
+            let two = BookCommands(books: Array(library.visibleBooks.prefix(2)), list: .all, library: library, kindle: kindle)
+            check("menu Livre : Ouvrir pour un livre, Afficher dans le Finder pour la sélection",
+                  one.canOpen && !two.canOpen && two.canReveal && !BookCommands(books: [], list: .all, library: library, kindle: kindle).canReveal)
+            check("menu Livre : Exporter en EPUB grisée pour un EPUB", !one.canExportEPUB)
             for page: SidebarItem in [.sent, .pending, .trash] {
                 let other = BookCommands(books: [first.primary], list: page, library: library, kindle: kindle)
                 check("Mettre à la corbeille grisée dans \(page)", !other.canTrash)

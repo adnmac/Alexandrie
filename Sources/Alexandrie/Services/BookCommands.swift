@@ -65,6 +65,35 @@ extension BookCommands {
     // MARK: Coup d'œil
 
     var canQuickLook: Bool { !books.isEmpty }
+
+    // MARK: Fichiers
+
+    var canReveal: Bool { !books.isEmpty }
+
+    func reveal() {
+        guard canReveal else { return }
+        NSWorkspace.shared.activateFileViewerSelecting(books.map(\.url))
+    }
+
+    /// Ouvrir dans l'app par défaut : un livre à la fois, comme le menu du livre.
+    var canOpen: Bool { books.count == 1 }
+
+    func open() {
+        guard canOpen, let book = books.first else { return }
+        NSWorkspace.shared.open(book.url)
+    }
+
+    /// Un seul MOBI, AZW3 ou AZW sans DRM.
+    var canExportEPUB: Bool {
+        guard books.count == 1, let book = books.first else { return false }
+        return [.mobi, .azw3, .azw].contains(book.format) && !book.isDRMProtected
+    }
+
+    func exportEPUB() {
+        guard canExportEPUB, let book = books.first else { return }
+        let library = library
+        Task { await Panels.exportEPUB(book, library: library) }
+    }
 }
 
 extension SidebarItem {

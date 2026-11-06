@@ -48,11 +48,22 @@ struct BookMenuCommands: Commands {
     @FocusedValue(\.bookCommands) private var books
 
     var body: some Commands {
+        // Mêmes intitulés que le menu du livre (clic droit) et la fiche. Envoyer à la Kindle (⌘K) est
+        // dans le menu Kindle : un raccourci ne vit que dans un menu.
         CommandMenu("Livre") {
             // ⌘Y comme dans le Finder ; Espace est gérée par la grille, pour ne pas voler l'espace des champs.
             Button("Coup d'œil") { books?.toggleQuickLook() }
                 .keyboardShortcut("y")
                 .disabled(books?.canQuickLook != true)
+            // Pas de ⌘↓ : il déplacerait le curseur en fin de texte dans les champs.
+            Button("Ouvrir") { books?.open() }
+                .disabled(books?.canOpen != true)
+            Button("Afficher dans le Finder") { books?.reveal() }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+                .disabled(books?.canReveal != true)
+            Divider()
+            Button("Exporter en EPUB…") { books?.exportEPUB() }
+                .disabled(books?.canExportEPUB != true)
             Divider()
             Button("Mettre à la corbeille") { books?.trash() }
                 .keyboardShortcut(.delete)

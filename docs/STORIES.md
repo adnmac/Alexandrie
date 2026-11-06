@@ -291,18 +291,18 @@ UX:
 Status: done
 
 ### S-044 Les menus suivent la sélection
-Les commandes du livre (Envoyer, Corbeille, Afficher dans le Finder, Ouvrir) sont dans un menu Livre, actives selon la sélection.
+Les commandes du livre (Coup d'œil, Ouvrir, Afficher dans le Finder, Exporter en EPUB, Corbeille) sont dans un menu Livre, actives selon la sélection.
 Depends: S-040, S-041
 Acceptance:
 - [self] Les commandes reçoivent la sélection de la fenêtre au premier plan.
 - [manual] Contrôle d'accessibilité : sans sélection, Livre > Afficher dans le Finder est grisé.
 UX:
-- Flow: menu Livre (entre Présentation et Kindle) -> Envoyer à la Kindle, Coup d'œil, Afficher dans le Finder, Ouvrir, Exporter en EPUB…, Mettre à la corbeille -> chaque commande agit sur la sélection de la fenêtre au premier plan
+- Flow: menu Livre (entre Présentation et Kindle) -> Coup d'œil (⌘Y), Ouvrir, Afficher dans le Finder (⇧⌘R), Exporter en EPUB…, Mettre à la corbeille (⌘⌫) ; Envoyer à la Kindle (⌘K) reste dans le menu Kindle -> chaque commande agit sur la sélection de la fenêtre au premier plan
 - Surface: menu de la barre des menus ; le menu du livre (clic droit) garde les mêmes intitulés
 - States: sans sélection, tout est grisé mais visible ; commande qui ne s'applique pas (Exporter en EPUB sur un PDF) grisée
 - Words: menu « Livre » ; intitulés identiques au menu du livre et aux boutons de la fiche
 - Access: chaque commande a un équivalent clavier ou se trouve par la recherche du menu Aide
-Status: todo
+Status: done
 
 ## M6 Système
 

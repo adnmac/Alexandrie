@@ -444,7 +444,7 @@ Acceptance:
 - [self] Chaque format d'exemple s'ouvre dans la fenêtre de lecture ; MOBI et AZW3 passent par `MobiToEPUB`, sans écrire dans le dossier de livres.
 - [self] Un livre protégé par DRM grise Livre > Lire.
 - [snap] La fenêtre de lecture d'un EPUB et celle d'un PDF, en clair et en sombre.
-Status: todo
+Status: done
 
 ### S-067 Naviguer dans un livre
 Dans la fenêtre de lecture, je tourne les pages au clavier et je saute à un chapitre par la table des matières.
@@ -453,7 +453,7 @@ Depends: S-066
 Acceptance:
 - [snap] La table des matières s'affiche dans une colonne repliable, chapitre courant marqué.
 - [manual] Flèches et Espace tournent les pages ; un clic sur un chapitre y va.
-Status: todo
+Status: doing
 
 ### S-068 Reprendre sa lecture où je l'ai laissée
 En rouvrant un livre, la fenêtre de lecture revient à la page où je m'étais arrêté, même après avoir quitté l'app.
@@ -461,7 +461,7 @@ Depends: S-066
 Acceptance:
 - [self] La position de lecture est enregistrée par livre dans les données de l'app et relue à l'ouverture.
 - [snap] La fiche montre la progression (« 42 % lu ») d'un livre commencé.
-Status: todo
+Status: done
 
 ### S-069 Régler le texte de la fenêtre de lecture
 Je change la taille du texte (⌘+ / ⌘−) et le fond (clair, sépia, sombre) ; le réglage vaut pour tous les livres.
@@ -470,7 +470,7 @@ Acceptance:
 - [snap] La fenêtre de lecture en sépia, avec un texte agrandi.
 - [self] Taille et fond survivent au redémarrage.
 - [manual] Un PDF garde sa mise en page : seul le zoom change.
-Status: todo
+Status: doing
 
 ### S-070 Surligner un passage
 Dans la fenêtre de lecture, je sélectionne un passage et je le surligne ; il apparaît dans « Notes et surlignages » à côté de ceux de la Kindle.

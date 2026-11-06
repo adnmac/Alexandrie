@@ -85,6 +85,8 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var url: URL { URL(fileURLWithPath: path) }
     /// Un EPUB sous DRM ne peut pas être converti ; les formats Kindle sous DRM sont copiés tels quels.
     public var canSendToKindle: Bool { !isDRMProtected || format.isKindleNative }
+    /// La fenêtre de lecture ouvre tous les formats, sauf un livre sous DRM.
+    public var canRead: Bool { !isDRMProtected }
     public var authorLine: String { authors.isEmpty ? "Auteur inconnu" : authors.joined(separator: ", ") }
 
     /// Informations corrigeables, appliquées aux copies envoyées sur la Kindle.
@@ -204,6 +206,10 @@ public struct AppDirectories: Sendable {
 
     public var index: URL { base.appendingPathComponent("library.json") }
     public var readers: URL { base.appendingPathComponent("readers.json") }
+    /// Livres préparés pour la fenêtre de lecture, un dossier par empreinte (voir `ReaderBook`).
+    public var reading: URL { base.appendingPathComponent("Lecture", isDirectory: true) }
+    /// Positions de lecture (voir `ReadingLog`).
+    public var readingLog: URL { base.appendingPathComponent("reading.json") }
     /// Dossiers de livres (voir `LibraryFolders`).
     public var folders: URL { base.appendingPathComponent("folders.json") }
     /// Notes et surlignages importés des Kindle (voir `KindleClippings`).

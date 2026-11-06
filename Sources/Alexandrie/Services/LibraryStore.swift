@@ -347,7 +347,8 @@ final class LibraryStore {
         let books = self.books
         let directories = self.directories
         _ = await Task.detached(priority: .background) {
-            StorageMaintenance.purge(keeping: books, directories: directories)
+            StorageMaintenance.purgeReading(keeping: books, directories: directories)
+            return StorageMaintenance.purge(keeping: books, directories: directories)
         }.value
         if cacheSize != nil { await refreshCacheSize() }
     }

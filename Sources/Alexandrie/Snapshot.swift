@@ -9,7 +9,7 @@ import SwiftUI
 ///
 /// écrit `<page>-light.png` et `<page>-dark.png` pour chaque page de la barre latérale, puis
 /// `reglages-<onglet>-…` pour chaque onglet des réglages et `feuille-<nom>-…` pour chaque feuille, et quitte.
-/// `ALEXANDRIE_SNAPSHOT_PAGES=tous,notes` limite les pages (ajouter `reglages`, `feuilles`).
+/// `ALEXANDRIE_SNAPSHOT_PAGES=tous,notes` limite les pages (ajouter `reglages`, `feuilles`, `lecture`).
 /// Jamais sur les vraies données.
 @MainActor
 enum Snapshot {
@@ -37,6 +37,7 @@ enum Snapshot {
             Page(name: "kindle", item: .kindle),
             Page(name: "format-azw3", item: .format(.azw3)),
             Page(name: "format-pdf", item: .format(.pdf), book: "Manuel du fleuve"),
+            Page(name: "fiche-lecture", item: .all, book: "Les Heures lentes"),
             Page(name: "serie", item: .series(SeriesNames.key("Commissaire Vidal")), book: "Mort à marée basse"),
             Page(name: "genre", item: .genre(GenreNames.key("Policier"))),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),
@@ -82,6 +83,9 @@ enum Snapshot {
                 capture(to: "\(dir)/\(page.name)-\(mode).png")
             }
         }
+        if only == nil || only?.contains("lecture") == true {
+            await captureReader(library: library, dir: dir)
+        }
         if only == nil || only?.contains("feuilles") == true {
             await captureSheets(library: library, kindle: kindle, dir: dir)
         }
@@ -103,6 +107,39 @@ enum Snapshot {
         // Une feuille ouverte refuse la fermeture de l'app, et la commande attendrait sans fin.
         for window in NSApp.windows { if let sheet = window.attachedSheet { window.endSheet(sheet) } }
         NSApp.terminate(nil)
+    }
+
+    /// Fenêtre de lecture (S-066 à S-069) : un EPUB avec sa table des matières, un PDF, puis l'EPUB en
+    /// sépia avec un texte agrandi. Réglages remis à leur valeur ensuite (bundle de capture à part).
+    private static func captureReader(library: LibraryStore, dir: String) async {
+        let reading = AppServices.shared.reading
+        let shots: [(name: String, title: String, theme: ReaderTheme, scale: Double, contents: Bool)] = [
+            ("lecture-epub", "Le Port des brumes", .light, 1, true),
+            ("lecture-pdf", "Manuel du fleuve", .light, 1, false),
+            ("lecture-sepia", "Le Port des brumes", .sepia, 1.4, false),
+        ]
+        for shot in shots {
+            guard let book = library.visibleBooks.first(where: { $0.title == shot.title }) else { continue }
+            reading.theme = shot.theme
+            reading.textScale = shot.scale
+            // Lecture reprise (S-068) : au milieu du deuxième chapitre.
+            if book.format == .epub {
+                reading.record(ReadingPosition(chapter: 1, fraction: 0.5, percent: 0.375), for: book)
+            }
+            UserDefaults.standard.set(shot.contents, forKey: "readerContentsVisible")
+            ReaderWindows.open(book.id)
+            try? await Task.sleep(for: .seconds(2.5))
+            let window = NSApp.windows.first { $0.title == book.title && $0.isVisible }
+            for mode in ["light", "dark"] {
+                NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+                try? await Task.sleep(for: .seconds(0.8))
+                capture(to: "\(dir)/\(shot.name)-\(mode).png", window: window)
+            }
+            window?.close()
+            try? await Task.sleep(for: .seconds(0.5))
+        }
+        reading.theme = .light
+        reading.textScale = 1
     }
 
     /// Feuilles qu'on ne peut pas ouvrir sans Kindle branchée : chacune dans une fenêtre de sa taille.

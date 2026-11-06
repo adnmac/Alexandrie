@@ -8,6 +8,7 @@ final class AppServices {
     let library = LibraryStore()
     let kindle = KindleMonitor()
     let updates = UpdateMonitor()
+    lazy var reading = ReadingStore(directories: library.directories)
 
     private init() {}
 }

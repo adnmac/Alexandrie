@@ -213,6 +213,63 @@ struct SelfTest {
 
         await testFolders(library: library, first: folder, sources: sources, store: store)
         await testPDF(library: library, folder: folder)
+        await testReading(library: library, folder: folder)
+    }
+
+    /// Fenêtre de lecture (S-066, S-068, S-069) : préparation de chaque format, position, réglages.
+    private mutating func testReading(library: LibraryStore, folder: URL) async {
+        let fm = FileManager.default
+        let directories = library.directories
+        guard let epub = library.visibleBooks.first(where: { $0.format == .epub && $0.folderPath(in: folder) }),
+              let pdf = library.visibleBooks.first(where: { $0.format == .pdf && $0.title == "Manuel du fleuve" }) else {
+            check("livres à lire présents", false)
+            return
+        }
+        // Un AZW3 dans le dossier de livres, comme ceux de la Kindle.
+        let azw3URL = folder.appendingPathComponent("Livre Kindle.azw3")
+        try? EPUBToAZW3.convert(input: epub.url, output: azw3URL)
+        await library.rescan()
+        await Self.wait { !library.isScanning && library.books.contains { $0.path == azw3URL.standardizedFileURL.path } }
+        let before = Set((try? fm.contentsOfDirectory(atPath: folder.path)) ?? [])
+
+        for book in [epub, library.books.first { $0.path == azw3URL.standardizedFileURL.path }].compactMap({ $0 }) {
+            let prepared = await Task.detached { try? ReaderBook.prepare(book, directories: directories) }.value
+            check("Lire un \(book.format.label) : chapitres prêts dans les données de l'app",
+                  prepared.map { !$0.chapters.isEmpty && $0.chapters.allSatisfy { fm.fileExists(atPath: $0.path) }
+                      && $0.root.path.hasPrefix(directories.reading.path) } ?? false)
+        }
+        check("Lire un PDF : document ouvert", PDFPageController(url: pdf.url).pageCount > 0)
+        check("Lire : dossier de livres inchangé", Set((try? fm.contentsOfDirectory(atPath: folder.path)) ?? []) == before)
+
+        var locked = epub
+        locked.isDRMProtected = true
+        let kindle = KindleMonitor()
+        check("Livre > Lire actif pour un livre, grisé sous DRM ou sans sélection",
+              BookCommands(books: [epub], list: .all, library: library, kindle: kindle).canRead
+              && !BookCommands(books: [locked], list: .all, library: library, kindle: kindle).canRead
+              && !BookCommands(books: [], list: .all, library: library, kindle: kindle).canRead)
+
+        // S-068 : la position revient après un redémarrage (nouveau magasin, même fichier).
+        let store = ReadingStore(directories: directories)
+        store.record(ReadingPosition(chapter: 2, fraction: 0.25, percent: 0.6), for: epub)
+        store.saveNow()
+        let reopened = ReadingStore(directories: directories).savedPosition(of: epub)
+        check("position de lecture relue après redémarrage", reopened?.chapter == 2 && reopened?.fraction == 0.25
+              && reopened?.label == "60 % lu", "\(String(describing: reopened))")
+
+        // S-069 : taille et fond gardés (réglages partagés : remis comme avant).
+        let defaults = UserDefaults.standard
+        let saved = (defaults.object(forKey: ReadingStore.scaleKey), defaults.object(forKey: ReadingStore.themeKey))
+        store.textScale = 1
+        store.enlarge(); store.enlarge()
+        store.theme = .sepia
+        let relaunched = ReadingStore(directories: directories)
+        check("taille du texte et fond gardés", relaunched.textScale == 1.25 && relaunched.theme == .sepia,
+              "\(relaunched.textScale) \(relaunched.theme)")
+        for _ in 0..<20 { store.enlarge() }
+        check("taille du texte bornée", !store.canEnlarge && store.textScale == ReadingStore.scales.last)
+        defaults.set(saved.0, forKey: ReadingStore.scaleKey)
+        defaults.set(saved.1, forKey: ReadingStore.themeKey)
     }
 
     /// PDF pour la Kindle (S-064, S-065) : copie rognée, texte redimensionnable, scan sans texte.
@@ -332,5 +389,12 @@ struct SelfTest {
     private static func makeEPUB(title: String, author: String, in folder: URL) throws -> URL {
         try SeedData.makeEPUB(BookMetadata(title: title, authors: [author], language: "fr"),
                               cover: SeedData.coverPNG(title: title, color: .systemBlue), in: folder)
+    }
+}
+
+private extension Book {
+    /// Fichier rangé directement dans ce dossier (pas un import).
+    func folderPath(in folder: URL) -> Bool {
+        !isImported && path.hasPrefix(folder.standardizedFileURL.path + "/")
     }
 }

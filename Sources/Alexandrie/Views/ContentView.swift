@@ -9,6 +9,7 @@ struct ContentView: View {
     @Environment(UpdateMonitor.self) private var updates
     @Environment(\.undoManager) private var undoManager
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
     @State private var sidebar: SidebarItem? = .all
     /// Identifiants de lignes : livre seul, groupe (`group:…`) ou fichier d'un groupe.
     @State private var selection = Set<String>()
@@ -54,6 +55,7 @@ struct ContentView: View {
         }
         .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
         .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
+        .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
         .task {
             guard Snapshot.directory != nil else { return }
             await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,

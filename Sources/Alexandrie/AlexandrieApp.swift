@@ -8,6 +8,7 @@ struct AlexandrieApp: App {
     @State private var library = AppServices.shared.library
     @State private var kindle = AppServices.shared.kindle
     @State private var updates = AppServices.shared.updates
+    @State private var reading = AppServices.shared.reading
     /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
     @ObservedObject private var menu = MenuState.shared
 
@@ -17,6 +18,7 @@ struct AlexandrieApp: App {
                 .environment(library)
                 .environment(kindle)
                 .environment(updates)
+                .environment(reading)
                 .frame(minWidth: 960, minHeight: 600)
                 // ALEXANDRIE_GRID=1 : grille de 8 pt, zones et sondes dessinées sur la fenêtre.
                 .overlay { if GridOverlay.enabled { GridOverlay() } }
@@ -35,6 +37,17 @@ struct AlexandrieApp: App {
             BookMenuCommands(state: menu.values)
             KindleCommands(kindle: kindle, state: menu.values)
         }
+
+        // Fenêtre de lecture (S-066) : une par livre ; rouvrir un livre ramène sa fenêtre devant.
+        WindowGroup("Lecture", id: "lecture", for: String.self) { $bookID in
+            ReaderWindow(bookID: bookID)
+                .environment(library)
+                .environment(kindle)
+                .environment(reading)
+                .frame(minWidth: 480, minHeight: 560)
+        }
+        .defaultSize(width: 760, height: 940)
+        .commandsRemoved()
 
         Settings {
             SettingsView()
@@ -57,6 +70,9 @@ struct BookMenuCommands: Commands {
         // dans le menu Kindle : un raccourci ne vit que dans un menu.
         CommandMenu("Livre") {
             // ⌘Y comme dans le Finder ; Espace est gérée par la grille, pour ne pas voler l'espace des champs.
+            Button("Lire") { books?.read() }
+                .keyboardShortcut("l")
+                .disabled(!state.canRead)
             Button("Coup d'œil") { books?.toggleQuickLook() }
                 .keyboardShortcut("y")
                 .disabled(!state.canQuickLook)

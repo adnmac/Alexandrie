@@ -16,6 +16,8 @@ enum SeedData {
         var year: String
         var cover: NSColor? = .systemBlue
         var azw3 = false
+        /// Plusieurs chapitres : un vrai livre à lire dans la fenêtre de lecture.
+        var chapters = 1
         /// Dans le second dossier de livres (« Disque externe ») plutôt que dans « Livres ».
         var external = false
     }
@@ -24,7 +26,7 @@ enum SeedData {
         Sample(title: "La Maison au bord du fleuve", authors: ["Claire Morel"], genre: "Roman", year: "2019", cover: .systemTeal),
         Sample(title: "Les Heures lentes", authors: ["Claire Morel"], genre: "Roman", year: "2022", cover: .systemIndigo),
         Sample(title: "Le Port des brumes", authors: ["Hugo Lambert"], genre: "Policier", series: "Commissaire Vidal",
-               index: 1, year: "2015", cover: .systemGray),
+               index: 1, year: "2015", cover: .systemGray, chapters: 4),
         Sample(title: "Mort à marée basse", authors: ["Hugo Lambert"], genre: "Policier", series: "Commissaire Vidal",
                index: 2, year: "2016", cover: .systemBrown),
         Sample(title: "Le Dernier Ferry", authors: ["Hugo Lambert"], genre: "Policier", series: "Commissaire Vidal",
@@ -82,6 +84,10 @@ enum SeedData {
         if let book = library.books.first(where: { $0.title == "Orbite" }), book.pendingSendAt == nil {
             library.queueForKindle([book], reader: nil)
         }
+        // Lecture commencée (S-068) : la fiche montre « 42 % lu ».
+        if let book = library.books.first(where: { $0.title == "Les Heures lentes" }) {
+            AppServices.shared.reading.record(ReadingPosition(chapter: 0, fraction: 0.42, percent: 0.42), for: book)
+        }
     }
 
     private static let clippings: [Clipping] = [
@@ -103,7 +109,7 @@ enum SeedData {
         meta.seriesIndex = s.index
         meta.publishedDate = s.year
         meta.subjects = [s.genre]
-        let epub = try makeEPUB(meta, cover: s.cover.flatMap { coverPNG(title: s.title, color: $0) }, in: folder)
+        let epub = try makeEPUB(meta, cover: s.cover.flatMap { coverPNG(title: s.title, color: $0) }, chapters: s.chapters, in: folder)
         if s.azw3 {
             try EPUBToAZW3.convert(input: epub, output: epub.deletingPathExtension().appendingPathExtension("azw3"))
             try FileManager.default.removeItem(at: epub)
@@ -142,21 +148,36 @@ enum SeedData {
     }
 
     /// EPUB minimal (un chapitre), avec une couverture si `cover` est fourni. Titre sans & ni <.
-    static func makeEPUB(_ meta: BookMetadata, cover: Data?, in folder: URL) throws -> URL {
+    /// `chapters` > 1 : un livre de plusieurs pages, pour la fenêtre de lecture (S-066 à S-070).
+    static func makeEPUB(_ meta: BookMetadata, cover: Data?, chapters: Int = 1, in folder: URL) throws -> URL {
         var epub = EPUBBuilder(metadata: meta)
         if let cover {
             epub.add("Images/cover.png", mediaType: "image/png", data: cover)
             epub.coverPath = "Images/cover.png"
         }
-        let html = """
-            <?xml version="1.0" encoding="utf-8"?>
-            <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
-            <head><title>\(meta.title)</title></head>
-            <body><h1>Chapitre 1</h1><p>Un paragraphe de « \(meta.title) », avec des accents : été, œuvre.</p></body>
-            </html>
-            """
-        epub.add("Text/chapter1.xhtml", mediaType: "application/xhtml+xml", data: Data(html.utf8), inSpine: true)
-        epub.toc = [TOCNode(title: "Chapitre 1", path: "Text/chapter1.xhtml")]
+        let names = ["Le quai", "La brume", "Le phare", "La marée"]
+        for c in 1...chapters {
+            let title = chapters == 1 ? "Chapitre 1" : "\(c). \(names[(c - 1) % names.count])"
+            let paragraphs = chapters == 1 ? 1 : 18
+            let body = (1...paragraphs).map { p in
+                p == 1 && chapters == 1
+                    ? "<p>Un paragraphe de « \(meta.title) », avec des accents : été, œuvre.</p>"
+                    : "<p>La brume montait du port comme une marée à l'envers, et le commissaire attendait sur le quai que "
+                        + "le dernier ferry rentre. Personne ne parlait ; on entendait seulement les haussières grincer contre "
+                        + "les bittes d'amarrage et, plus loin, la corne du phare qui comptait les minutes (\(c).\(p)).</p>"
+            }.joined(separator: "\n")
+            let html = """
+                <?xml version="1.0" encoding="utf-8"?>
+                <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+                <head><title>\(meta.title)</title></head>
+                <body><h1>\(title)</h1>
+                \(body)
+                </body>
+                </html>
+                """
+            epub.add("Text/chapter\(c).xhtml", mediaType: "application/xhtml+xml", data: Data(html.utf8), inSpine: true)
+            epub.toc.append(TOCNode(title: title, path: "Text/chapter\(c).xhtml"))
+        }
         let url = folder.appendingPathComponent(meta.title.safeFilename + ".epub")
         try epub.write(to: url)
         return url

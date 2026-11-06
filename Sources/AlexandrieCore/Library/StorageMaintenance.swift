@@ -48,3 +48,15 @@ public enum StorageMaintenance {
         }
     }
 }
+
+extension StorageMaintenance {
+    /// Livres préparés pour la lecture dont le fichier a disparu ou changé (empreinte inconnue).
+    public static func purgeReading(keeping books: [Book], directories: AppDirectories) {
+        let keep = Set(books.map(\.fingerprint))
+        let folders = (try? FileManager.default.contentsOfDirectory(at: directories.reading, includingPropertiesForKeys: nil,
+                                                                     options: [.skipsHiddenFiles])) ?? []
+        for folder in folders where !keep.contains(folder.lastPathComponent) {
+            try? FileManager.default.removeItem(at: folder)
+        }
+    }
+}

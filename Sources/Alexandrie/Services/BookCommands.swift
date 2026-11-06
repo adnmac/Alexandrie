@@ -80,6 +80,17 @@ extension BookCommands {
         NSWorkspace.shared.activateFileViewerSelecting(books.map(\.url))
     }
 
+    /// Lire dans Alexandrie (S-066) : un livre sans DRM, présent sur le disque, hors de la corbeille.
+    var canRead: Bool {
+        guard books.count == 1, let book = books.first else { return false }
+        return book.canRead && book.trashedAt == nil && !library.isUnavailable(book)
+    }
+
+    func read() {
+        guard canRead, let book = books.first else { return }
+        ReaderWindows.open(book.id)
+    }
+
     /// Ouvrir dans l'app par défaut : un livre à la fois, comme le menu du livre.
     var canOpen: Bool { books.count == 1 }
 
@@ -114,7 +125,7 @@ final class MenuState: ObservableObject {
     struct Values: Equatable {
         var sendTitle = "Envoyer à la Kindle"
         var canSend = false, canTrash = false, canQuickLook = false
-        var canOpen = false, canReveal = false, canExportEPUB = false
+        var canOpen = false, canReveal = false, canExportEPUB = false, canRead = false
         var shareURLs: [URL] = []
 
         init() {}
@@ -127,6 +138,7 @@ final class MenuState: ObservableObject {
             canOpen = c.canOpen
             canReveal = c.canReveal
             canExportEPUB = c.canExportEPUB
+            canRead = c.canRead
             shareURLs = c.shareURLs
         }
     }

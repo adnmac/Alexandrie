@@ -5,6 +5,7 @@ import SwiftUI
 struct BookDetailView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(ReadingStore.self) private var reading
     @State private var draft: Book
     /// Tous les fichiers du même livre (lui compris).
     let files: [Book]
@@ -81,6 +82,15 @@ struct BookDetailView: View {
                     Text("Sera converti en AZW3 avant l'envoi (la Kindle ne lit pas l'EPUB par USB).")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                // Fenêtre de lecture (S-066, S-068) : lire, ou reprendre là où la lecture s'est arrêtée.
+                if draft.canRead && !isTrashed && !library.isUnavailable(draft) {
+                    let position = reading.savedPosition(of: draft)
+                    Button { ReaderWindows.open(draft.id) } label: {
+                        Label(position.map { "Reprendre la lecture · \($0.label)" } ?? "Lire", systemImage: "book")
+                    }
+                    .buttonStyle(.link)
+                    .help("Ouvrir le livre dans la fenêtre de lecture (⌘L)")
+                }
                 if draft.isDRMProtected {
                     Label("Ce livre est protégé par DRM : il ne peut pas être converti.", systemImage: "lock.fill")
                         .font(.callout).foregroundStyle(Palette.warning)
@@ -119,6 +129,8 @@ struct BookDetailView: View {
                     info("Taille", ByteCountFormatter.string(fromByteCount: draft.fileSize, countStyle: .file))
                     info("Ajouté le", draft.addedAt.formatted(date: .long, time: .omitted))
                     if let sent = draft.lastSentAt { info("Envoyé le", sent.formatted(date: .long, time: .shortened)) }
+                    // Fenêtre de lecture (S-068) : où la lecture s'est arrêtée.
+                    if let position = reading.savedPosition(of: draft) { info("Lecture", position.label) }
                     // Par liseuse : étagères et derniers envois (liseuses oubliées ignorées).
                     let shelfNames = kindle.readers.filter { draft.shelfIDs.contains($0.id) }.map(\.name)
                     if !shelfNames.isEmpty { info("Étagères", shelfNames.joined(separator: ", ")) }

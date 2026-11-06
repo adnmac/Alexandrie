@@ -61,6 +61,8 @@ struct LibraryView: View {
                 ForEach(groups) { g in
                     BookCard(book: g.primary, formats: g.formats, fileCount: g.books.count,
                              onDevice: g.books.contains(where: kindle.isOnDevice), isSelected: selection.contains(g.id))
+                        // Double-clic : lire le livre (S-066) ; le simple clic reste la sélection.
+                        .onTapGesture(count: 2) { if g.primary.canRead, !library.isUnavailable(g.primary) { ReaderWindows.open(g.primary.id) } }
                         .onTapGesture { select(g) }
                         .contextMenu { BookActions(book: g.primary) }
                         // Glisser vers une liseuse de la barre latérale : le livre (ou la sélection) rejoint son étagère.
@@ -152,6 +154,9 @@ struct LibraryView: View {
         }
         .contextMenu(forSelectionType: String.self) { ids in
             if ids.count == 1, let id = ids.first, let b = resolve(id) { BookActions(book: b) }
+        } primaryAction: { ids in
+            // Double-clic sur une ligne : lire le livre (S-066).
+            if ids.count == 1, let b = ids.first.flatMap(resolve), b.canRead, !library.isUnavailable(b) { ReaderWindows.open(b.id) }
         }
     }
 }
@@ -423,6 +428,9 @@ struct BookActions: View {
 
     @ViewBuilder private var libraryActions: some View {
         let isPending = library.book(id: book.id)?.isPendingSend == true
+        Button("Lire") { ReaderWindows.open(book.id) }
+            .disabled(!book.canRead || library.isUnavailable(book))
+        Divider()
         // Déjà en attente et Kindle débranchée : le remettre en attente n'aurait aucun effet.
         if !(isPending && !kindle.isConnected) {
             KindleSendButton(books: [book]) { Text(KindleSendLabel.title(kindle)) }

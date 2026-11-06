@@ -36,6 +36,7 @@ enum Snapshot {
             Page(name: "en-attente", item: .pending),
             Page(name: "kindle", item: .kindle),
             Page(name: "format-azw3", item: .format(.azw3)),
+            Page(name: "format-pdf", item: .format(.pdf), book: "Manuel du fleuve"),
             Page(name: "serie", item: .series(SeriesNames.key("Commissaire Vidal")), book: "Mort à marée basse"),
             Page(name: "genre", item: .genre(GenreNames.key("Policier"))),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),

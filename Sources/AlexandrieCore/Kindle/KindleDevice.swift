@@ -344,13 +344,21 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
 
 public enum KindleTransfer {
     /// Fichier à copier sur la Kindle, avec les corrections de l'app :
-    /// AZW3 converti pour un EPUB, copie aux métadonnées réécrites pour un MOBI/AZW3, original pour un PDF
-    /// ou un livre sous DRM. Les fichiers produits sont mis en cache.
+    /// AZW3 converti pour un EPUB, copie aux métadonnées réécrites pour un MOBI/AZW3, PDF tel quel, rogné
+    /// ou en texte redimensionnable (AZW3), original pour un livre sous DRM. Les fichiers produits sont mis en cache.
     public static func prepare(_ book: Book, directories: AppDirectories) throws -> URL {
-        if book.format == .pdf || (book.isDRMProtected && book.format != .epub) { return book.url }
+        if book.isDRMProtected && book.format != .epub { return book.url }
+        if book.format == .pdf && (book.pdfMode ?? .asIs) == .asIs { return book.url }
         let out = cachedCopy(of: book, directories: directories)
         if !FileManager.default.fileExists(atPath: out.path) {
-            if book.format == .epub {
+            if book.format == .pdf, book.pdfMode == .cropped {
+                try PDFCrop.write(book.url, to: out, edits: book.edits)
+            } else if book.format == .pdf {
+                let epub = directories.conversions.appendingPathComponent("\(book.fingerprint)-texte.epub")
+                defer { try? FileManager.default.removeItem(at: epub) }
+                try PDFReflow.writeEPUB(book.url, to: epub, edits: book.edits)
+                try EPUBToAZW3.convert(input: epub, output: out, edits: book.edits, asin: book.asin)
+            } else if book.format == .epub {
                 try EPUBToAZW3.convert(input: book.url, output: out, edits: book.edits, asin: book.asin)
             } else {
                 try MobiMetadataWriter.rewrite(book.url, with: book.edits, to: out)
@@ -363,9 +371,11 @@ public enum KindleTransfer {
     public static func cachedCopy(of book: Book, directories: AppDirectories) -> URL {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
-        let key = (try? encoder.encode(book.edits)) ?? Data(book.title.utf8)
+        var key = (try? encoder.encode(book.edits)) ?? Data(book.title.utf8)
+        // Un PDF rogné et le même en texte redimensionnable sont deux copies distinctes.
+        if book.format == .pdf, let mode = book.pdfMode, mode != .asIs { key += Data(mode.rawValue.utf8) }
         let variant = SHA256.hash(data: key).prefix(4).map { String(format: "%02x", $0) }.joined()
-        let ext = book.format == .epub ? "azw3" : book.format.rawValue
+        let ext = book.becomesAZW3 ? "azw3" : book.format.rawValue
         return directories.conversions.appendingPathComponent("\(book.fingerprint)-\(variant).\(ext)")
     }
 

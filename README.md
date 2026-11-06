@@ -10,6 +10,7 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par c�
 - Vérification en ligne des nouveaux livres auprès de la **BnF** puis d'**Open Library** (par ISBN, ou par titre et auteur) :
   les différences sont proposées dans la fiche, rien n'est modifié sans validation. Filtre « À vérifier » dans la barre latérale.
 - Envoi sur la Kindle : copie directe des MOBI/AZW3/PDF, **conversion automatique EPUB → AZW3** (la Kindle ne lit pas l'EPUB par USB), avec miniature de couverture.
+- PDF : tel quel, **marges rognées** (le texte paraît plus grand) ou **texte redimensionnable** (texte extrait en AZW3, chapitres d'après la table du PDF) ; l'original n'est jamais modifié.
 - **Conversion MOBI/AZW3 → EPUB** (KF7, KF8 et fichiers hybrides).
 - Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
 

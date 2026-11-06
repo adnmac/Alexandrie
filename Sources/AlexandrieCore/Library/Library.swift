@@ -52,6 +52,8 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var shelves: Set<String>?
 
     public var shelfIDs: Set<String> { shelves ?? [] }
+    /// PDF : ce que la Kindle reçoit (nil : tel quel). Facultatif : les index plus anciens n'en ont pas.
+    public var pdfMode: PDFKindleMode?
     /// Version de l'extraction : un livre indexé par une version antérieure est relu.
     public var metadataVersion: Int?
 
@@ -107,9 +109,14 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         }
     }
 
+    /// La Kindle reçoit un AZW3 produit par Alexandrie (EPUB, PDF en texte redimensionnable).
+    public var becomesAZW3: Bool { format == .epub || (format == .pdf && pdfMode == .reflowable) }
+    /// Une conversion précède l'envoi (AZW3 produit ou PDF rogné).
+    public var needsConversion: Bool { becomesAZW3 || (format == .pdf && pdfMode == .cropped) }
+
     /// Nom proposé pour la copie sur la Kindle.
     public var kindleFilename: String {
-        let ext = format == .epub ? "azw3" : format.rawValue
+        let ext = becomesAZW3 ? "azw3" : format.rawValue
         let author = authors.first.map { " - \($0)" } ?? ""
         return "\(title)\(author)".safeFilename + ".\(ext)"
     }

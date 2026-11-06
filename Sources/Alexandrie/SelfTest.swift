@@ -1,6 +1,7 @@
 import AlexandrieCore
 import AppKit
 import Foundation
+import PDFKit
 
 /// Self-test : exécute les fonctions que l'interface appelle (`LibraryStore`) sur des livres générés,
 /// dans un dossier de test vide, et affiche PASS ou FAIL par étape. Code de sortie 0 si tout passe.
@@ -211,6 +212,51 @@ struct SelfTest {
         check("index relu après fermeture", ((try? LibraryIndex.load(directories.index)) ?? []).count == 3)
 
         await testFolders(library: library, first: folder, sources: sources, store: store)
+        await testPDF(library: library, folder: folder)
+    }
+
+    /// PDF pour la Kindle (S-064, S-065) : copie rognée, texte redimensionnable, scan sans texte.
+    private mutating func testPDF(library: LibraryStore, folder: URL) async {
+        let text: URL, scan: URL
+        do {
+            text = try SeedData.makePDF(title: "Manuel du fleuve", author: "Claire Morel", pages: 4, in: folder)
+            scan = try SeedData.makePDF(title: "Plans anciens", author: "Inès Garnier", pages: 2, scanned: true, in: folder)
+        } catch {
+            check("PDF de test générés", false, error.localizedDescription)
+            return
+        }
+        let original = try? Data(contentsOf: text)
+        await library.rescan()
+        await Self.wait { !library.isScanning && library.books.contains { $0.path == text.standardizedFileURL.path } }
+        guard var book = library.books.first(where: { $0.path == text.standardizedFileURL.path }) else {
+            check("PDF indexé", false)
+            return
+        }
+        let directories = library.directories
+
+        // Fiche > Sur la Kindle : Marges rognées.
+        book.pdfMode = .cropped
+        library.update(book)
+        let croppedBook = library.book(id: book.id) ?? book
+        let cropped = await Task.detached { try? KindleTransfer.prepare(croppedBook, directories: directories) }.value
+        let size = cropped.flatMap { PDFDocument(url: $0)?.page(at: 0)?.bounds(for: .mediaBox).size }
+        check("PDF rogné : pages plus petites, original intact",
+              cropped != nil && cropped != text && (size.map { $0.width < 420 && $0.height < 595 } ?? false)
+              && (try? Data(contentsOf: text)) == original, "\(size.map { "\($0)" } ?? "rien")")
+
+        // Fiche > Sur la Kindle : Texte redimensionnable.
+        book.pdfMode = .reflowable
+        library.update(book)
+        let reflowBook = library.book(id: book.id) ?? book
+        let reflowed = await Task.detached { () -> String? in
+            guard let url = try? KindleTransfer.prepare(reflowBook, directories: directories) else { return nil }
+            return (try? MobiBook(url: url).metadata())?.title
+        }.value
+        check("PDF en texte redimensionnable : AZW3 pour la Kindle", reflowed == "Manuel du fleuve"
+              && reflowBook.kindleFilename.hasSuffix(".azw3"), reflowed ?? "échec")
+        check("PDF scanné : texte redimensionnable grisé", !PDFReflow.hasText(scan)
+              && !PDFKindleMode.available(hasText: PDFReflow.hasText(scan)).contains(.reflowable)
+              && PDFKindleMode.available(hasText: PDFReflow.hasText(text)).contains(.reflowable))
     }
 
     /// Plusieurs dossiers de livres (S-060 à S-063), sur la bibliothèque déjà indexée.

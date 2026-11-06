@@ -287,14 +287,14 @@ final class KindleMonitor {
         let directories = library.directories
         let covers = library.covers
         for book in sendable {
-            transfers[book.id] = book.format == .epub ? .converting : .sending
+            transfers[book.id] = book.needsConversion ? .converting : .sending
             do {
                 let file = try await Task.detached(priority: .userInitiated) {
                     try KindleTransfer.prepare(book, directories: directories)
                 }.value
                 transfers[book.id] = .sending
                 let filename = book.kindleFilename
-                let asin = book.format == .epub ? book.asin : nil
+                let asin = book.becomesAZW3 ? book.asin : nil
                 try await Task.detached(priority: .userInitiated) {
                     let thumbnail = asin.flatMap { a in covers.kindleThumbnail(key: book.fingerprint).map { (a, $0) } }
                     try device.send(file: file, filename: filename, thumbnail: thumbnail)

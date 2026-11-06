@@ -84,6 +84,8 @@ struct BookDetailView: View {
                 if draft.isDRMProtected {
                     Label("Ce livre est protégé par DRM : il ne peut pas être converti.", systemImage: "lock.fill")
                         .font(.callout).foregroundStyle(Palette.warning)
+                } else if draft.format == .pdf && !isTrashed {
+                    PDFKindlePicker(mode: $draft.pdfMode, url: draft.url)
                 }
 
                 Form {
@@ -523,5 +525,38 @@ struct CatalogSection: View {
     private func dismiss(_ fields: Set<CatalogField>) {
         library.prepareUndo("Ignorer des propositions", ids: fileIDs)
         book.catalogDismissed = (book.catalogDismissed ?? []).union(fields)
+    }
+}
+
+/// Fiche d'un PDF : ce que la Kindle reçoit (S-064, S-065). Sans texte, le choix redimensionnable est grisé.
+struct PDFKindlePicker: View {
+    @Binding var mode: PDFKindleMode?
+    let url: URL
+    /// Lu en arrière-plan : nil tant que le PDF n'a pas été examiné.
+    @State private var hasText: Bool?
+
+    var body: some View {
+        let current = mode ?? .asIs
+        let available = PDFKindleMode.available(hasText: hasText ?? true)
+        VStack(alignment: .leading, spacing: Space.xs) {
+            Picker("Sur la Kindle", selection: Binding(get: { current }, set: { mode = $0 == .asIs ? nil : $0 })) {
+                ForEach(PDFKindleMode.allCases, id: \.self) { m in
+                    Text(m.label).tag(m).disabled(!available.contains(m))
+                }
+            }
+            .pickerStyle(.menu)
+            .fixedSize()
+            Text(current.explanation)
+                .font(.caption).foregroundStyle(.secondary)
+            if hasText == false {
+                Label("Ce PDF ne contient pas de texte : il ne peut pas devenir un texte redimensionnable.",
+                      systemImage: "doc.viewfinder")
+                    .font(.caption).foregroundStyle(current == .reflowable ? Palette.warning : Color.secondary)
+            }
+        }
+        .task(id: url) {
+            let url = self.url
+            hasText = await Task.detached(priority: .utility) { PDFReflow.hasText(url) }.value
+        }
     }
 }

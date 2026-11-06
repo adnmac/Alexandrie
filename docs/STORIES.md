@@ -424,7 +424,7 @@ Acceptance:
 - [self] La copie envoyée a des pages plus petites que l'original ; l'original n'est pas modifié.
 - [snap] La fiche d'un PDF montre le choix « Tel quel / Marges rognées ».
 - [manual] Sur la Kindle, le PDF rogné remplit l'écran.
-Status: todo
+Status: doing
 
 ### S-065 Envoyer un PDF en texte redimensionnable
 Pour un PDF surtout textuel, le choix « Texte redimensionnable » envoie un livre Kindle dont je règle la taille du texte.
@@ -435,7 +435,7 @@ Acceptance:
 - [unit] Le texte extrait devient un EPUB valide puis un AZW3 par `EPUBToAZW3`.
 - [self] Un PDF scanné (sans texte) grise ce choix avec « Ce PDF ne contient pas de texte ».
 - [manual] Sur la Kindle, la taille du texte se règle et les chapitres suivent la table du PDF quand elle existe.
-Status: todo
+Status: doing
 
 ### S-066 Lire un livre dans l'app
 Je double-clique sur un livre, ou Livre > Lire : une fenêtre de lecture s'ouvre, pour EPUB, MOBI, AZW3 et PDF.

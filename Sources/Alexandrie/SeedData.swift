@@ -1,5 +1,6 @@
 import AlexandrieCore
 import AppKit
+import CoreText
 import Foundation
 
 /// Livres d'exemple pour les captures (`ALEXANDRIE_SEED=1`), écrits dans le dossier de test seulement.
@@ -59,6 +60,9 @@ enum SeedData {
         do {
             for f in [folder, external] { try FileManager.default.createDirectory(at: f, withIntermediateDirectories: true) }
             for s in samples { try write(s, in: s.external ? external : folder) }
+            // PDF (S-064, S-065) : un texte de plusieurs pages, et un scan sans texte.
+            try makePDF(title: "Manuel du fleuve", author: "Claire Morel", pages: 6, in: folder)
+            try makePDF(title: "Plans anciens", author: "Inès Garnier", pages: 3, scanned: true, in: folder)
             try KindleClippings.save(clippings, to: AppDirectories(base: store).clippings)
         } catch {
             FileHandle.standardError.write(Data("SEED échec : \(error.localizedDescription)\n".utf8))
@@ -104,6 +108,37 @@ enum SeedData {
             try EPUBToAZW3.convert(input: epub, output: epub.deletingPathExtension().appendingPathExtension("azw3"))
             try FileManager.default.removeItem(at: epub)
         }
+    }
+
+    /// PDF A5 aux larges marges : en-tête répété, paragraphes, numéro de page. `scanned` : de l'encre sans texte.
+    @discardableResult
+    static func makePDF(title: String, author: String, pages: Int, scanned: Bool = false, in folder: URL) throws -> URL {
+        let url = folder.appendingPathComponent(title.safeFilename + ".pdf")
+        var box = CGRect(x: 0, y: 0, width: 420, height: 595)  // grid: ok page A5 en points PDF, pas une vue
+        let info = [kCGPDFContextTitle: title, kCGPDFContextAuthor: author] as CFDictionary
+        guard let context = CGContext(url as CFURL, mediaBox: &box, info) else {
+            throw BookError.conversionFailed("PDF d'exemple")
+        }
+        let font = CTFontCreateWithName("Helvetica" as CFString, 10, nil)
+        let paragraph = ["Le fleuve descend lentement vers la mer en traversant les plaines et", "les villages endormis.",
+                         "Chaque saison change sa couleur et la hauteur de ses eaux, que les", "bateliers mesurent avec soin.",
+                         "Ce manuel décrit les passages, les écluses et les ports où l'on peut", "s'arrêter pour la nuit."]
+        for n in 1...pages {
+            context.beginPDFPage(nil)
+            if scanned {
+                context.setFillColor(gray: 0.35, alpha: 1)
+                context.fill(CGRect(x: 90, y: 160, width: 240, height: 300))
+            } else {
+                for (i, line) in ([title] + paragraph + ["\(n)"]).enumerated() {
+                    let text = NSAttributedString(string: line, attributes: [.font: font])
+                    context.textPosition = CGPoint(x: i == paragraph.count + 1 ? 205 : 90, y: 470 - CGFloat(i) * 16)
+                    CTLineDraw(CTLineCreateWithAttributedString(text), context)
+                }
+            }
+            context.endPDFPage()
+        }
+        context.closePDF()
+        return url
     }
 
     /// EPUB minimal (un chapitre), avec une couverture si `cover` est fourni. Titre sans & ni <.

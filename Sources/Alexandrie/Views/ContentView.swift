@@ -1,4 +1,5 @@
 import AlexandrieCore
+import QuickLook
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -48,6 +49,8 @@ struct ContentView: View {
     @State private var showReview = false
     /// Livre annoté choisi dans la vue Notes (titre normalisé).
     @State private var notesBook: String?
+    /// Fichier montré par Coup d'œil (Espace, ou Livre > Coup d'œil).
+    @State private var quickLookURL: URL?
 
     var body: some View {
         Group {
@@ -123,12 +126,7 @@ struct ContentView: View {
                         .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
                     }
                 } else {
-                    LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
-                        // Touche Supprimer dans la grille ou la liste : même action que Livre > Mettre à la corbeille.
-                        .onDeleteCommand {
-                            BookCommands(books: selected, list: sidebar, library: library, kindle: kindle,
-                                         afterTrash: { selection = Self.nextSelection(after: selection, in: groups) }).trash()
-                        }
+                    libraryPage(groups: groups, selected: selected, resolve: resolve)
                 }
             }
             .navigationSplitViewColumnWidth(min: 420, ideal: 640)
@@ -182,7 +180,8 @@ struct ContentView: View {
         .focusedSceneValue(\.bookCommands, BookCommands(
             books: sidebar == .kindle || sidebar == .notes ? [] : selected,
             list: sidebar, library: library, kindle: kindle,
-            afterTrash: { selection = Self.nextSelection(after: selection, in: groups) }))
+            afterTrash: { selection = Self.nextSelection(after: selection, in: groups) },
+            toggleQuickLook: { quickLookURL = quickLookURL == nil ? selected.first?.url : nil }))
         .environment(\.libraryList, sidebar)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
         .overlay {
@@ -213,6 +212,24 @@ struct ContentView: View {
         case .genre(let key):
             GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? "Genre"
         }
+    }
+
+    /// Grille ou liste des livres, avec Coup d'œil (Espace) et la touche Supprimer.
+    private func libraryPage(groups: [BookGroup], selected: [Book], resolve: @escaping (String) -> Book?) -> some View {
+        LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
+            // Espace : Coup d'œil sur le livre sélectionné ; les flèches passent aux voisins.
+            // Seulement quand la grille ou la liste a le focus : jamais dans le champ de recherche.
+            .onKeyPress(.space) {
+                guard let url = selected.first?.url else { return .ignored }
+                quickLookURL = quickLookURL == nil ? url : nil
+                return .handled
+            }
+            .quickLookPreview($quickLookURL, in: groups.map(\.primary.url))
+            // Touche Supprimer dans la grille ou la liste : même action que Livre > Mettre à la corbeille.
+            .onDeleteCommand {
+                BookCommands(books: selected, list: sidebar, library: library, kindle: kindle,
+                             afterTrash: { selection = Self.nextSelection(after: selection, in: groups) }).trash()
+            }
     }
 
     /// Livre à sélectionner quand la sélection quitte la page : celui qui la suivait, sinon celui d'avant.

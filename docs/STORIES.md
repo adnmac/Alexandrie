@@ -267,12 +267,13 @@ Screens: tous
 Acceptance:
 - [manual] Coup d'œil s'ouvre sur le fichier sélectionné et suit les flèches.
 UX:
-- Flow: Espace sur un livre sélectionné, menu Livre > Coup d'œil -> fenêtre Coup d'œil du fichier principal -> flèches pour le livre voisin, Espace ou Échap pour fermer
+- Flow: Espace sur un livre sélectionné, menu Livre > Coup d'œil (⌘Y, comme le Finder) -> fenêtre Coup d'œil du fichier principal -> flèches pour le livre voisin, Espace ou Échap pour fermer
 - Surface: panneau système Coup d'œil (aperçu à côté du travail)
 - States: format sans aperçu (AZW3, MOBI) : Coup d'œil montre l'icône et le nom, rien d'inventé ; plusieurs livres : Coup d'œil les parcourt
 - Words: « Coup d'œil » (nom d'Apple), pas de texte propre
 - Access: Espace ne déclenche rien quand le champ de recherche a le focus
-Status: todo
+- [self] Livre > Coup d'œil est active avec une sélection, grisée sans.
+Status: done
 
 ### S-043 Retrouver la page et la sélection au lancement
 Je relance l'app : la page de la barre latérale et le livre sélectionnés sont ceux d'avant.

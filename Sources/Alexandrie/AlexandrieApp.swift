@@ -49,6 +49,11 @@ struct BookMenuCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Livre") {
+            // ⌘Y comme dans le Finder ; Espace est gérée par la grille, pour ne pas voler l'espace des champs.
+            Button("Coup d'œil") { books?.toggleQuickLook() }
+                .keyboardShortcut("y")
+                .disabled(books?.canQuickLook != true)
+            Divider()
             Button("Mettre à la corbeille") { books?.trash() }
                 .keyboardShortcut(.delete)
                 .disabled(books?.canTrash != true)

@@ -156,6 +156,8 @@ struct SelfTest {
             check("sélection passée au livre suivant", picked == (groups.count > 1 ? [groups[1].id] : []), "\(picked)")
             undo.undo()
             check("⌘Z rend le livre mis à la corbeille", library.visibleBooks.contains { $0.id == first.primary.id })
+            check("Livre > Coup d'œil active avec une sélection, grisée sans",
+                  trashCommand.canQuickLook && !BookCommands(books: [], list: .all, library: library, kindle: kindle).canQuickLook)
             for page: SidebarItem in [.sent, .pending, .trash] {
                 let other = BookCommands(books: [first.primary], list: page, library: library, kindle: kindle)
                 check("Mettre à la corbeille grisée dans \(page)", !other.canTrash)

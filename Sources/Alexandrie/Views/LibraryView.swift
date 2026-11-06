@@ -29,6 +29,8 @@ struct LibraryView: View {
     @Binding var selection: Set<String>
     let gridMode: Bool
     let resolve: (String) -> Book?
+    /// La grille prend le focus au clic : Espace (Coup d'œil) et Supprimer lui arrivent alors.
+    @FocusState private var gridFocused: Bool
 
     var body: some View {
         if groups.isEmpty {
@@ -70,7 +72,14 @@ struct LibraryView: View {
             .padding(20)
         }
         .background(Color(nsColor: .textBackgroundColor))
-        .onTapGesture { selection.removeAll() }
+        // Focalisable sans anneau : la sélection des cartes montre déjà où l'on est.
+        .focusable()
+        .focusEffectDisabled()
+        .focused($gridFocused)
+        .onTapGesture {
+            selection.removeAll()
+            gridFocused = true
+        }
     }
 
     private func select(_ g: BookGroup) {
@@ -84,6 +93,7 @@ struct LibraryView: View {
         } else {
             selection = [g.id]
         }
+        gridFocused = true
     }
 
     // MARK: - Liste : chevron à gauche pour déplier les fichiers d'un même livre

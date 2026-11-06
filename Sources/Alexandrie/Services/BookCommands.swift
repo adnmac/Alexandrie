@@ -17,6 +17,8 @@ struct BookCommands {
     let kindle: KindleMonitor
     /// Après « Mettre à la corbeille » : la fenêtre sélectionne le livre suivant.
     var afterTrash: () -> Void = {}
+    /// Ouvre ou ferme Coup d'œil sur la sélection (fourni par la fenêtre).
+    var toggleQuickLook: () -> Void = {}
 
     // MARK: Envoyer à la Kindle
 
@@ -57,6 +59,12 @@ extension BookCommands {
         library.undoable("Mettre à la corbeille") { books.forEach(library.moveToTrash) }
         afterTrash()
     }
+}
+
+extension BookCommands {
+    // MARK: Coup d'œil
+
+    var canQuickLook: Bool { !books.isEmpty }
 }
 
 extension SidebarItem {

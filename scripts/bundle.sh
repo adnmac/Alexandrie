@@ -11,7 +11,8 @@ APP="$ROOT/build/Alexandrie.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Alexandrie"
-[[ -f "$ROOT/Resources/AppIcon.icns" ]] && cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/"
+# Icône : Assets.car (Liquid Glass, macOS 26+) et AppIcon.icns (macOS 14-15), compilés par scripts/make-icon.sh.
+for f in Assets.car AppIcon.icns; do [[ -f "$ROOT/Resources/$f" ]] && cp "$ROOT/Resources/$f" "$APP/Contents/Resources/"; done
 # Commit compilé : l'app le compare à GitHub pour signaler les mises à jour.
 COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 VERSION="$(cat "$ROOT/VERSION" 2>/dev/null || echo 0.0.0)"
@@ -29,6 +30,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
   <key>CFBundleVersion</key><string>${BUILD}</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundleDevelopmentRegion</key><string>fr</string>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.books</string>

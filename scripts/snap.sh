@@ -18,7 +18,7 @@ BUNDLE_ID=be.adnmac.alexandrie.snapshot
 rm -rf "$STORE" "$SHOTS" "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Alexandrie"
-[[ -f Resources/AppIcon.icns ]] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
+for f in Assets.car AppIcon.icns; do [[ -f Resources/$f ]] && cp Resources/$f "$APP/Contents/Resources/"; done
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -29,6 +29,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleExecutable</key><string>Alexandrie</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleIconFile</key><string>AppIcon</string>
+  <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundleDevelopmentRegion</key><string>fr</string>
   <key>CFBundleLocalizations</key><array><string>fr</string></array>
   <key>NSHighResolutionCapable</key><true/>

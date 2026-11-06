@@ -405,7 +405,7 @@ Acceptance:
 - [self] Un dossier introuvable ne retire aucun livre de l'index ; ses livres sont marqués indisponibles et ne peuvent être ni envoyés ni lus.
 - [snap] Le dossier indisponible est grisé dans la barre latérale, avec une bulle qui dit pourquoi.
 - [manual] Rebrancher le disque rend les livres disponibles sans relancer l'app.
-Status: doing
+Status: done
 
 ### S-063 Retirer un dossier de livres
 Dans Réglages > Bibliothèque, je retire un dossier : ses livres quittent la bibliothèque, ses fichiers restent sur le disque.
@@ -414,7 +414,7 @@ Acceptance:
 - [self] Retirer un dossier enlève ses livres de l'index, des étagères et de l'attente d'envoi ; aucun fichier n'est touché.
 - [self] Le dernier dossier ne peut pas être retiré (bouton grisé).
 - [manual] Une confirmation dit combien de livres quittent la bibliothèque.
-Status: doing
+Status: done
 
 ### S-064 Envoyer un PDF aux marges rognées
 Dans la fiche d'un PDF, je choisis « Sur la Kindle : marges rognées » ; la Kindle reçoit une copie sans marges blanches, le texte paraît plus grand.

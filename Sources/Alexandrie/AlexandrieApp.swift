@@ -7,6 +7,8 @@ struct AlexandrieApp: App {
     @State private var library = LibraryStore()
     @State private var kindle = KindleMonitor()
     @State private var updates = UpdateMonitor()
+    /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
+    @ObservedObject private var menu = MenuState.shared
 
     var body: some Scene {
         WindowGroup("Alexandrie", id: "main") {
@@ -29,8 +31,8 @@ struct AlexandrieApp: App {
                     .keyboardShortcut("r")
             }
             LibraryViewCommands()
-            BookMenuCommands()
-            KindleCommands(kindle: kindle)
+            BookMenuCommands(state: menu.values)
+            KindleCommands(kindle: kindle, state: menu.values)
         }
 
         Settings {
@@ -45,7 +47,9 @@ struct AlexandrieApp: App {
 
 /// Menu Livre : commandes sur les livres sélectionnés dans la fenêtre au premier plan.
 struct BookMenuCommands: Commands {
-    @FocusedValue(\.bookCommands) private var books
+    let state: MenuState.Values
+    /// Relues au moment du choix : la sélection a pu changer depuis la construction du menu.
+    private var books: BookCommands? { MenuState.shared.current }
 
     var body: some Commands {
         // Mêmes intitulés que le menu du livre (clic droit) et la fiche. Envoyer à la Kindle (⌘K) est
@@ -54,20 +58,20 @@ struct BookMenuCommands: Commands {
             // ⌘Y comme dans le Finder ; Espace est gérée par la grille, pour ne pas voler l'espace des champs.
             Button("Coup d'œil") { books?.toggleQuickLook() }
                 .keyboardShortcut("y")
-                .disabled(books?.canQuickLook != true)
+                .disabled(!state.canQuickLook)
             // Pas de ⌘↓ : il déplacerait le curseur en fin de texte dans les champs.
             Button("Ouvrir") { books?.open() }
-                .disabled(books?.canOpen != true)
+                .disabled(!state.canOpen)
             Button("Afficher dans le Finder") { books?.reveal() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
-                .disabled(books?.canReveal != true)
+                .disabled(!state.canReveal)
             Divider()
             Button("Exporter en EPUB…") { books?.exportEPUB() }
-                .disabled(books?.canExportEPUB != true)
+                .disabled(!state.canExportEPUB)
             Divider()
             Button("Mettre à la corbeille") { books?.trash() }
                 .keyboardShortcut(.delete)
-                .disabled(books?.canTrash != true)
+                .disabled(!state.canTrash)
         }
     }
 }
@@ -76,13 +80,14 @@ struct BookMenuCommands: Commands {
 /// Actualiser et Éjecter restent actifs : sans Kindle à éjecter, un message l'explique.
 struct KindleCommands: Commands {
     let kindle: KindleMonitor
-    @FocusedValue(\.bookCommands) private var books
+    let state: MenuState.Values
+    private var books: BookCommands? { MenuState.shared.current }
 
     var body: some Commands {
         CommandMenu("Kindle") {
-            Button(books?.sendTitle ?? "Envoyer à la Kindle") { books?.send() }
+            Button(state.sendTitle) { books?.send() }
                 .keyboardShortcut("k")
-                .disabled(books?.canSend != true)
+                .disabled(!state.canSend)
             Divider()
             Button("Actualiser") { Task { await kindle.refresh() } }
             Button("Éjecter la Kindle") { Task { await kindle.eject() } }

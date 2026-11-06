@@ -163,6 +163,15 @@ struct SelfTest {
             check("menu Livre : Ouvrir pour un livre, Afficher dans le Finder pour la sélection",
                   one.canOpen && !two.canOpen && two.canReveal && !BookCommands(books: [], list: .all, library: library, kindle: kindle).canReveal)
             check("menu Livre : Exporter en EPUB grisée pour un EPUB", !one.canExportEPUB)
+            // Menus : MenuState publie les valeurs que l'App passe aux menus Livre et Kindle.
+            let menu = MenuState()
+            menu.update(one)
+            let withBook = menu.values
+            menu.update(BookCommands(books: [], list: .all, library: library, kindle: kindle))
+            let empty = menu.values
+            check("menus actifs avec un livre sélectionné", withBook.canOpen && withBook.canReveal && withBook.canTrash)
+            check("menus grisés sans sélection", !empty.canSend && !empty.canTrash && !empty.canQuickLook
+                  && !empty.canOpen && !empty.canReveal && !empty.canExportEPUB)
             for page: SidebarItem in [.sent, .pending, .trash] {
                 let other = BookCommands(books: [first.primary], list: page, library: library, kindle: kindle)
                 check("Mettre à la corbeille grisée dans \(page)", !other.canTrash)

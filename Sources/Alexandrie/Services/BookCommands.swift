@@ -4,8 +4,7 @@ import SwiftUI
 
 /// Commandes sur les livres sélectionnés dans la fenêtre au premier plan.
 ///
-/// La fenêtre principale la publie (`focusedSceneValue`) ; la barre des menus la lit. Les menus SwiftUI
-/// ne suivent que ce qu'on leur passe ainsi : jamais l'état observé directement. Le self-test appelle
+/// La fenêtre principale la recopie dans `MenuState` ; la barre des menus en reçoit les valeurs. Le self-test appelle
 /// les mêmes fonctions que les menus.
 @MainActor
 struct BookCommands {
@@ -96,7 +95,41 @@ extension BookCommands {
     }
 }
 
-extension FocusedValues {
-    /// Sélection de la fenêtre principale au premier plan, pour la barre des menus.
-    @Entry var bookCommands: BookCommands?
+/// État des menus Livre et Kindle, recopié depuis la fenêtre principale.
+///
+/// Les `Commands` SwiftUI ne suivent ni un modèle `@Observable`, ni `@FocusedValue` de façon fiable
+/// (menus restés actifs sans sélection). Ce qui marche : un `ObservableObject` observé par l'`App`,
+/// qui passe les valeurs aux menus ; l'`App` les reconstruit quand elles changent.
+@MainActor
+final class MenuState: ObservableObject {
+    static let shared = MenuState()
+
+    /// Ce que les menus affichent : intitulé d'envoi et éléments actifs.
+    struct Values: Equatable {
+        var sendTitle = "Envoyer à la Kindle"
+        var canSend = false, canTrash = false, canQuickLook = false
+        var canOpen = false, canReveal = false, canExportEPUB = false
+
+        init() {}
+
+        @MainActor init(_ c: BookCommands) {
+            sendTitle = c.sendTitle
+            canSend = c.canSend
+            canTrash = c.canTrash
+            canQuickLook = c.canQuickLook
+            canOpen = c.canOpen
+            canReveal = c.canReveal
+            canExportEPUB = c.canExportEPUB
+        }
+    }
+
+    @Published private(set) var values = Values()
+    /// Commandes de la sélection actuelle, relues quand un élément de menu est choisi.
+    var current: BookCommands?
+
+    func update(_ commands: BookCommands) {
+        current = commands
+        let new = Values(commands)
+        if new != values { values = new }
+    }
 }

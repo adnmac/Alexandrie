@@ -16,9 +16,11 @@ struct ContentView: View {
     @State private var search = ""
     @State private var sort: SortOrder = .title
     @AppStorage("gridMode") private var gridMode = true
-    /// Page et sélection rendues au lancement suivant (état de la fenêtre, comme dans le Finder).
-    @SceneStorage("sidebarPage") private var savedPage = ""
-    @SceneStorage("selectedBooks") private var savedSelection = ""
+    /// Page et sélection rendues au lancement suivant. Dans les réglages de l'app, pas dans l'état de la
+    /// fenêtre (@SceneStorage) : macOS jette celui-ci au ⌘Q quand « Fermer les fenêtres à la fermeture
+    /// d'une app » est coché, le réglage par défaut.
+    @AppStorage("lastSidebarPage") private var savedPage = ""
+    @AppStorage("lastSelectedBooks") private var savedSelection = ""
     @State private var isDropTargeted = false
     @State private var showReview = false
     /// Livre annoté choisi dans la vue Notes (titre normalisé).
@@ -82,6 +84,13 @@ struct ContentView: View {
             BookGroups.isGroupID(id) ? index[id]?.primary : library.book(id: id)
         }
         let selected = Self.unique(selection.sorted().compactMap(resolve))
+        let commands = BookCommands(
+            books: sidebar == .kindle || sidebar == .notes ? [] : selected,
+            list: sidebar, library: library, kindle: kindle,
+            afterTrash: { selection = Self.nextSelection(after: selection, in: groups) },
+            toggleQuickLook: { quickLookURL = quickLookURL == nil ? selected.first?.url : nil })
+        // Les actions des menus relisent les commandes du dernier affichage (livres, page, fermetures à jour).
+        MenuState.shared.current = commands
         return NavigationSplitView {
             SidebarView(selection: $sidebar)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 230)
@@ -155,12 +164,8 @@ struct ContentView: View {
         .navigationTitle(pageTitle)
         .toolbar { toolbar(selected) }
         // Barre des menus : commandes sur la sélection de cette fenêtre (pas sur les pages Kindle et Notes,
-        // qui ont leur propre sélection).
-        .focusedSceneValue(\.bookCommands, BookCommands(
-            books: sidebar == .kindle || sidebar == .notes ? [] : selected,
-            list: sidebar, library: library, kindle: kindle,
-            afterTrash: { selection = Self.nextSelection(after: selection, in: groups) },
-            toggleQuickLook: { quickLookURL = quickLookURL == nil ? selected.first?.url : nil }))
+        // qui ont leur propre sélection), recopiées dans MenuState à chaque changement.
+        .onChange(of: MenuState.Values(commands), initial: true) { MenuState.shared.update(commands) }
         .environment(\.libraryList, sidebar)
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
         .overlay {

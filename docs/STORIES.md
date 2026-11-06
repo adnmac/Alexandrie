@@ -287,7 +287,8 @@ UX:
 - States: livre disparu depuis (supprimé, dossier changé) : page gardée, sélection vide, fiche « Aucun livre sélectionné » ; page disparue (série vide) : « Tous les livres »
 - Words: aucun nouveau texte
 - Access: la barre latérale garde le focus à l'ouverture, sans anneau ; les flèches marchent aussitôt
-- [self] Chaque page de la barre latérale s'écrit et se relit en texte (état de la fenêtre).
+- [self] Chaque page de la barre latérale s'écrit et se relit en texte (gardée dans les réglages de l'app).
+- Fix: `@SceneStorage` perdu au ⌘Q, voir `docs/FIXLOG.md`.
 Status: done
 
 ### S-044 Les menus suivent la sélection
@@ -302,6 +303,8 @@ UX:
 - States: sans sélection, tout est grisé mais visible ; commande qui ne s'applique pas (Exporter en EPUB sur un PDF) grisée
 - Words: menu « Livre » ; intitulés identiques au menu du livre et aux boutons de la fiche
 - Access: chaque commande a un équivalent clavier ou se trouve par la recherche du menu Aide
+- [self] `MenuState` grise tous les éléments sans sélection.
+- Fix: menus figés par `@FocusedValue`, voir `docs/FIXLOG.md`.
 Status: done
 
 ## M6 Système

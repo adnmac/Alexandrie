@@ -65,6 +65,9 @@ struct BookMenuCommands: Commands {
             Button("Afficher dans le Finder") { books?.reveal() }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
                 .disabled(!state.canReveal)
+            // Sous-menu du système (AirDrop, Mail, Messages…), avec les fichiers de la sélection.
+            ShareLink(items: state.shareURLs) { Text("Partager") }
+                .disabled(state.shareURLs.isEmpty)
             Divider()
             Button("Exporter en EPUB…") { books?.exportEPUB() }
                 .disabled(!state.canExportEPUB)

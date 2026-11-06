@@ -436,6 +436,8 @@ struct BookActions: View {
         Divider()
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         Button("Ouvrir") { NSWorkspace.shared.open(book.url) }
+        // Sous-menu du système : AirDrop, Mail, Messages… avec le fichier du livre, intact.
+        ShareLink(item: book.url) { Text("Partager") }
         // Pas de corbeille dans les listes « Envoyés », « En attente » ou une étagère : le menu propose
         // d'y retirer le livre de la liste (règle partagée avec Livre > Mettre à la corbeille).
         if list?.allowsTrash == true {

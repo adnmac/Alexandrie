@@ -65,6 +65,11 @@ extension BookCommands {
 
     var canQuickLook: Bool { !books.isEmpty }
 
+    // MARK: Partager
+
+    /// Fichiers principaux des livres sélectionnés, pour Partager (AirDrop, Mail…).
+    var shareURLs: [URL] { books.map(\.url) }
+
     // MARK: Fichiers
 
     var canReveal: Bool { !books.isEmpty }
@@ -109,6 +114,7 @@ final class MenuState: ObservableObject {
         var sendTitle = "Envoyer à la Kindle"
         var canSend = false, canTrash = false, canQuickLook = false
         var canOpen = false, canReveal = false, canExportEPUB = false
+        var shareURLs: [URL] = []
 
         init() {}
 
@@ -120,6 +126,7 @@ final class MenuState: ObservableObject {
             canOpen = c.canOpen
             canReveal = c.canReveal
             canExportEPUB = c.canExportEPUB
+            shareURLs = c.shareURLs
         }
     }
 

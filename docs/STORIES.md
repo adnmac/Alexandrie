@@ -330,13 +330,14 @@ Status: done
 Le menu du livre propose Partager (AirDrop, Mail…) avec le fichier du livre.
 Acceptance:
 - [manual] Partager > AirDrop envoie le fichier source, intact.
+- [self] Livre > Partager reçoit les fichiers de la sélection, grisé sans sélection.
 UX:
 - Flow: menu du livre > Partager > AirDrop, Mail, Messages… -> feuille système du service choisi -> Échap l'annule
 - Surface: sous-menu Partager du menu du livre (`ShareLink`, liste du système), aussi dans le menu Livre
 - States: plusieurs livres sélectionnés : tous leurs fichiers principaux sont partagés ; rien de sélectionné : Livre > Partager grisé
 - Words: « Partager » (nom d'Apple) ; services nommés par le système
 - Access: VoiceOver lit « Partager, sous-menu »
-Status: todo
+Status: done
 
 ### S-052 Être prévenu quand la file d'attente est partie
 Quand la Kindle est branchée et que la file part, une notification dit combien de livres sont arrivés.

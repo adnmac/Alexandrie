@@ -170,6 +170,7 @@ struct SelfTest {
             menu.update(BookCommands(books: [], list: .all, library: library, kindle: kindle))
             let empty = menu.values
             check("menus actifs avec un livre sélectionné", withBook.canOpen && withBook.canReveal && withBook.canTrash)
+            check("Livre > Partager : le fichier du livre sélectionné", withBook.shareURLs == [first.primary.url] && empty.shareURLs.isEmpty)
             check("menus grisés sans sélection", !empty.canSend && !empty.canTrash && !empty.canQuickLook
                   && !empty.canOpen && !empty.canReveal && !empty.canExportEPUB)
             // Glisser une carte : une copie du fichier pour le Finder, la liste des livres pour une liseuse.

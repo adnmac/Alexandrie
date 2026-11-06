@@ -164,6 +164,12 @@ struct SelfTest {
             }
         }
 
+        // Page de la barre latérale gardée d'un lancement à l'autre (@SceneStorage) : aller-retour en texte.
+        let pages: [SidebarItem] = [.all, .recent, .sent, .toReview, .kindle, .pending, .trash, .notes, .shelf("A1B2"),
+                                    .format(.azw3), .author("dupont jeanne"), .series("commissaire: vidal"), .genre("policier")]
+        let lost = pages.filter { SidebarItem(storageKey: $0.storageKey) != $0 }
+        check("page de la barre latérale gardée au lancement", lost.isEmpty && SidebarItem(storageKey: "inconnu") == nil, "\(lost)")
+
         library.saveNow()
         check("index relu après fermeture", ((try? LibraryIndex.load(directories.index)) ?? []).count == 3)
     }

@@ -45,6 +45,9 @@ struct ContentView: View {
     @State private var search = ""
     @State private var sort: SortOrder = .title
     @AppStorage("gridMode") private var gridMode = true
+    /// Page et sélection rendues au lancement suivant (état de la fenêtre, comme dans le Finder).
+    @SceneStorage("sidebarPage") private var savedPage = ""
+    @SceneStorage("selectedBooks") private var savedSelection = ""
     @State private var isDropTargeted = false
     @State private var showReview = false
     /// Livre annoté choisi dans la vue Notes (titre normalisé).
@@ -72,7 +75,12 @@ struct ContentView: View {
             notesBook = key
             kindle.notesRequest = nil
         }
-        .onAppear { library.undoManager = undoManager }
+        .onAppear {
+            library.undoManager = undoManager
+            restorePage()
+        }
+        .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
+        .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
         .task {
             guard Snapshot.directory != nil else { return }
             await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
@@ -230,6 +238,24 @@ struct ContentView: View {
                 BookCommands(books: selected, list: sidebar, library: library, kindle: kindle,
                              afterTrash: { selection = Self.nextSelection(after: selection, in: groups) }).trash()
             }
+    }
+
+    /// Rend la page et la sélection du lancement précédent. Une page vidée depuis (série sans livre)
+    /// revient à « Tous les livres » ; un livre disparu est simplement ignoré.
+    private func restorePage() {
+        guard Snapshot.directory == nil, let page = SidebarItem(storageKey: savedPage) else { return }
+        let books = library.visibleBooks
+        let exists: Bool = switch page {
+        case .format(let f): books.contains { $0.format == f }
+        case .author(let key): AuthorNames.groups(books).contains { $0.key == key }
+        case .series(let key): SeriesNames.groups(books).contains { $0.key == key }
+        case .genre(let key): GenreNames.groups(books, identities: library.identities).contains { $0.key == key }
+        case .shelf(let id): kindle.readers.contains { $0.id == id }
+        default: true
+        }
+        sidebar = exists ? page : .all
+        let ids = savedSelection.split(separator: "\n").map(String.init)
+        if exists, !ids.isEmpty { selection = Set(ids) }
     }
 
     /// Livre à sélectionner quand la sélection quitte la page : celui qui la suivait, sinon celui d'avant.

@@ -282,12 +282,13 @@ Acceptance:
 - [manual] Quitter sur « Série » avec un livre sélectionné, relancer : même page, même fiche.
 - [snap] La fenêtre principale s'ouvre sans anneau de focus.
 UX:
-- Flow: quitter (⌘Q) -> relancer -> même page de la barre latérale, même livre sélectionné, même fiche, défilement au même endroit
+- Flow: quitter (⌘Q) -> relancer -> même page de la barre latérale, même livre sélectionné, même fiche (le défilement repart du haut)
 - Surface: aucune (état rendu en silence)
 - States: livre disparu depuis (supprimé, dossier changé) : page gardée, sélection vide, fiche « Aucun livre sélectionné » ; page disparue (série vide) : « Tous les livres »
 - Words: aucun nouveau texte
 - Access: la barre latérale garde le focus à l'ouverture, sans anneau ; les flèches marchent aussitôt
-Status: todo
+- [self] Chaque page de la barre latérale s'écrit et se relit en texte (état de la fenêtre).
+Status: done
 
 ### S-044 Les menus suivent la sélection
 Les commandes du livre (Envoyer, Corbeille, Afficher dans le Finder, Ouvrir) sont dans un menu Livre, actives selon la sélection.

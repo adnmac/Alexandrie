@@ -95,7 +95,7 @@ struct SidebarView: View {
             // Titres en lignes ordinaires plutôt qu'en en-têtes de section : macOS ajoute aux en-têtes
             // son propre chevron (visible au survol seulement), qui masquerait celui-ci.
             Section {
-                CollapsibleHeader(title: "Formats", count: formats.count, tint: .blue, isExpanded: $formatsExpanded)
+                CollapsibleHeader(title: "Formats", count: formats.count, isExpanded: $formatsExpanded)
                 if formatsExpanded {
                     ForEach(formats, id: \.0) { f, n in row(f.label, "doc", .format(f), count: n) }
                 }
@@ -103,7 +103,7 @@ struct SidebarView: View {
 
             let series = SeriesNames.groups(library.visibleBooks)
             Section {
-                CollapsibleHeader(title: "Séries", count: series.count, tint: .green, isExpanded: $seriesExpanded)
+                CollapsibleHeader(title: "Séries", count: series.count, isExpanded: $seriesExpanded)
                 if seriesExpanded {
                     ForEach(series) { s in
                         row(s.name, "books.vertical", .series(s.key), count: s.bookCount)
@@ -115,7 +115,7 @@ struct SidebarView: View {
             let genres = GenreNames.groups(library.visibleBooks, identities: library.identities)
             if !genres.isEmpty {
                 Section {
-                    CollapsibleHeader(title: "Genres", count: genres.count, tint: .purple, isExpanded: $genresExpanded)
+                    CollapsibleHeader(title: "Genres", count: genres.count, isExpanded: $genresExpanded)
                     if genresExpanded {
                         ForEach(genres) { g in row(g.name, "theatermasks", .genre(g.key), count: g.bookCount) }
                     }
@@ -124,7 +124,7 @@ struct SidebarView: View {
 
             let authors = AuthorNames.groups(library.visibleBooks)
             Section {
-                CollapsibleHeader(title: "Auteurs", count: authors.count, tint: .orange, isExpanded: $authorsExpanded)
+                CollapsibleHeader(title: "Auteurs", count: authors.count, isExpanded: $authorsExpanded)
                 if authorsExpanded {
                     ForEach(authors) { a in
                         row(a.name, "person", .author(a.key), count: a.bookCount)
@@ -143,30 +143,26 @@ struct SidebarView: View {
     }
 }
 
-/// En-tête de section repliable à fond teinté, avec un chevron toujours visible.
+/// En-tête de section repliable, au style des en-têtes système (« Bibliothèque », « Kindle »),
+/// avec un chevron toujours visible.
 struct CollapsibleHeader: View {
     let title: String
     let count: Int
-    let tint: Color
     @Binding var isExpanded: Bool
 
     var body: some View {
         Button {
             withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
         } label: {
-            HStack(spacing: Space.sm) {
+            HStack(spacing: Space.xs) {
                 Text(title).font(.subheadline.weight(.semibold))
-                Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                Text("\(count)").font(.caption.monospacedDigit()).foregroundStyle(.tertiary)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .font(.caption.weight(.semibold))
                     .rotationEffect(.degrees(isExpanded ? 90 : 0))
             }
-            .foregroundStyle(.primary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, Space.xs)
-            .background(tint.opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+            .foregroundStyle(.secondary)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

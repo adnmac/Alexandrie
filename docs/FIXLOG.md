@@ -48,3 +48,15 @@ Xcode). Le trousseau doit contenir l'intermédiaire Apple WWDR G3, sinon `codesi
 Rule: pour App Intents, vérifier `codesign -dv` (TeamIdentifier présent) et chercher « Registered
 process » dans `log show --predicate 'process == "Alexandrie"'` ; essayer l'action en l'exécutant,
 pas seulement en la voyant dans Raccourcis.
+
+## 2026-11-06 PDF rogné décentré, texte redimensionnable refusé (S-064, S-065)
+
+Symptômes : sur la Kindle, un PDF rogné gardait 32 points de marge d'un côté et 6 de l'autre ;
+le texte redimensionnable d'un essai de 316 pages échouait avec « PCDATA invalid Char value 7 ».
+Causes : un seul cadre pour toutes les pages, calculé pour contenir une page de titre plus large ;
+un caractère de contrôle (U+0007) du texte extrait, interdit en XML.
+Corrections : même taille de cadre partout, centrée sur le contenu de chaque page ; caractères
+interdits retirés ; en-tête courant, notes et appels de note séparés d'après la taille des caractères.
+Les versions `PDFCrop.version` et `PDFReflow.version` entrent dans le nom des copies en cache.
+Rule: essayer chaque conversion sur un vrai livre (copie dans le scratchpad, test provisoire supprimé
+ensuite), pas seulement sur des PDF générés ; changer la version quand le calcul change.

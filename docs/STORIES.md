@@ -435,7 +435,7 @@ Acceptance:
 - [unit] Le texte extrait devient un EPUB valide puis un AZW3 par `EPUBToAZW3`.
 - [self] Un PDF scanné (sans texte) grise ce choix avec « Ce PDF ne contient pas de texte ».
 - [manual] Sur la Kindle, la taille du texte se règle et les chapitres suivent la table du PDF quand elle existe.
-Status: doing
+Status: done
 
 ### S-066 Lire un livre dans l'app
 Je double-clique sur un livre, ou Livre > Lire : une fenêtre de lecture s'ouvre, pour EPUB, MOBI, AZW3 et PDF.

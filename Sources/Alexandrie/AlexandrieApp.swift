@@ -44,6 +44,7 @@ struct AlexandrieApp: App {
                 .environment(kindle)
                 .environment(updates)
         }
+        .windowResizability(.contentSize)
     }
 }
 

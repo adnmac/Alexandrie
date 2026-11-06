@@ -13,6 +13,13 @@ public struct KindleDocument: Identifiable, Hashable, Sendable {
     public var fileExtension: String { (path as NSString).pathExtension.lowercased() }
 }
 
+extension KindleDocument {
+    /// Document hors appareil (captures d'écran, tests) : pas d'identifiant MTP.
+    public init(id: String, path: String, size: Int64) {
+        self.init(id: id, path: path, size: size, mtpID: nil)
+    }
+}
+
 public enum KindleConnection: String, Sendable {
     case volume = "Disque USB"
     case mtp = "MTP"

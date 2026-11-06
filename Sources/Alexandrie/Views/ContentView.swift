@@ -72,7 +72,7 @@ struct ContentView: View {
         .onAppear { library.undoManager = undoManager }
         .task {
             guard Snapshot.directory != nil else { return }
-            await Snapshot.run(library: library, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
+            await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
                                openSettings: openSettings)
         }
         .onChange(of: undoManager) { _, manager in library.undoManager = manager }
@@ -176,8 +176,8 @@ struct ContentView: View {
         .onDrop(of: [.fileURL], isTargeted: $isDropTargeted, perform: handleDrop)
         .overlay {
             if isDropTargeted {
-                RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(Color.accentColor, style: StrokeStyle(lineWidth: 3, dash: [8]))  // grid: ok épaisseur de trait, pas un espacement
+                RoundedRectangle(cornerRadius: Radius.dropZone)
+                    .strokeBorder(Palette.accent, style: StrokeStyle(lineWidth: 3, dash: [8]))  // grid: ok épaisseur de trait, pas un espacement
                     .padding(Space.sm)
                     .allowsHitTesting(false)
             }
@@ -376,8 +376,9 @@ struct NameReaderSheet: View {
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(20)
-        .frame(width: 420)
+        .padding(Space.margin)
+        .frame(width: Layout.sheet)
+        .noInitialFocus()
         .onAppear { name = kindle.device?.name ?? "Kindle" }
     }
 
@@ -434,12 +435,12 @@ struct ReleaseBanner: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: Space.md) {
-            Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(.blue)
+            Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(Palette.info)
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Alexandrie \(release.version) est disponible (vous avez la \(updates.currentVersion))")
                     .font(.callout.weight(.semibold))
                 if case .failed(let why) = updates.installState {
-                    Text(why).foregroundStyle(.orange).lineLimit(3)
+                    Text(why).foregroundStyle(Palette.warning).lineLimit(3)
                 } else if !release.notes.isEmpty {
                     Text(release.notes.components(separatedBy: .newlines).prefix(2).joined(separator: " "))
                         .foregroundStyle(.secondary).lineLimit(2)
@@ -458,9 +459,7 @@ struct ReleaseBanner: View {
                 Button("Plus tard") { updates.dismissRelease() }
             }
         }
-        .controlSize(.small)
-        .padding(Space.md)
-        .background(.blue.opacity(0.12))
+        .banner(Palette.info)
         .overlay(alignment: .bottom) { Divider() }
     }
 }
@@ -473,7 +472,7 @@ struct UpdateBanner: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: Space.md) {
-            Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(.blue)
+            Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(Palette.info)
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Une mise à jour d'Alexandrie est disponible sur GitHub").font(.callout.weight(.semibold))
                 Text(info.newCommits == 1 ? "1 modification" : "\(info.newCommits) modifications")
@@ -489,9 +488,7 @@ struct UpdateBanner: View {
             }
             Button("Plus tard") { updates.dismiss() }
         }
-        .controlSize(.small)
-        .padding(Space.md)
-        .background(.blue.opacity(0.12))
+        .banner(Palette.info)
         .overlay(alignment: .bottom) { Divider() }
     }
 }

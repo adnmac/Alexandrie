@@ -56,7 +56,7 @@ struct SidebarView: View {
                     }
                 } icon: {
                     Image(systemName: kindle.isConnected ? "ipad.landscape.badge.play" : "ipad.landscape")
-                        .foregroundStyle(kindle.isConnected ? Color.green : Color.secondary)
+                        .foregroundStyle(kindle.isConnected ? Palette.success : Color.secondary)
                 }
                 .tag(SidebarItem.kindle)
                 .contextMenu {
@@ -152,7 +152,7 @@ struct CollapsibleHeader: View {
 
     var body: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
+            Motion.run(Motion.quick) { isExpanded.toggle() }
         } label: {
             HStack(spacing: Space.xs) {
                 Text(title).font(.subheadline.weight(.semibold))

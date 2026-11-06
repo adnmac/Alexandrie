@@ -104,10 +104,10 @@ struct LibraryView: View {
                         }
                     }
                     if (r.group?.books ?? [r.book]).contains(where: kindle.isOnDevice) {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help("Sur la Kindle")
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.success).help("Sur la Kindle")
                     }
                     if (r.group?.books ?? [r.book]).contains(where: \.isPendingSend) {
-                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(.blue)
+                        Image(systemName: "clock.arrow.circlepath").foregroundStyle(Palette.info)
                             .help("En attente d'envoi : partira dès que la Kindle sera branchée")
                     }
                 }
@@ -156,8 +156,8 @@ struct BookCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
             CoverView(book: book) {
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
+                RoundedRectangle(cornerRadius: Radius.cover)
+                    .strokeBorder(isSelected ? Palette.accent : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
                     .overlay(alignment: .topTrailing) { badges }
             }
             .frame(height: 200)
@@ -194,13 +194,13 @@ struct BookCard: View {
         VStack(alignment: .trailing, spacing: 4) {
             if !book.catalogSuggestions.isEmpty {
                 Image(systemName: "exclamationmark.bubble.fill").font(.caption)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Palette.warning)
                     .padding(4).background(.ultraThinMaterial, in: Circle())
                     .help("Le catalogue propose des corrections")
             }
             if book.isPendingSend {
                 Image(systemName: "clock.arrow.circlepath").font(.caption)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(Palette.info)
                     .padding(4).background(.ultraThinMaterial, in: Circle())
                     .help("En attente d'envoi : partira dès que la Kindle sera branchée")
             }
@@ -211,7 +211,7 @@ struct BookCard: View {
             }
             if onDevice {
                 Image(systemName: "checkmark.circle.fill").font(.caption)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Palette.success)
                     .padding(Space.xs).background(.ultraThinMaterial, in: Circle())
                     .help("Présent sur la Kindle")
             }
@@ -262,16 +262,16 @@ struct CoverImage<Decoration: View>: View {
                 placeholder
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.cover))
         .overlay { decoration }
-        .shadow(color: .black.opacity(0.18), radius: 4, y: 2)
+        .shadow(color: Surface.coverShadow, radius: Surface.coverShadowRadius, y: Surface.coverShadowY)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task(id: "\(cacheKey)|\(url?.path ?? "")") { await load() }
     }
 
     private var placeholder: some View {
         let hue = Double(abs(title.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }) % 360) / 360
-        return RoundedRectangle(cornerRadius: 4)
+        return RoundedRectangle(cornerRadius: Radius.cover)
             .fill(LinearGradient(colors: [Color(hue: hue, saturation: 0.45, brightness: 0.55),
                                           Color(hue: hue, saturation: 0.55, brightness: 0.35)],
                                  startPoint: .top, endPoint: .bottom))
@@ -281,7 +281,7 @@ struct CoverImage<Decoration: View>: View {
                     Text(title).font(.headline).multilineTextAlignment(.center).lineLimit(4)
                     Text(subtitle).font(.caption).lineLimit(2)
                 }
-                .foregroundStyle(.white)
+                .foregroundStyle(.white)  // couverture générée : du contenu, pas de l'interface
                 .padding(Space.md)
             }
     }

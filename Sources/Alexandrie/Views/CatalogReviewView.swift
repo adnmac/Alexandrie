@@ -119,10 +119,10 @@ struct CatalogReviewSheet: View {
     @ViewBuilder private func coverLabel(_ r: CatalogReview.Row) -> some View {
         switch verdict(r) {
         case .confirmed?:
-            Label("Confirmé", systemImage: "checkmark.circle").foregroundStyle(.green).font(.caption)
+            Label("Confirmé", systemImage: "checkmark.circle").foregroundStyle(Palette.success).font(.caption)
         case .contradicted(let value)?:
             Label(value.map { "« \($0) »" } ?? "Contredit", systemImage: "exclamationmark.triangle")
-                .foregroundStyle(.orange).font(.caption)
+                .foregroundStyle(Palette.warning).font(.caption)
                 .help(value.map { "La couverture indique « \($0) »" } ?? "La couverture porte la valeur actuelle")
         case nil:
             Text("—").foregroundStyle(.tertiary).font(.caption)

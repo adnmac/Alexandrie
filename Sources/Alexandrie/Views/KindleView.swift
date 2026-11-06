@@ -56,7 +56,7 @@ struct KindleView: View {
         let off = kindle.offShelfDocuments(in: library)
         if let reader = kindle.currentReader, !off.isEmpty {
             HStack(spacing: Space.md) {
-                Image(systemName: "tray.and.arrow.up.fill").font(.title2).foregroundStyle(.orange)
+                Image(systemName: "tray.and.arrow.up.fill").font(.title2).foregroundStyle(Palette.warning)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(off.count == 1
                          ? "1 livre de cette Kindle n'est plus sur l'étagère de « \(reader.name) »"
@@ -73,9 +73,7 @@ struct KindleView: View {
                 Button("Retirer de la Kindle…") { pendingTidy = off.map(\.document) }
                     .disabled(kindle.isBusy)
             }
-            .controlSize(.small)
-            .padding(Space.md)
-            .background(.orange.opacity(0.12))
+            .banner(Palette.warning)
             .confirmationDialog(pendingTidy.count == 1 ? "Retirer ce livre de la Kindle ?" : "Retirer ces \(pendingTidy.count) livres de la Kindle ?",
                                 isPresented: Binding(get: { !pendingTidy.isEmpty }, set: { if !$0 { pendingTidy = [] } })) {
                 Button("Retirer de la Kindle", role: .destructive) {
@@ -94,7 +92,7 @@ struct KindleView: View {
         let missing = kindle.missingFromShelf(in: library)
         if let reader = kindle.currentReader, !missing.isEmpty {
             HStack(spacing: Space.md) {
-                Image(systemName: "books.vertical.circle.fill").font(.title2).foregroundStyle(.blue)
+                Image(systemName: "books.vertical.circle.fill").font(.title2).foregroundStyle(Palette.info)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(missing.count == 1
                          ? "1 livre de l'étagère de « \(reader.name) » n'est pas sur cette Kindle"
@@ -111,9 +109,7 @@ struct KindleView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(kindle.isBusy)
             }
-            .controlSize(.small)
-            .padding(Space.md)
-            .background(.blue.opacity(0.12))
+            .banner(Palette.info)
             Divider()
         }
     }
@@ -235,8 +231,8 @@ struct KindleBookCard: View {
         VStack(alignment: .leading, spacing: Space.sm) {
             CoverImage(url: info.flatMap(kindle.catalog.coverURL), cacheKey: info?.coverKey ?? document.id,
                        title: info?.title ?? document.name, subtitle: info?.authorLine ?? "") {
-                RoundedRectangle(cornerRadius: 4)
-                    .strokeBorder(isSelected ? Color.accentColor : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
+                RoundedRectangle(cornerRadius: Radius.cover)
+                    .strokeBorder(isSelected ? Palette.accent : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
                     .overlay(alignment: .topTrailing) {
                         VStack(alignment: .trailing, spacing: 4) {
                             if info?.isDRMProtected == true {
@@ -308,7 +304,7 @@ struct KindleBookDetailView: View {
 
                 if info?.isDRMProtected == true {
                     Label("Protégé par DRM (livre acheté) : lisible sur la Kindle, non convertible.", systemImage: "lock.fill")
-                        .font(.callout).foregroundStyle(.orange)
+                        .font(.callout).foregroundStyle(Palette.warning)
                 }
                 if info?.isGuessed == true {
                     Label("Format \(document.fileExtension.uppercased()) non analysable : titre déduit du nom de fichier.",

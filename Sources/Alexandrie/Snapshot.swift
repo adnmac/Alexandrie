@@ -8,8 +8,9 @@ import SwiftUI
 ///     ALEXANDRIE_STORE=/tmp/… ALEXANDRIE_SEED=1 ALEXANDRIE_SNAPSHOT=/tmp/alexandrie-shots Alexandrie
 ///
 /// écrit `<page>-light.png` et `<page>-dark.png` pour chaque page de la barre latérale, puis
-/// `reglages-light.png` et `reglages-dark.png`, et quitte. `ALEXANDRIE_SNAPSHOT_PAGES=tous,notes`
-/// limite les pages (ajouter `reglages` pour les réglages). Jamais sur les vraies données.
+/// `reglages-<onglet>-…` pour chaque onglet des réglages et `feuille-<nom>-…` pour chaque feuille, et quitte.
+/// `ALEXANDRIE_SNAPSHOT_PAGES=tous,notes` limite les pages (ajouter `reglages`, `feuilles`).
+/// Jamais sur les vraies données.
 @MainActor
 enum Snapshot {
     static var directory: String? {
@@ -42,7 +43,7 @@ enum Snapshot {
         ]
     }
 
-    static func run(library: LibraryStore, sidebar: Binding<SidebarItem?>, selection: Binding<Set<String>>,
+    static func run(library: LibraryStore, kindle: KindleMonitor, sidebar: Binding<SidebarItem?>, selection: Binding<Set<String>>,
                     notesBook: Binding<String?>, openSettings: OpenSettingsAction) async {
         guard let dir = directory else { return }
         guard AppDirectories.testStore != nil else {
@@ -80,21 +81,53 @@ enum Snapshot {
                 capture(to: "\(dir)/\(page.name)-\(mode).png")
             }
         }
+        if only == nil || only?.contains("feuilles") == true {
+            await captureSheets(library: library, kindle: kindle, dir: dir)
+        }
         if only == nil || only?.contains("reglages") == true {
             let main = mainWindow
             openSettings()
             try? await Task.sleep(for: .seconds(1))
             for mode in ["light", "dark"] {
                 NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
-                try? await Task.sleep(for: .seconds(0.8))
-                let settings = NSApp.windows.first { $0.isVisible && $0 !== main && !$0.isSheet && $0.canBecomeKey }
-                capture(to: "\(dir)/reglages-\(mode).png", window: settings)
+                for tab in SettingsTab.allCases {
+                    UserDefaults.standard.set(tab.rawValue, forKey: SettingsTab.storageKey)
+                    try? await Task.sleep(for: .seconds(0.8))
+                    let settings = NSApp.windows.first { $0.isVisible && $0 !== main && !$0.isSheet && $0.canBecomeKey }
+                    capture(to: "\(dir)/reglages-\(tab.rawValue)-\(mode).png", window: settings)
+                }
             }
         }
         print("SNAPSHOT done \(dir)")
         // Une feuille ouverte refuse la fermeture de l'app, et la commande attendrait sans fin.
         for window in NSApp.windows { if let sheet = window.attachedSheet { window.endSheet(sheet) } }
         NSApp.terminate(nil)
+    }
+
+    /// Feuilles qu'on ne peut pas ouvrir sans Kindle branchée : chacune dans une fenêtre de sa taille.
+    private static func captureSheets(library: LibraryStore, kindle: KindleMonitor, dir: String) async {
+        let document = KindleDocument(id: "exemple", path: "documents/Le Port des brumes.epub", size: 1_200_000)
+        let edits = MetadataEdits(title: "Le Port des brumes", authors: ["Hugo Lambert"],
+                                  publisher: "Éditions d'Exemple", series: "Commissaire Vidal", seriesIndex: 1)
+        let sheets: [(String, AnyView)] = [
+            ("liseuse", AnyView(NameReaderSheet())),
+            ("kindle", AnyView(KindleEditSheet(document: document, edits: edits))),
+        ]
+        for (name, view) in sheets {
+            let host = NSHostingController(rootView: view.environment(library).environment(kindle))
+            host.sizingOptions = [.preferredContentSize]
+            // Sans barre de titre, comme une feuille : la capture montre tout le contenu, rien d'autre.
+            let window = NSWindow(contentViewController: host)
+            window.styleMask = [.borderless]
+            window.center()
+            for mode in ["light", "dark"] {
+                NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+                window.makeKeyAndOrderFront(nil)
+                try? await Task.sleep(for: .seconds(0.8))
+                capture(to: "\(dir)/feuille-\(name)-\(mode).png", window: window)
+            }
+            window.orderOut(nil)
+        }
     }
 
     private static var mainWindow: NSWindow? {

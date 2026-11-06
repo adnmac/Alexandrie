@@ -5,6 +5,8 @@ et les charge sur une Kindle par USB. Voir `README.md` pour les fonctions et l'a
 
 Répondre, commenter et écrire les commits en français (Conventional Commits).
 
+Règles de design : `design/DESIGN-SYSTEM.md`. Utiliser ses jetons (`Palette`, `Radius`, `Motion`, `Surface`, `Layout`, `Space`) ; jamais de couleur, de rayon ou de durée brute.
+
 ## Skills BAMA
 
 Les skills de [BAMA](https://github.com/daveebbelaar/bama) sont dans `.claude/skills/`
@@ -22,7 +24,7 @@ correspondance ci-dessous à la place des commandes du modèle.
 | Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |
 | Swift 6, isolation par défaut | Swift 6 (`swiftLanguageModes: [.v6]`), **sans** isolation `MainActor` par défaut : annoter `@MainActor` |
 | `APP_STORE=/tmp/...` | `ALEXANDRIE_STORE=/tmp/...` : dossier de données de test (index, couvertures, conversions, imports). Le dossier de livres vient alors de `ALEXANDRIE_BOOKS` (jamais du signet de l'utilisateur), sans vérification en ligne ni recherche de mises à jour. Les autres réglages (`UserDefaults`) restent partagés |
-| `APP_SNAPSHOT` / `tools/snap.sh` / `APP_SEED=1` | `scripts/snap.sh` : 14 livres d'exemple (`SeedData.swift`) dans `/tmp/alexandrie-snap`, puis une capture par page de la barre latérale et des réglages, en clair et en sombre, dans `/tmp/alexandrie-shots` (`Snapshot.swift`). Bundle de test `be.adnmac.alexandrie.snapshot` (langue fr, réglages séparés). `ALEXANDRIE_SNAPSHOT_PAGES=tous,reglages` limite les pages |
+| `APP_SNAPSHOT` / `tools/snap.sh` / `APP_SEED=1` | `scripts/snap.sh` : 14 livres d'exemple (`SeedData.swift`) dans `/tmp/alexandrie-snap`, puis une capture par page de la barre latérale, par onglet des réglages (`reglages-<onglet>`) et par feuille (`feuille-<nom>`), en clair et en sombre, dans `/tmp/alexandrie-shots` (`Snapshot.swift`). Bundle de test `be.adnmac.alexandrie.snapshot` (langue fr, réglages séparés). `ALEXANDRIE_SNAPSHOT_PAGES=tous,reglages,feuilles` limite les pages |
 | `--selftest` / `tools/selftest.sh` | `scripts/selftest.sh` : compile en debug, vide `/tmp/alexandrie-selftest`, lance `Alexandrie --selftest` sans fenêtre (`Sources/Alexandrie/SelfTest.swift`). PASS/FAIL par étape, code 0 si tout passe. Refuse de tourner sans `ALEXANDRIE_STORE` ou sur un dossier non vide |
 | `release` | `scripts/release.sh X.Y.Z` (publie sur GitHub, l'app propose la mise à jour) |
 

@@ -41,7 +41,7 @@ struct MetadataFields: View {
         TextField("ISBN", text: optional(\.isbn), prompt: Text("978…"))
         if let isbn = edits.isbn, !isbn.isEmpty, !ISBN.isValid(isbn) {
             Label("ISBN invalide (clé de contrôle incorrecte)", systemImage: "exclamationmark.triangle")
-                .font(.caption).foregroundStyle(.orange)
+                .font(.caption).foregroundStyle(Palette.warning)
         }
         TextField("Langue", text: optional(\.language), prompt: Text("fr, en, de…"))
         TextField("Résumé", text: optional(\.summary), axis: .vertical)
@@ -73,8 +73,12 @@ struct KindleEditSheet: View {
     @State private var error: String?
 
     init(document: KindleDocument, info: KindleBookInfo) {
+        self.init(document: document, edits: info.edits)
+    }
+
+    init(document: KindleDocument, edits: MetadataEdits) {
         self.document = document
-        _edits = State(initialValue: info.edits)
+        _edits = State(initialValue: edits)
     }
 
     var body: some View {
@@ -89,7 +93,7 @@ struct KindleEditSheet: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if let error {
-                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red)
+                    Label(error, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Palette.danger)
                 }
             }
             .formStyle(.grouped)
@@ -107,7 +111,8 @@ struct KindleEditSheet: View {
             }
             .padding()
         }
-        .frame(width: 520)
+        .frame(width: Layout.sheet)
+        .noInitialFocus()
         .interactiveDismissDisabled(isSaving)
     }
 

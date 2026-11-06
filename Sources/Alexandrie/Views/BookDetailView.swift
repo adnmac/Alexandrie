@@ -83,7 +83,7 @@ struct BookDetailView: View {
                 }
                 if draft.isDRMProtected {
                     Label("Ce livre est protégé par DRM : il ne peut pas être converti.", systemImage: "lock.fill")
-                        .font(.callout).foregroundStyle(.orange)
+                        .font(.callout).foregroundStyle(Palette.warning)
                 }
 
                 Form {
@@ -238,8 +238,8 @@ struct BookDetailView: View {
         case .queued: Label("En attente…", systemImage: "hourglass").foregroundStyle(.secondary)
         case .converting: HStack { ProgressView().controlSize(.small); Text("Conversion en AZW3…") }
         case .sending: HStack { ProgressView().controlSize(.small); Text("Copie sur la Kindle…") }
-        case .done: Label("Envoyé sur la Kindle", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
-        case .failed(let message): Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(.red)
+        case .done: Label("Envoyé sur la Kindle", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.success)
+        case .failed(let message): Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Palette.danger)
         case nil: EmptyView()
         }
     }
@@ -286,7 +286,7 @@ struct MultiSelectionView: View {
             let done = books.filter { kindle.transfers[$0.id] == .done }.count
             let failed = books.filter { if case .failed = kindle.transfers[$0.id] { true } else { false } }.count
             if done + failed > 0 {
-                Text("\(done) envoyé(s), \(failed) échec(s)").foregroundStyle(failed > 0 ? .orange : .secondary)
+                Text("\(done) envoyé(s), \(failed) échec(s)").foregroundStyle(failed > 0 ? AnyShapeStyle(Palette.warning) : AnyShapeStyle(.secondary))
             }
         }
         .padding(Space.section)
@@ -388,12 +388,12 @@ struct CatalogSection: View {
         } else if library.catalogQueue.contains(book.id) {
             Label("En attente de vérification", systemImage: "hourglass").foregroundStyle(.secondary)
         } else if let error = library.catalogErrors[book.id] {
-            Label(error, systemImage: "wifi.exclamationmark").foregroundStyle(.orange)
+            Label(error, systemImage: "wifi.exclamationmark").foregroundStyle(Palette.warning)
             checkButton("Réessayer")
         } else if let record = book.catalogRecord {
             if suggestions.isEmpty {
                 Label("Informations conformes à la notice \(record.source)", systemImage: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Palette.success)
             } else {
                 let verdicts = coverVerdicts(suggestions)
                 let contradicted = Set(verdicts.compactMap { field, v in
@@ -486,11 +486,11 @@ struct CatalogSection: View {
         switch verdict {
         case .confirmed:
             Label("Lu sur la couverture", systemImage: "checkmark.circle")
-                .font(.caption).foregroundStyle(.green)
+                .font(.caption).foregroundStyle(Palette.success)
         case .contradicted(let value?):
             VStack(alignment: .leading, spacing: 4) {
                 Label("La couverture indique « \(value) »", systemImage: "exclamationmark.triangle")
-                    .font(.caption).foregroundStyle(.orange)
+                    .font(.caption).foregroundStyle(Palette.warning)
                 if d.field == .publisher {
                     // La couverture confirme la valeur actuelle : on la garde ; sinon on adopte celle de la couverture.
                     Button(value == d.current ? "Garder « \(value) »" : "Utiliser « \(value) »") {
@@ -503,7 +503,7 @@ struct CatalogSection: View {
             }
         case .contradicted(nil):
             Label("Absent de la couverture, qui porte la valeur actuelle", systemImage: "exclamationmark.triangle")
-                .font(.caption).foregroundStyle(.orange)
+                .font(.caption).foregroundStyle(Palette.warning)
         }
     }
 

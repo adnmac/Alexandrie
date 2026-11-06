@@ -205,7 +205,7 @@ struct NoteRow: View {
                 TextEditor(text: $draft)
                     .font(.body)
                     .frame(minHeight: 88)
-                    .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(.quaternary))
+                    .overlay(RoundedRectangle(cornerRadius: Radius.field).strokeBorder(.quaternary))
                 HStack {
                     if clipping.isEdited {
                         Text("Texte d'origine : « \(clipping.text) »").font(.caption).foregroundStyle(.secondary).lineLimit(2)
@@ -230,7 +230,7 @@ struct NoteRow: View {
                     Label((clipping.kind == .note ? "Note · " : "")
                           + [clipping.location, clipping.added].filter { !$0.isEmpty }.joined(separator: " · "),
                           systemImage: clipping.kind == .note ? "note.text" : "highlighter")
-                    if clipping.isEdited { Text("· modifiée").foregroundStyle(.orange) }
+                    if clipping.isEdited { Text("· modifiée").foregroundStyle(Palette.warning) }
                     Spacer()
                     Button("Modifier") {
                         draft = clipping.displayText

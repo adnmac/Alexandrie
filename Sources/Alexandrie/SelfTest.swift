@@ -184,9 +184,13 @@ struct SelfTest {
             // Transferable.exported(as:) n'existe qu'à partir de macOS 15.2.
             if #available(macOS 15.2, *) {
                 let item = BookDragItem(payload: BookDrag.payload([first.primary]), file: first.primary.url)
-                let fileData = try? await item.exported(as: .data)
-                check("glisser vers le Finder : copie identique du fichier",
-                      fileData != nil && fileData == (try? Data(contentsOf: first.primary.url)))
+                // Le Finder reçoit l'adresse d'une copie : même contenu, autre emplacement que la source.
+                let urlData = try? await item.exported(as: .fileURL)
+                let copy = urlData.flatMap { URL(dataRepresentation: $0, relativeTo: nil) }
+                check("glisser vers le Finder : copie du fichier, source à sa place",
+                      copy != nil && copy?.standardizedFileURL != first.primary.url.standardizedFileURL
+                      && (copy.flatMap { try? Data(contentsOf: $0) }) == (try? Data(contentsOf: first.primary.url))
+                      && fm.fileExists(atPath: first.primary.url.path), copy?.path ?? "rien")
                 let text = (try? await item.exported(as: .utf8PlainText)).flatMap { String(data: $0, encoding: .utf8) }
                 check("glisser vers une liseuse : livres relus", text.flatMap(BookDrag.ids) == [first.primary.id], text ?? "rien")
             }

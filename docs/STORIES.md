@@ -317,7 +317,8 @@ Screens: tous
 Depends: S-014
 Acceptance:
 - [manual] Le Finder reçoit un vrai fichier ; le glisser vers une liseuse marche toujours.
-- [self] Le glisser exporte une copie identique du fichier et la liste des livres, lue seulement par l'app.
+- [self] Le glisser exporte l'adresse d'une copie identique du fichier (la source reste en place) et la liste des livres, lue seulement par l'app.
+- Fix: `FileRepresentation` refusée par le Finder, voir `docs/FIXLOG.md`.
 UX:
 - Flow: glisser une carte de la grille vers le Finder ou le bureau -> une copie du fichier principal y apparaît ; glisser vers une liseuse de la barre latérale -> le livre (ou la sélection) rejoint son étagère, ⌘Z l'en retire
 - Surface: glisser-déposer, sans dialogue (le Finder montre le résultat)
@@ -365,7 +366,8 @@ UX:
 - States: titre introuvable : l'action échoue avec « Aucun livre « … » dans la bibliothèque » ; livre protégé ou format non pris en charge : « « … » ne peut pas être envoyé sur la Kindle »
 - Words: action « Envoyer à la Kindle », paramètre « Livre » ; résumé « Envoyer ${Livre} à la Kindle »
 - Access: utilisable par Siri et Spotlight avec les mêmes mots
-Status: done
+Blocked: l'action n'apparaît pas dans Raccourcis (essai du 2026-11-06). Métadonnées présentes et bien formées, mais produites par les outils de Xcode 27.2 sur macOS 27.0.1 ; Xcode signale ses composants plus récents que le système. Réessayer après la mise à jour macOS 27.2 ; sinon, schéma d'URL `alexandrie://` utilisable par « Ouvrir des URL ».
+Status: todo
 
 ## Later
 

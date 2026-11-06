@@ -21,3 +21,15 @@ Cause : `@SceneStorage` vit dans l'état de la fenêtre, que macOS jette au ⌘Q
 Correction : page et sélection gardées dans `@AppStorage` (`lastSidebarPage`, `lastSelectedBooks`).
 Rule: ce qui doit survivre au ⌘Q va dans `@AppStorage`, jamais dans `@SceneStorage` seul ; tester
 la relance avec le réglage macOS par défaut.
+
+## 2026-11-06 Glisser vers le bureau sans fichier (S-050)
+
+Symptôme : une carte glissée sur le bureau ne donnait pas de copie du livre. Avec l'ancienne version,
+un fichier texte « alexandrie-livres:… » ; avec la `FileRepresentation` de S-050, toujours pas de fichier.
+Cause : le Finder n'accepte pas la `FileRepresentation` d'un `Transferable` venu d'une autre app ;
+il attend l'adresse d'un fichier (`public.file-url`).
+Correction : `BookDragItem` exporte l'adresse d'une copie temporaire du livre (clone APFS), jamais le
+fichier de la bibliothèque, que le Finder pourrait déplacer sur le même disque. La liste des livres pour
+les liseuses passe en premier, visible de l'app seule.
+Rule: vers le Finder, exporter une URL de fichier, et toujours celle d'une copie ; vérifier le glisser
+à la main avec la version qui vient d'être construite (relancer l'app avant d'essayer).

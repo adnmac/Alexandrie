@@ -335,18 +335,29 @@ enum BookDrag {
 }
 
 /// Livre glissé hors de la grille, sous deux formes :
-/// - un fichier, que le Finder ou le bureau reçoivent en copie (le fichier source n'est jamais déplacé) ;
-/// - la liste des livres, lue seulement par l'app (liseuses de la barre latérale).
+/// - la liste des livres, lue seulement par l'app (liseuses de la barre latérale) ;
+/// - l'adresse d'une copie du fichier, que le Finder ou le bureau reçoivent. Une copie temporaire, pas le
+///   fichier de la bibliothèque : sur le même disque, le Finder pourrait déplacer ce qu'on lui donne.
+/// Une `FileRepresentation` ne suffit pas : le Finder ne l'accepte pas d'une autre app (S-050, FIXLOG).
 struct BookDragItem: Transferable {
     let payload: String
     let file: URL
 
     static var transferRepresentation: some TransferRepresentation {
-        FileRepresentation(exportedContentType: .data) { item in
-            SentTransferredFile(item.file, allowAccessingOriginalFile: false)
-        }
         ProxyRepresentation(exporting: \.payload)
             .visibility(.ownProcess)
+        ProxyRepresentation(exporting: { try $0.dragCopy() })
+    }
+
+    /// Copie dans un dossier temporaire à part, sous le nom du fichier (clone instantané sur APFS).
+    func dragCopy() throws -> URL {
+        let folder = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Alexandrie-glisser", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let copy = folder.appendingPathComponent(file.lastPathComponent)
+        try FileManager.default.copyItem(at: file, to: copy)
+        return copy
     }
 }
 

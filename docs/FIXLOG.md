@@ -33,3 +33,18 @@ fichier de la bibliothèque, que le Finder pourrait déplacer sur le même disqu
 les liseuses passe en premier, visible de l'app seule.
 Rule: vers le Finder, exporter une URL de fichier, et toujours celle d'une copie ; vérifier le glisser
 à la main avec la version qui vient d'être construite (relancer l'app avant d'essayer).
+
+## 2026-11-06 Action Raccourcis visible mais muette (S-053)
+
+Symptôme : sous macOS 27.2, « Envoyer à la Kindle » apparaît dans Raccourcis, mais le choix du livre
+ne s'ouvre pas et l'exécution échoue avec « LinkDaemon.ProcessRegistry.Errors erreur 0 ».
+Cause : `linkd` identifie l'app par le team ID de sa signature. « Alexandrie Dev » (auto-signé) n'en a
+pas : `linkd` journalise « Unable to get teamId » et coupe la connexion de l'app (« Unable to
+re-register with Process Instance Registry »). Les métadonnées seules suffisent à montrer l'action,
+pas à l'exécuter.
+Correction : `scripts/bundle.sh` signe d'abord avec un certificat Apple Development (gratuit, créé par
+Xcode). Le trousseau doit contenir l'intermédiaire Apple WWDR G3, sinon `codesign` échoue avec
+`errSecInternalComponent`.
+Rule: pour App Intents, vérifier `codesign -dv` (TeamIdentifier présent) et chercher « Registered
+process » dans `log show --predicate 'process == "Alexandrie"'` ; essayer l'action en l'exécutant,
+pas seulement en la voyant dans Raccourcis.

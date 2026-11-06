@@ -1,6 +1,6 @@
 #!/bin/zsh
-# Construit build/Alexandrie.app (release). Signé avec le certificat « Alexandrie Dev » s'il existe
-# (identité stable : macOS garde les autorisations d'une version à l'autre), sinon ad hoc.
+# Construit build/Alexandrie.app (release). Signé avec un certificat Apple Development s'il existe,
+# sinon « Alexandrie Dev » (identité stable : macOS garde les autorisations d'une version à l'autre), sinon ad hoc.
 # Autre certificat : ALEXANDRIE_SIGN_IDENTITY="Nom du certificat" scripts/bundle.sh
 set -e
 source "${0:A:h}/env.sh"
@@ -66,10 +66,15 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
-IDENTITY="${ALEXANDRIE_SIGN_IDENTITY:-Alexandrie Dev}"
+# Signature : un certificat Apple Development (gratuit, créé par Xcode > Réglages > Comptes) en priorité.
+# Raccourcis n'exécute l'action que si la signature porte un team ID : « Alexandrie Dev » n'en a pas
+# (linkd refuse alors la connexion de l'app, voir docs/FIXLOG.md).
+APPLE_DEV="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/"Apple Development: /{print $2; exit}')"
+IDENTITY="${ALEXANDRIE_SIGN_IDENTITY:-${APPLE_DEV:-Alexandrie Dev}}"
 if security find-identity -p codesigning 2>/dev/null | grep -qF "\"$IDENTITY\""; then
   codesign --force --sign "$IDENTITY" "$APP"
   echo "🔏 signé avec « $IDENTITY »"
+  [[ "$IDENTITY" == "Apple Development: "* ]] || echo "⚠️  signature sans team ID : l'action Raccourcis apparaît mais ne s'exécute pas"
 else
   codesign --force --sign - "$APP"
   echo "⚠️  certificat « $IDENTITY » introuvable : signature ad hoc (macOS peut redemander ses autorisations à chaque version)"

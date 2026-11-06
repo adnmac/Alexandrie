@@ -24,8 +24,12 @@ Autres scripts : `scripts/build.sh [release]`, `scripts/test.sh`, `scripts/selft
 
 ### Signature et versions
 
-`scripts/bundle.sh` signe l'app avec le certificat de signature de code « Alexandrie Dev » s'il existe
-(Trousseaux d'accès › Assistant de certification › Créer un certificat : racine auto-signée, signature de code).
+`scripts/bundle.sh` signe l'app avec un certificat **Apple Development** s'il existe (gratuit : Xcode › Réglages ›
+Comptes › ton identifiant Apple › Gérer les certificats › + › Apple Development ; le trousseau doit aussi contenir
+l'intermédiaire [Apple WWDR G3](https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer)).
+L'action Raccourcis ne s'exécute qu'avec ce certificat, qui porte un team ID.
+À défaut, il prend le certificat « Alexandrie Dev » (Trousseaux d'accès › Assistant de certification ›
+Créer un certificat : racine auto-signée, signature de code).
 Avec une signature stable, macOS garde les autorisations de l'app (disque de la Kindle…) d'une version à l'autre ;
 sans certificat, la signature est ad hoc.
 

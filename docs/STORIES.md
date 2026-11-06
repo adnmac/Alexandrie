@@ -360,14 +360,15 @@ Depends: S-040
 Acceptance:
 - [manual] L'action apparaît dans Raccourcis et met le livre en attente sans Kindle.
 - [self] `SendToKindle.run` met le livre en attente sans Kindle et répond « En attente de la Kindle ».
+- Fix: action visible mais muette sans team ID, voir `docs/FIXLOG.md`.
 UX:
 - Flow: Raccourcis > action « Envoyer à la Kindle » d'Alexandrie -> paramètre Livre (choisi dans la liste ou par titre) -> le livre part, ou passe en attente sans Kindle -> l'action rend « Envoyé » ou « En attente »
 - Surface: action App Intents, sans ouvrir de fenêtre
 - States: titre introuvable : l'action échoue avec « Aucun livre « … » dans la bibliothèque » ; livre protégé ou format non pris en charge : « « … » ne peut pas être envoyé sur la Kindle »
 - Words: action « Envoyer à la Kindle », paramètre « Livre » ; résumé « Envoyer ${Livre} à la Kindle »
 - Access: utilisable par Siri et Spotlight avec les mêmes mots
-Blocked: l'action n'apparaît pas dans Raccourcis (essai du 2026-11-06). Métadonnées présentes et bien formées, mais produites par les outils de Xcode 27.2 sur macOS 27.0.1 ; Xcode signale ses composants plus récents que le système. Réessayer après la mise à jour macOS 27.2 ; sinon, schéma d'URL `alexandrie://` utilisable par « Ouvrir des URL ».
-Status: todo
+Note: essai du 2026-11-06 sous macOS 27.2 : l'action apparaît, propose les livres et répond « En attente de la Kindle ». Sous macOS 27.0.1, les métadonnées produites par Xcode 27.2 étaient ignorées.
+Status: done
 
 ## Later
 

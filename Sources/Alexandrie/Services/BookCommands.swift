@@ -41,6 +41,7 @@ struct BookCommands {
         } else {
             let reader = kindle.readers.count == 1 ? kindle.readers[0].id : nil
             library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader) }
+            SendNotifier.prepare()
         }
     }
 }

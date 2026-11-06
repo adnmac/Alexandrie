@@ -343,15 +343,15 @@ Status: done
 Quand la Kindle est branchée et que la file part, une notification dit combien de livres sont arrivés.
 Depends: S-011
 Acceptance:
-- [unit] Le texte de la notification suit le nombre (1 livre, n livres, échecs).
+- [unit] Le texte de la notification suit le nombre (1 livre, n livres, échecs) : `SendSummaryTests`.
 - [manual] La permission est demandée au premier envoi en attente, pas au lancement.
 UX:
-- Flow: Kindle branchée -> la file d'attente part -> notification « 3 livres envoyés sur « Kindle de Léa » » ; un clic sur la notification ouvre la page de la liseuse
+- Flow: Kindle branchée -> la file d'attente part -> notification « 3 livres envoyés sur « Kindle de Léa » » ; un clic sur la notification ramène Alexandrie au premier plan
 - Surface: notification du système (information sans action requise, l'app peut être en arrière-plan)
 - States: permission demandée au premier envoi en attente, jamais au lancement ; refusée : rien ne s'affiche, l'envoi marche quand même ; échecs : « 2 livres envoyés, 1 échec » ; un seul livre : son titre
 - Words: titre « Livres envoyés sur la Kindle » ; corps « 3 livres envoyés sur « Kindle de Léa » » / « « Le Port des brumes » envoyé sur « Kindle de Léa » » / « 2 livres envoyés, 1 échec »
 - Access: le texte se suffit sans icône ni couleur
-Status: todo
+Status: done
 
 ### S-053 Envoyer un livre depuis Raccourcis
 Une action Raccourcis « Envoyer à la Kindle » prend un livre de la bibliothèque par son titre.

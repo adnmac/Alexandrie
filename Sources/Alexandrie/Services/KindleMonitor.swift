@@ -326,6 +326,10 @@ final class KindleMonitor {
         let pending = library.pendingSends(for: deviceID)
         guard !pending.isEmpty else { return }
         await send(pending, library: library)
+        // Notification : l'app peut être en arrière-plan quand la Kindle est branchée.
+        let sent = pending.filter { transfers[$0.id] == .done }.map(\.title)
+        let failed = pending.filter { if case .failed = transfers[$0.id] { true } else { false } }.count
+        SendNotifier.post(sent: sent, failed: failed, reader: currentReader?.name)
     }
 
     /// Réécrit les informations d'un livre sur l'appareil. Renvoie un message d'erreur, ou nil si succès.

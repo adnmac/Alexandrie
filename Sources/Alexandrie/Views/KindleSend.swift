@@ -18,13 +18,17 @@ struct KindleSendButton<Content: View>: View {
                     // Mise en attente annulable (⌘Z), comme la commande Kindle > Envoyer.
                     let reader = kindle.readers.first.map(\.id)
                     library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader) }
+                    SendNotifier.prepare()
                 }
             } label: { label() }
         } else {
             Menu {
                 Section("Envoyer à la connexion de") {
                     ForEach(kindle.readers) { reader in
-                        Button(reader.name) { library.queueForKindle(books, reader: reader.id) }
+                        Button(reader.name) {
+                            library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader.id) }
+                            SendNotifier.prepare()
+                        }
                     }
                 }
             } label: { label() }

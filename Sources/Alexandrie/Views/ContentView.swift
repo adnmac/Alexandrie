@@ -142,6 +142,9 @@ struct ContentView: View {
                 } else if sidebar == .kindle {
                     if let doc = kindle.documents.first(where: { $0.id == kindleSelection }) {
                         KindleBookDetailView(document: doc).id(doc.id)
+                    } else if kindle.device == nil {
+                        // Sans Kindle, le message de la liste suffit : pas de second message vide de sens.
+                        Color.clear
                     } else {
                         ContentUnavailableView("Aucun livre sélectionné", systemImage: "book.closed",
                                                description: Text("Choisissez un livre de la Kindle pour voir sa fiche."))

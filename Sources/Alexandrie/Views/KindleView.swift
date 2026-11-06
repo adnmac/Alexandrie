@@ -210,13 +210,11 @@ struct KindleView: View {
     }
 
     private var disconnectedHelp: String {
-        var s = "Branchez votre Kindle au Mac avec un câble USB et déverrouillez\u{2011}la."
+        // Texte court : il s'affiche dans la colonne étroite de la liste.
         if kindle.mtpAvailable {
-            s += "\nLes Kindle récentes (MTP) sont détectées automatiquement ; fermez Android File Transfer s'il est ouvert."
-        } else {
-            s += "\nLes Kindle récentes (depuis fin 2024) utilisent le protocole MTP : installez libmtp avec « brew install libmtp » puis relancez Alexandrie."
+            return "Branchez-la en USB et déverrouillez\u{2011}la. Fermez Android File Transfer s'il est ouvert."
         }
-        return s
+        return "Branchez-la en USB et déverrouillez\u{2011}la. Les Kindle récentes demandent libmtp : « brew install libmtp », puis relancez Alexandrie."
     }
 }
 

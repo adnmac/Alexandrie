@@ -373,7 +373,9 @@ public enum KindleTransfer {
         encoder.outputFormatting = .sortedKeys
         var key = (try? encoder.encode(book.edits)) ?? Data(book.title.utf8)
         // Un PDF rogné et le même en texte redimensionnable sont deux copies distinctes.
-        if book.format == .pdf, let mode = book.pdfMode, mode != .asIs { key += Data(mode.rawValue.utf8) }
+        if book.format == .pdf, let mode = book.pdfMode, mode != .asIs {
+            key += Data((mode == .cropped ? "\(mode.rawValue)-\(PDFCrop.version)" : mode.rawValue).utf8)
+        }
         let variant = SHA256.hash(data: key).prefix(4).map { String(format: "%02x", $0) }.joined()
         let ext = book.becomesAZW3 ? "azw3" : book.format.rawValue
         return directories.conversions.appendingPathComponent("\(book.fingerprint)-\(variant).\(ext)")

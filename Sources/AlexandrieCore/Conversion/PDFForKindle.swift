@@ -37,25 +37,49 @@ public enum PDFKindleMode: String, Codable, CaseIterable, Sendable {
 // MARK: - Rognage (S-064)
 
 public enum PDFCrop {
+    /// Version du calcul : la changer refait les copies rognées déjà en cache.
+    public static let version = 2
     /// Marge gardée autour du contenu, en points.
     static let padding: CGFloat = 6
 
-    /// Cadre commun du contenu visible (repère de la page), calculé sur un échantillon de pages.
-    /// Les pages pleine page (couverture, illustration) sont ignorées. Nil : rien à rogner.
-    public static func contentBox(of document: PDFDocument, samples: Int = 16) -> CGRect? {
+    /// Cadres rognés, un par page : même taille partout, pour que le texte garde sa taille d'une page à
+    /// l'autre, et centrés sur le contenu, pour des marges égales des deux côtés. Une page peu remplie
+    /// (fin de chapitre) se cale sur les pages pleines du même côté (pair ou impair) au lieu d'être centrée.
+    /// Les pages pleine page (couverture, illustration) ne comptent pas. Nil : rien à rogner.
+    public static func cropBoxes(of document: PDFDocument) -> [CGRect]? {
         guard document.pageCount > 0, let first = document.page(at: 0) else { return nil }
         let pageBox = first.bounds(for: .mediaBox)
-        let step = max(1, document.pageCount / samples)
-        var union: CGRect?
-        for index in stride(from: 0, to: document.pageCount, by: step) {
-            guard let page = document.page(at: index), let box = inkBox(of: page) else { continue }
-            // Page presque pleine : une image, pas du texte ; elle élargirait le cadre de toutes les pages.
-            if box.width * box.height > pageBox.width * pageBox.height * 0.9 { continue }
-            union = union.map { $0.union(box) } ?? box
+        let pages = (0..<document.pageCount).map { document.page(at: $0) }
+        let inks: [CGRect?] = pages.map { page in
+            guard let page, let box = inkBox(of: page) else { return nil }
+            // Page presque pleine : une image, pas du texte ; elle agrandirait le cadre de toutes les pages.
+            return box.width * box.height > pageBox.width * pageBox.height * 0.9 ? nil : box
         }
-        guard let content = union?.insetBy(dx: -padding, dy: -padding).intersection(pageBox),
-              content.width * content.height < pageBox.width * pageBox.height * 0.95 else { return nil }
-        return content.integral
+        let text = inks.compactMap { $0 }
+        guard let maxWidth = text.map(\.width).max(), let maxHeight = text.map(\.height).max() else { return nil }
+        let size = CGSize(width: min(pageBox.width, maxWidth + 2 * padding), height: min(pageBox.height, maxHeight + 2 * padding))
+        guard size.width * size.height < pageBox.width * pageBox.height * 0.95 else { return nil }
+
+        let isFull: (CGRect) -> Bool = { $0.width >= maxWidth * 0.8 && $0.height >= maxHeight * 0.8 }
+        // Position habituelle du texte, par côté : centre médian des pages pleines, sans la première
+        // (souvent une page de titre) quand il y en a d'autres.
+        func reference(parity: Int) -> CGPoint? {
+            let full = inks.enumerated().compactMap { i, ink in ink.flatMap { i % 2 == parity && isFull($0) ? (i, $0) : nil } }
+            let body = full.count > 1 ? full.filter { $0.0 > 0 }.map(\.1) : full.map(\.1)
+            guard !body.isEmpty else { return nil }
+            func median(_ values: [CGFloat]) -> CGFloat { values.sorted()[(values.count - 1) / 2] }
+            return CGPoint(x: median(body.map(\.midX)), y: median(body.map(\.midY)))
+        }
+        let references = [reference(parity: 0), reference(parity: 1)]
+        return pages.enumerated().map { i, page in
+            let media = page?.bounds(for: .mediaBox) ?? pageBox
+            let anchor = inks[i].flatMap { isFull($0) ? CGPoint(x: $0.midX, y: $0.midY) : nil }
+                ?? references[i % 2] ?? references[1 - i % 2] ?? CGPoint(x: media.midX, y: media.midY)
+            let x = min(max(anchor.x - size.width / 2, media.minX), media.maxX - size.width)
+            let y = min(max(anchor.y - size.height / 2, media.minY), media.maxY - size.height)
+            return CGRect(x: x.rounded(), y: y.rounded(), width: size.width.rounded(), height: size.height.rounded())
+                .intersection(media)
+        }
     }
 
     /// Cadre des pixels non blancs d'une page, rendue à 72 points par pouce, en points de la page.
@@ -87,11 +111,9 @@ public enum PDFCrop {
     /// Écrit une copie rognée (l'original n'est jamais modifié), avec les informations corrigées.
     public static func write(_ input: URL, to output: URL, edits: MetadataEdits?) throws {
         guard let document = PDFDocument(url: input) else { throw BookError.unreadable("PDF invalide") }
-        if let content = contentBox(of: document) {
-            for index in 0..<document.pageCount {
+        if let boxes = cropBoxes(of: document) {
+            for (index, crop) in boxes.enumerated() where !crop.isEmpty {
                 guard let page = document.page(at: index) else { continue }
-                let crop = content.intersection(page.bounds(for: .mediaBox))
-                guard !crop.isEmpty else { continue }
                 page.setBounds(crop, for: .mediaBox)
                 page.setBounds(crop, for: .cropBox)
             }

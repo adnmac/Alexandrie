@@ -39,11 +39,12 @@ func makePDF(pages: [[String]], at url: URL, left: CGFloat = 100, top: CGFloat =
         let original = try Data(contentsOf: input)
 
         let document = try #require(PDFDocument(url: input))
-        let content = try #require(PDFCrop.contentBox(of: document))
+        let boxes = try #require(PDFCrop.cropBoxes(of: document))
         let firstPage = try #require(document.page(at: 0))
         let ink = try #require(PDFCrop.inkBox(of: firstPage))
-        #expect(content.contains(ink))
-        #expect(content.width < 420 * 0.9 && content.height < 595 * 0.5)
+        #expect(boxes.count == 4)
+        #expect(boxes[0].contains(ink))
+        #expect(boxes[0].width < 420 * 0.9 && boxes[0].height < 595 * 0.5)
 
         try PDFCrop.write(input, to: output, edits: MetadataEdits(title: "Titre corrigé", authors: ["Claire Morel"]))
         let cropped = try #require(PDFDocument(url: output))
@@ -52,6 +53,36 @@ func makePDF(pages: [[String]], at url: URL, left: CGFloat = 100, top: CGFloat =
         #expect(page.string?.contains("brume couvrait") == true)
         #expect(cropped.documentAttributes?[PDFDocumentAttribute.titleAttribute] as? String == "Titre corrigé")
         #expect(try Data(contentsOf: input) == original)
+    }
+
+    /// Cas réel : une page de titre plus large que les autres ne doit pas décentrer les pages suivantes.
+    @Test func croppedPagesKeepEvenMargins() throws {
+        let input = tempDirectory().appendingPathComponent("titre.pdf")
+        var box = CGRect(x: 0, y: 0, width: 420, height: 595)
+        let context = try #require(CGContext(input as CFURL, mediaBox: &box, nil))
+        // Page 1 : titre large qui commence plus à gauche et plus haut ; pages 2 à 4 : texte ;
+        // page 5 : fin de chapitre, deux lignes seulement.
+        let blocks: [(x: CGFloat, top: CGFloat, width: CGFloat, height: CGFloat)] = [
+            (50, 560, 320, 500), (80, 520, 260, 440), (80, 520, 260, 440), (80, 520, 260, 440), (80, 520, 120, 30),
+        ]
+        for b in blocks {
+            context.beginPDFPage(nil)
+            context.setFillColor(gray: 0, alpha: 1)
+            context.fill(CGRect(x: b.x, y: b.top - b.height, width: b.width, height: b.height))
+            context.endPDFPage()
+        }
+        context.closePDF()
+
+        let document = try #require(PDFDocument(url: input))
+        let boxes = try #require(PDFCrop.cropBoxes(of: document))
+        #expect(boxes.allSatisfy { $0.size == boxes[0].size }, "même taille partout : \(boxes.map(\.size))")
+        for i in 1...3 {
+            let left = 80 - boxes[i].minX, right = boxes[i].maxX - 340
+            let bottom = 80 - boxes[i].minY, top = boxes[i].maxY - 520
+            #expect(abs(left - right) <= 1 && abs(top - bottom) <= 1, "page \(i + 1) : \(boxes[i])")
+        }
+        // La fin de chapitre reste là où commence le texte des pages pleines du même côté.
+        #expect(boxes[4] == boxes[2], "\(boxes[4]) / \(boxes[2])")
     }
 
     @Test func paragraphsJoinLinesAndDropPageFurniture() {

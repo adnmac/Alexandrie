@@ -323,6 +323,11 @@ final class KindleMonitor {
     // MARK: - Envoi
 
     func send(_ books: [Book], library: LibraryStore) async {
+        // Essai terminé sans licence : l'envoi est la fonction réservée aux acheteurs (docs/VENTE.md).
+        guard Licensing.shared.canSend else {
+            lastError = Licensing.sendRefused
+            return
+        }
         guard let device else {
             lastError = KindleError.notConnected.localizedDescription
             return

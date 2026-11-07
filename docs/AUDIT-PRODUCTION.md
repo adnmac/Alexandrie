@@ -116,7 +116,15 @@ Corrigé le 7 novembre 2026, chaque point vérifié par le selftest ou une captu
 - **Rapports de plantage (MetricKit).** Gardés dans `Rapports/`, proposés au lancement suivant (« Afficher dans le Finder », « Ne pas envoyer », « Envoyer par e-mail… »). Le bouton d'e-mail n'apparaît que si `ALEXANDRIE_SUPPORT_EMAIL` est défini au moment de `scripts/bundle.sh`.
 - **User-Agent unique.** `Alexandrie/<version> (macOS)` pour toutes les requêtes, téléchargement compris.
 
-## 7. Ordre proposé
+## 7. Étapes 3 et 4 faites (7 novembre 2026)
+
+Sans Developer ID : l'étape 2 est écartée (voir `docs/VENTE.md`).
+
+- **Dépôt privé.** `adnmac/Alexandrie` est privé. Les versions sont publiées dans le dépôt public `adnmac/Alexandrie-versions`, que l'app consulte ; elle ne compare plus de commits. `scripts/release.sh` y publie.
+- **Vente sur le site de l'éditeur.** Clés de licence signées (Ed25519), vérifiées par l'app sans serveur. Essai de 14 jours, puis l'envoi à la Kindle demande une clé. Onglet Réglages > Licence et bandeau des derniers jours d'essai. Clés délivrées par `scripts/licence.swift`, ou par le site (fonction PHP dans `docs/VENTE.md`).
+- **Textes.** Modèles dans `docs/legal/` : conditions de vente et de licence, mentions légales, politique de confidentialité. Ils sont à compléter (identité, prix, prestataires) et à faire relire.
+
+## 8. Ordre proposé
 
 1. ~~**Code, sans dépendre d'un achat.**~~ Fait (voir § 6).
 2. **Compte Apple :** Developer ID, *hardened runtime*, notarisation dans `scripts/release.sh`, conservation des `.dSYM`.

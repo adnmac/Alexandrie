@@ -66,6 +66,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>AlexandrieCommit</key><string>${COMMIT}</string>
   <!-- Adresse qui reçoit les rapports de plantage que l'utilisateur choisit d'envoyer (vide : Finder seulement). -->
   <key>AlexandrieSupportEmail</key><string>${ALEXANDRIE_SUPPORT_EMAIL:-}</string>
+  <!-- Site de vente (docs/VENTE.md) : page d'achat, conditions de vente, politique de confidentialité. -->
+  <key>AlexandrieStoreURL</key><string>${ALEXANDRIE_STORE_URL:-}</string>
+  <key>AlexandrieTermsURL</key><string>${ALEXANDRIE_TERMS_URL:-}</string>
+  <key>AlexandriePrivacyURL</key><string>${ALEXANDRIE_PRIVACY_URL:-}</string>
   <!-- Explications des autorisations demandées par macOS (audit, § 3). -->
   <key>NSRemovableVolumesUsageDescription</key><string>Alexandrie envoie vos livres à votre Kindle et lit ses notes et surlignages quand elle est branchée.</string>
   <key>NSDocumentsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Documents, sans les modifier.</string>

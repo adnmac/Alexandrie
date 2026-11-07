@@ -36,5 +36,6 @@ NOTES="$(git log ${PREVIOUS:+$PREVIOUS..}HEAD --pretty='- %s' | grep -v '^- chor
 
 git tag -a "$TAG" -m "Alexandrie $VERSION"
 git push -q origin main "$TAG"
-gh release create "$TAG" "$ZIP" --title "Alexandrie $VERSION" --notes "${NOTES:-Version $VERSION}"
+# Le code est privé : la version publiée va dans le dépôt public des versions, que l'app consulte.
+gh release create "$TAG" "$ZIP" --repo adnmac/Alexandrie-versions --title "Alexandrie $VERSION" --notes "${NOTES:-Version $VERSION}"
 echo "✅ Alexandrie $VERSION publiée"

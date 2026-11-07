@@ -496,7 +496,7 @@ Depends: S-070
 Acceptance:
 - [self] Ouvrir un surlignage de l'app positionne la fenêtre de lecture sur son passage.
 - [manual] Les surlignages de la Kindle, sans position fiable, n'offrent pas cette action.
-Status: doing
+Status: done
 
 ### S-073 Choisir la couleur d'un surlignage
 Je surligne en jaune, vert, bleu, rose ou violet, et je change la couleur d'un surlignage existant ; le menu de PDFKit et de WebKit, qui n'enregistrait rien, disparaît de la fenêtre de lecture.
@@ -523,7 +523,7 @@ Acceptance:
 - [unit] Une recherche garde son nom et ses thèmes (nom et couleur) ; une nouvelle recherche part des cinq couleurs ; une couleur ajoutée reçoit sa teinte.
 - [self] Les recherches sont relues au redémarrage ; supprimer une recherche ou un thème rend aux surlignages concernés la couleur de base la plus proche.
 - [snap] La feuille « Recherches » : la liste des recherches, la légende de celle choisie, une couleur ajoutée.
-Status: doing
+Status: done
 
 ### S-076 Surligner dans une recherche
 Dans la fenêtre de lecture, je choisis la recherche en cours pour ce livre ; les couleurs proposées portent les noms de ses thèmes, et chaque surlignage garde sa recherche, même si le livre sert à une autre ensuite.
@@ -532,7 +532,7 @@ Acceptance:
 - [self] Un surlignage fait dans une recherche est enregistré avec sa recherche et son thème, et dessiné de la couleur du thème ; la recherche choisie est retenue par livre.
 - [snap] La fenêtre de lecture montre la recherche choisie dans sa barre d'outils.
 - [manual] Le clic droit et la bulle de note proposent les thèmes par leur nom, à côté de leur couleur.
-Status: doing
+Status: done
 
 ### S-077 Notes et export par thème
 Dans « Notes et surlignages », chaque surlignage montre son thème ; je filtre et j'exporte par thème.
@@ -540,7 +540,7 @@ Depends: S-076
 Acceptance:
 - [unit] Le filtre garde les thèmes choisis ; l'export Markdown nomme le thème de chaque surlignage.
 - [snap] La page Notes montre le nom du thème à côté de la couleur, et le menu de filtre porte les noms des thèmes.
-Status: doing
+Status: done
 
 ### S-078 Exporter toute une recherche par thème
 Pour rédiger, j'exporte une recherche entière : tous ses livres, classés par thème, chaque passage avec sa source et sa note.
@@ -549,7 +549,7 @@ Acceptance:
 - [unit] Le Markdown suit l'ordre de la légende, saute les thèmes vides, range les passages par livre puis en ordre de lecture, et donne pour chacun le livre, l'auteur, l'emplacement et la note.
 - [snap] La feuille « Recherches » propose « Exporter la recherche… » avec le nombre de passages.
 - [manual] Le fichier enregistré s'ouvre dans un éditeur Markdown, un titre par thème.
-Status: doing
+Status: done
 
 ### S-079 Séparer couleurs et thématiques
 Une thématique (« Rénovation des voiries ») classe des surlignages ; ses couleurs nomment des catégories (jaune = construction, bleu = analyse des coûts). Un passage a une couleur et peut appartenir à plusieurs thématiques : deux sélecteurs, « Couleurs » et « Thématiques », dans la lecture comme dans « Notes et surlignages ».
@@ -559,7 +559,7 @@ Acceptance:
 - [self] Les surlignages des recherches d'avant sont repris : leur thématique et leur couleur sont gardées. Supprimer une thématique la retire des surlignages sans toucher à leur couleur.
 - [snap] La page Notes montre les menus « Couleurs » et « Thématiques » ; la fenêtre de lecture, la thématique choisie ; la feuille « Thématiques », une légende nommée.
 - [manual] Le clic droit et la bulle de note proposent « Couleur » (catégories nommées) et « Thématiques » (à cocher).
-Status: doing
+Status: done
 
 ### S-080 Toutes les notes d'une thématique
 Dans la barre latérale, chaque thématique ouvre toutes ses notes et surlignages, de tous les livres de la bibliothèque ; je les trie par couleur (catégorie), par livre ou par date, je filtre par couleur et j'exporte dans l'ordre choisi.
@@ -568,7 +568,7 @@ Acceptance:
 - [unit] Les passages d'une thématique se rangent par couleur nommée (ordre de la légende), par livre (alphabétique, puis ordre de lecture) ou par date d'ajout (récents d'abord) ; l'export suit le même ordre.
 - [snap] La section « Thématiques » de la barre latérale et la page d'une thématique, triée par couleur.
 - [manual] Un clic sur le titre du livre d'un passage montre sa fiche.
-Status: doing
+Status: done
 
 ### S-081 Indexer le texte des livres
 Alexandrie lit une fois le texte de chaque livre (EPUB, MOBI, AZW3, PDF) et le garde dans un index, en arrière-plan, pour chercher dans le contenu sans attendre.

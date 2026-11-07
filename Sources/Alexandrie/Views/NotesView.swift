@@ -22,7 +22,7 @@ struct NotesBookList: View {
             ContentUnavailableView(search.isEmpty ? "Aucune note pour l'instant" : "Aucun résultat",
                                    systemImage: "highlighter",
                                    description: Text(search.isEmpty
-                                        ? "Les surlignages et notes faits sur une Kindle sont importés à chacune de ses connexions."
+                                        ? "Les surlignages et notes faits sur une Kindle sont importés à chacune de ses connexions ; ceux faits dans la fenêtre de lecture s'y ajoutent."
                                         : "Aucun livre ni aucune note ne contient « \(search) »."))
         } else {
             List(books, selection: $selection) { b in
@@ -50,7 +50,7 @@ struct NotesBookList: View {
         guard !query.isEmpty else { return all }
         return all.filter { b in
             b.title.localizedStandardContains(query) || b.author.localizedStandardContains(query)
-                || b.clippings.contains { $0.displayText.localizedStandardContains(query) }
+                || b.clippings.contains { $0.matches(query) }
         }
     }
 }
@@ -59,6 +59,7 @@ struct NotesBookList: View {
 struct NotesEditor: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(ResearchStore.self) private var researches
     let bookKey: String
 
     enum KindFilter: String, CaseIterable, Identifiable {
@@ -74,6 +75,21 @@ struct NotesEditor: View {
     @State private var kind: KindFilter = .all
     @State private var order: Order = .reading
     @State private var filter = ""
+    /// Couleurs (teintes « #RRGGBB ») et thématiques gardées (S-074, S-079), retenues d'un livre et d'un
+    /// lancement à l'autre ; vide = toutes.
+    @AppStorage("notesHues") private var storedColors = ""
+    @AppStorage("notesThematics") private var storedThematics = ""
+    @State private var managesResearches = false
+
+    private var colors: Set<String> {
+        get { Set(storedColors.split(separator: ",").map(String.init)) }
+        nonmutating set { storedColors = newValue.sorted().joined(separator: ",") }
+    }
+
+    private var thematics: Set<String> {
+        get { Set(storedThematics.split(separator: ",").map(String.init)) }
+        nonmutating set { storedThematics = newValue.sorted().joined(separator: ",") }
+    }
 
     var body: some View {
         if let entry = kindle.clippingBooks.first(where: { $0.id == bookKey }) {
@@ -124,12 +140,29 @@ struct NotesEditor: View {
             ViewThatFits(in: .horizontal) {
                 HStack {
                     kindPicker
+                    thematicMenu(entry)
+                    colorMenu(entry)
                     orderPicker
                     Spacer(minLength: 8)
                     count(entry, shown: shown)
                 }
                 VStack(alignment: .leading, spacing: 8) {
                     kindPicker
+                    HStack {
+                        thematicMenu(entry)
+                        colorMenu(entry)
+                        orderPicker
+                        Spacer(minLength: 8)
+                        count(entry, shown: shown)
+                    }
+                }
+                // Colonne étroite : les filtres sur une ligne, l'ordre et le compteur sur la suivante.
+                VStack(alignment: .leading, spacing: 8) {
+                    kindPicker
+                    HStack {
+                        thematicMenu(entry)
+                        colorMenu(entry)
+                    }
                     HStack {
                         orderPicker
                         Spacer(minLength: 8)
@@ -150,6 +183,83 @@ struct NotesEditor: View {
             .pickerStyle(.segmented).labelsHidden().fixedSize()
     }
 
+    /// Thématique qui nomme les couleurs : la seule choisie dans le filtre, sinon celles de chaque surlignage.
+    private var namingThematic: String? { thematics.count == 1 ? thematics.first : nil }
+
+    /// Couleurs des surlignages de ce livre (S-074, S-079), nommées ; les couleurs de base d'abord.
+    private func marks(_ entry: ClippingBook) -> [HighlightMark] {
+        var seen = Set<String>()
+        let used = entry.clippings.filter { $0.kind == .highlight }
+            .map { researches.mark(of: $0, in: namingThematic) }.filter { seen.insert($0.key).inserted }
+        let base = HighlightColor.allCases.map(\.hex)
+        return used.sorted { (base.firstIndex(of: $0.key) ?? .max, $0.label) < (base.firstIndex(of: $1.key) ?? .max, $1.label) }
+    }
+
+    /// Thématiques des surlignages de ce livre.
+    private func thematicsOf(_ entry: ClippingBook) -> [Research] {
+        let used = Set(entry.clippings.flatMap(\.thematicIDs))
+        return researches.researches.filter { used.contains($0.id) }
+    }
+
+    /// Couleurs gardées dans la liste, la copie et l'export (S-074) : toutes, une ou plusieurs.
+    private func colorMenu(_ entry: ClippingBook) -> some View {
+        let available = marks(entry)
+        return Menu {
+            Button {
+                colors = []
+            } label: {
+                if colors.isEmpty { Label("Toutes les couleurs", systemImage: "checkmark") } else { Text("Toutes les couleurs") }
+            }
+            Divider()
+            ForEach(available) { mark in
+                Toggle(isOn: Binding(get: { colors.contains(mark.key) }, set: { on in
+                    if on { colors.insert(mark.key) } else { colors.remove(mark.key) }
+                })) {
+                    Label { Text(mark.label) } icon: {
+                        Image(systemName: "circle.fill").foregroundStyle(mark.swatch)
+                    }
+                }
+            }
+        } label: {
+            Text(title(available.filter { colors.contains($0.key) }.map(\.label), none: "Couleurs", many: "couleurs"))
+        }
+        .fixedSize()
+        .help("Couleurs gardées dans la liste, la copie et l'export ; les notes seules de la Kindle n'ont pas de couleur")
+    }
+
+    /// Thématiques gardées (S-079) : une seule nomme aussi les couleurs selon sa légende.
+    private func thematicMenu(_ entry: ClippingBook) -> some View {
+        let available = thematicsOf(entry)
+        return Menu {
+            Button {
+                thematics = []
+            } label: {
+                if thematics.isEmpty { Label("Toutes les thématiques", systemImage: "checkmark") } else { Text("Toutes les thématiques") }
+            }
+            if !available.isEmpty { Divider() }
+            ForEach(available) { thematic in
+                Toggle(thematic.name, isOn: Binding(get: { thematics.contains(thematic.id) }, set: { on in
+                    if on { thematics.insert(thematic.id) } else { thematics.remove(thematic.id) }
+                }))
+            }
+            Divider()
+            Button("Gérer les thématiques…") { managesResearches = true }
+        } label: {
+            Text(title(available.filter { thematics.contains($0.id) }.map(\.name), none: "Thématiques", many: "thématiques"))
+        }
+        .fixedSize()
+        .help("Thématiques gardées dans la liste, la copie et l'export ; une seule nomme les couleurs selon sa légende")
+        .sheet(isPresented: $managesResearches) { ResearchesSheet() }
+    }
+
+    private func title(_ chosen: [String], none: String, many: String) -> String {
+        switch chosen.count {
+        case 0: none
+        case 1: chosen[0]
+        default: "\(chosen.count) \(many)"
+        }
+    }
+
     private var orderPicker: some View {
         Picker("Ordre", selection: $order) { ForEach(Order.allCases) { Text($0.rawValue).tag($0) } }
             .labelsHidden().fixedSize()
@@ -168,10 +278,15 @@ struct NotesEditor: View {
         case .highlights: list = list.filter { $0.kind == .highlight }
         case .notes: list = list.filter { $0.kind == .note }
         }
+        // Un choix fait pour un autre livre n'efface pas tout : seuls comptent les couleurs et thématiques de ce livre.
+        let ids = thematics.intersection(list.flatMap(\.thematicIDs))
+        list = KindleClippings.withThematics(list, ids)
+        let keys = colors.intersection(list.filter { $0.kind == .highlight }.map(\.colorHex))
+        list = KindleClippings.withMarks(list, keys, mark: \.colorHex)
         let query = filter.trimmingCharacters(in: .whitespaces)
-        if !query.isEmpty { list = list.filter { $0.displayText.localizedStandardContains(query) } }
+        if !query.isEmpty { list = list.filter { $0.matches(query) } }
         // Les relevés arrivent dans l'ordre du fichier de la Kindle, donc par date d'ajout.
-        if order == .reading { list = list.enumerated().sorted { ($0.element.position, $0.offset) < ($1.element.position, $1.offset) }.map(\.element) }
+        if order == .reading { list = KindleClippings.readingOrder(list) }
         return list
     }
 
@@ -182,7 +297,12 @@ struct NotesEditor: View {
         panel.nameFieldStringValue = "Notes - \(title)".safeFilename + ".md"
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
-        let md = KindleClippings.markdown(title: title, author: book?.authorLine ?? entry.author, clippings: clippings)
+        // Chaque surlignage nommé par sa couleur (catégorie de sa thématique), sauf le jaune sans thématique.
+        let naming = namingThematic
+        let md = KindleClippings.markdown(title: title, author: book?.authorLine ?? entry.author, clippings: clippings) { c in
+            let mark = researches.mark(of: c, in: naming)
+            return c.thematicIDs.isEmpty && mark.key == HighlightColor.yellow.hex ? nil : mark.label
+        }
         do {
             try md.write(to: url, atomically: true, encoding: .utf8)
         } catch {
@@ -194,8 +314,10 @@ struct NotesEditor: View {
 /// Un relevé : lecture, modification sur place, retour au texte d'origine, suppression.
 struct NoteRow: View {
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(ResearchStore.self) private var researches
     let clipping: Clipping
     @State private var editing = false
+    @State private var editingNote = false
     @State private var draft = ""
     @State private var confirmDelete = false
 
@@ -226,30 +348,97 @@ struct NoteRow: View {
                     .font(clipping.kind == .note ? .body.italic() : .body)
                     .textSelection(.enabled)
                     .fixedSize(horizontal: false, vertical: true)
+                if editingNote {
+                    HighlightNoteEditor(clipping: clipping) { editingNote = false }
+                } else if let note = clipping.note, clipping.hasNote {
+                    // Note du surlignage (S-071), sous son passage.
+                    Label {
+                        Text(note).italic().textSelection(.enabled).fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "note.text").foregroundStyle(.secondary)
+                    }
+                    .accessibilityLabel("Note : \(note)")
+                }
                 HStack(spacing: 8) {
-                    Label((clipping.kind == .note ? "Note · " : "")
-                          + [clipping.location, clipping.added].filter { !$0.isEmpty }.joined(separator: " · "),
-                          systemImage: clipping.kind == .note ? "note.text" : "highlighter")
+                    // Thème nommé (S-077) : « Anthropologie · chapitre 2 · … ».
+                    // Couleur nommée et thématiques (S-079) : « Construction · Voiries · chapitre 2 · … ».
+                    let theme = clipping.kind == .highlight && !clipping.thematicIDs.isEmpty
+                        ? ([researches.mark(of: clipping).label] + researches.thematicNames(of: clipping)).joined(separator: " · ") : ""
+                    let meta = (clipping.kind == .note ? "Note · " : "")
+                        + [theme, clipping.location, clipping.added].filter { !$0.isEmpty }.joined(separator: " · ")
+                    Label {
+                        // Fait dans la fenêtre de lecture (S-070) : marqué « Alexandrie », pas « Kindle ».
+                        if clipping.isFromApp {
+                            Text("\(Text("Alexandrie").fontWeight(.semibold)) · \(meta)")
+                                .help("Surligné dans la fenêtre de lecture d'Alexandrie, pas sur la Kindle")
+                        } else {
+                            Text(meta)
+                        }
+                    } icon: {
+                        // Surlignage : à sa couleur (S-073).
+                        if clipping.kind == .note {
+                            Image(systemName: "note.text")
+                        } else {
+                            Image(systemName: "highlighter").foregroundStyle(researches.mark(of: clipping).swatch)
+                        }
+                    }
                     if clipping.isEdited { Text("· modifiée").foregroundStyle(Palette.warning) }
                     Spacer()
-                    Button("Modifier") {
-                        draft = clipping.displayText
-                        editing = true
+                    if clipping.kind == .highlight && !editingNote {
+                        Button(clipping.hasNote ? "Modifier la note" : "Ajouter une note") { editingNote = true }
+                            .fixedSize()
+                            .help(clipping.isFromApp ? "Note visible aussi dans la fenêtre de lecture"
+                                  : "Note gardée dans Alexandrie ; la Kindle n'est pas modifiée")
                     }
-                    if clipping.isEdited {
-                        Button("Rétablir l'original") { kindle.revertClipping(clipping.id) }
+                    Menu {
+                        Button("Modifier le texte") {
+                            draft = clipping.displayText
+                            editing = true
+                        }
+                        if clipping.isEdited {
+                            Button("Rétablir l'original") { kindle.revertClipping(clipping.id) }
+                        }
+                        if clipping.kind == .highlight {
+                            Picker("Couleur", selection: Binding(get: { researches.mark(of: clipping).key }, set: { key in
+                                if let mark = researches.marks(for: clipping).first(where: { $0.key == key }) {
+                                    researches.apply(mark, to: clipping.id)
+                                }
+                            })) {
+                                ForEach(researches.marks(for: clipping)) { Text($0.label).tag($0.key) }
+                            }
+                            if !researches.researches.isEmpty {
+                                Menu("Thématiques") {
+                                    ForEach(researches.researches) { thematic in
+                                        Toggle(thematic.name, isOn: Binding(get: { clipping.thematicIDs.contains(thematic.id) }, set: { on in
+                                            researches.setThematic(thematic.id, on: on, for: clipping.id)
+                                        }))
+                                    }
+                                }
+                            }
+                        }
+                        Divider()
+                        Button("Supprimer…", role: .destructive) { confirmDelete = true }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
                     }
-                    Button("Supprimer", role: .destructive) { confirmDelete = true }
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .fixedSize()
+                    .help("Autres actions")
+                    .accessibilityLabel("Autres actions")
                 }
                 .font(.caption).foregroundStyle(.secondary)
                 .buttonStyle(.borderless)
             }
         }
         .padding(.vertical, Space.md)
-        .confirmationDialog("Supprimer ce relevé d'Alexandrie ?", isPresented: $confirmDelete) {
+        .confirmationDialog(clipping.isFromApp ? "Supprimer ce surlignage ?" : "Supprimer ce relevé d'Alexandrie ?",
+                            isPresented: $confirmDelete) {
             Button("Supprimer", role: .destructive) { kindle.deleteClipping(clipping.id) }
         } message: {
-            Text("Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La Kindle n'est pas modifiée.")
+            Text(clipping.isFromApp
+                 ? "Il disparaît aussi de la fenêtre de lecture. Le fichier du livre n'est pas modifié."
+                 : "Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La Kindle n'est pas modifiée.")
         }
     }
 }

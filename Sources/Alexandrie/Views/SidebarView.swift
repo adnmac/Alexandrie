@@ -4,7 +4,10 @@ import SwiftUI
 struct SidebarView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
+    @Environment(ResearchStore.self) private var researches
     @Binding var selection: SidebarItem?
+    @AppStorage("sidebarThematicsExpanded") private var thematicsExpanded = true
+    @State private var managesThematics = false
     /// États replié/déplié mémorisés : la liste des auteurs peut compter des centaines d'entrées.
     @AppStorage("sidebarAuthorsExpanded") private var authorsExpanded = false
     @AppStorage("sidebarFormatsExpanded") private var formatsExpanded = true
@@ -29,6 +32,22 @@ struct SidebarView: View {
                 row("Corbeille", library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
                     count: library.trashedBooks.count)
                     .help("Livres supprimés, restaurables tant que la corbeille n'est pas vidée")
+            }
+
+            // Thématiques (S-080) : chacune ouvre toutes ses notes, de tous les livres.
+            if !researches.researches.isEmpty {
+                Section {
+                    CollapsibleHeader(title: "Thématiques", count: researches.researches.count, isExpanded: $thematicsExpanded)
+                    if thematicsExpanded {
+                        ForEach(researches.researches) { thematic in
+                            row(thematic.name.isEmpty ? "Sans titre" : thematic.name, "tag", .thematic(thematic.id),
+                                count: researches.highlightCount(research: thematic.id))
+                                .help("Toutes les notes et surlignages de « \(thematic.name) », de tous les livres")
+                                .contextMenu { Button("Gérer les thématiques…") { managesThematics = true } }
+                        }
+                    }
+                }
+                .sheet(isPresented: $managesThematics) { ResearchesSheet() }
             }
 
             Section("Kindle") {

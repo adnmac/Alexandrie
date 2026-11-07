@@ -50,7 +50,7 @@ final class KindleMonitor {
 
     /// Titres (normalisés) dont une note ou un surlignage contient `query` : la recherche les retrouve.
     func titleKeys(withClippingsMatching query: String) -> Set<String> {
-        Set(clippings.filter { !$0.isHidden && $0.displayText.localizedStandardContains(query) }
+        Set(clippings.filter { !$0.isHidden && $0.matches(query) }
             .map { ShelfSync.normalize($0.title) })
     }
 
@@ -68,10 +68,64 @@ final class KindleMonitor {
         }
     }
 
+    /// Note d'un surlignage (S-071) ; une note vide est retirée. Le relevé de la Kindle n'est pas touché.
+    func setNote(_ id: Clipping.ID, _ note: String) {
+        updateClipping(id) { c in
+            let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+            c.note = trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    func clipping(id: Clipping.ID) -> Clipping? { clippings.first { $0.id == id } }
+
+    /// Couleur d'un surlignage (S-073) ; le jaune, couleur par défaut, n'est pas écrit.
+    func setColor(_ id: Clipping.ID, _ color: HighlightColor) {
+        updateClipping(id) { $0.apply(HighlightMark(color)) }
+    }
+
+    /// Couleur d'un surlignage (S-079) : de base ou ajoutée à une légende.
+    func setMark(_ id: Clipping.ID, _ mark: HighlightMark) {
+        updateClipping(id) { $0.apply(mark) }
+    }
+
+    /// Range un surlignage dans une thématique, ou l'en retire (S-079).
+    func setThematic(_ id: Clipping.ID, _ thematic: String, on: Bool) {
+        updateClipping(id) { $0.setThematic(thematic, on: on) }
+    }
+
+    /// Modifie plusieurs relevés d'un coup (thème supprimé, par exemple) ; `change` dit s'il a modifié.
+    func modifyClippings(_ change: (inout Clipping) -> Bool) {
+        var copy = clippings
+        var changed = false
+        for i in copy.indices where change(&copy[i]) { changed = true }
+        guard changed else { return }
+        clippings = copy
+        saveClippings()
+    }
+
     func revertClipping(_ id: Clipping.ID) { updateClipping(id) { $0.editedText = nil } }
 
-    /// Supprime un relevé d'Alexandrie ; il ne revient pas au prochain import.
-    func deleteClipping(_ id: Clipping.ID) { updateClipping(id) { $0.hidden = true } }
+    /// Supprime un relevé d'Alexandrie ; il ne revient pas au prochain import. Un surlignage fait
+    /// dans l'app, qu'aucun import ne ramène, est retiré pour de bon.
+    func deleteClipping(_ id: Clipping.ID) {
+        if let i = clippings.firstIndex(where: { $0.id == id }), clippings[i].isFromApp {
+            clippings.remove(at: i)
+            saveClippings()
+        } else {
+            updateClipping(id) { $0.hidden = true }
+        }
+    }
+
+    /// Surlignage fait dans la fenêtre de lecture (S-070) : rangé avec ceux de la Kindle.
+    func addHighlight(_ clipping: Clipping) {
+        clippings.append(clipping)
+        saveClippings()
+    }
+
+    /// Surlignages faits dans l'app pour ce livre (même fichier, par son empreinte).
+    func readerHighlights(of book: Book) -> [Clipping] {
+        clippings.filter { $0.anchor?.book == book.fingerprint && !$0.isHidden }
+    }
 
     private func updateClipping(_ id: Clipping.ID, _ change: (inout Clipping) -> Void) {
         guard let i = clippings.firstIndex(where: { $0.id == id }) else { return }

@@ -214,6 +214,8 @@ public struct AppDirectories: Sendable {
     public var folders: URL { base.appendingPathComponent("folders.json") }
     /// Notes et surlignages importés des Kindle (voir `KindleClippings`).
     public var clippings: URL { base.appendingPathComponent("clippings.json") }
+    /// Recherches et leurs thèmes (voir `ResearchList`).
+    public var researches: URL { base.appendingPathComponent("researches.json") }
     /// Copies datées de l'index (voir `IndexBackups`).
     public var backups: URL { base.appendingPathComponent("Sauvegardes", isDirectory: true) }
     public var covers: URL { base.appendingPathComponent("Covers", isDirectory: true) }

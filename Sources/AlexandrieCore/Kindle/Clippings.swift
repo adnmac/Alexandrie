@@ -7,7 +7,8 @@ public struct Clipping: Codable, Hashable, Identifiable, Sendable {
     }
 
     /// Stable d'un import à l'autre : le fichier de la Kindle ne fait que s'allonger.
-    public var id: String { [ShelfSync.normalize(title), location, kind.rawValue, text].joined(separator: "|") }
+    /// Un surlignage fait dans l'app a son propre identifiant (`uid`).
+    public var id: String { uid ?? [ShelfSync.normalize(title), location, kind.rawValue, text].joined(separator: "|") }
     public var title: String
     public var author: String
     public var kind: Kind
@@ -21,6 +22,21 @@ public struct Clipping: Codable, Hashable, Identifiable, Sendable {
     public var editedText: String?
     /// Supprimé dans Alexandrie : n'est plus affiché, et ne revient pas au prochain import.
     public var hidden: Bool?
+    /// Surlignage fait dans la fenêtre de lecture d'Alexandrie (S-070) ; absent pour un relevé de la Kindle.
+    public var uid: String?
+    /// Passage surligné dans l'app : livre, chapitre (ou page) et position dans son texte.
+    public var anchor: ReaderAnchor?
+    /// Note ajoutée dans Alexandrie à un surlignage (S-071), de la Kindle ou de l'app.
+    public var note: String?
+    /// Couleur choisie dans Alexandrie (S-073) ; absente = jaune.
+    public var color: HighlightColor?
+    /// Couleur ajoutée à une légende (« #RRGGBB »), à la place de `color` (S-079).
+    public var hue: String?
+    /// Thématiques du surlignage (S-079) ; voir `thematicIDs`.
+    public var thematics: [String]?
+    /// Recherche et thème d'avant S-079, repris par `ResearchList.migrate` puis effacés.
+    public var research: String?
+    public var theme: String?
 
     public init(title: String, author: String, kind: Kind, location: String, added: String, text: String) {
         self.title = title
@@ -35,9 +51,19 @@ public struct Clipping: Codable, Hashable, Identifiable, Sendable {
     public var displayText: String { editedText ?? text }
     public var isEdited: Bool { editedText != nil }
     public var isHidden: Bool { hidden == true }
+    /// Fait dans Alexandrie plutôt que sur la Kindle.
+    public var isFromApp: Bool { anchor != nil }
+    /// Porte une note ajoutée dans Alexandrie (S-071).
+    public var hasNote: Bool { !(note ?? "").isEmpty }
+    /// Texte ou note contient la recherche.
+    public func matches(_ query: String) -> Bool {
+        displayText.localizedStandardContains(query) || (note ?? "").localizedStandardContains(query)
+    }
 
-    /// Premier nombre de l'emplacement (ou de la page) : ordre de lecture.
+    /// Premier nombre de l'emplacement (ou de la page) : ordre de lecture. Un surlignage de l'app
+    /// donne l'emplacement Kindle estimé de son passage (ou sa page pour un PDF).
     public var position: Int {
+        if let anchor { return anchor.order }
         let digits = location.split(whereSeparator: { !$0.isNumber })
         let emplacement = location.range(of: "emplacement ").map { location[$0.upperBound...] }
         return Int(emplacement?.prefix { $0.isNumber } ?? digits.first ?? "") ?? Int.max
@@ -122,15 +148,41 @@ public enum KindleClippings {
         .sorted { $0.latest > $1.latest }
     }
 
+    /// Ordre de lecture : par position dans le livre, l'ordre d'ajout départageant les égalités.
+    /// Les surlignages de l'app et ceux de la Kindle se mêlent ainsi (S-070).
+    public static func readingOrder(_ clippings: [Clipping]) -> [Clipping] {
+        clippings.enumerated()
+            .sorted { ($0.element.position, $0.offset) < ($1.element.position, $1.offset) }
+            .map(\.element)
+    }
+
+    /// Surlignages des marques choisies (S-074, S-077) : couleurs de base (« yellow ») ou thèmes (« theme:<id> ») ;
+    /// ceux de la Kindle comptent comme jaunes. Les notes seules de la Kindle, sans couleur, ne sont gardées
+    /// que sans filtre. Un ensemble vide ne filtre rien.
+    public static func withMarks(_ clippings: [Clipping], _ keys: Set<String>, mark: (Clipping) -> String) -> [Clipping] {
+        guard !keys.isEmpty else { return clippings }
+        return clippings.filter { $0.kind == .highlight && keys.contains(mark($0)) }
+    }
+
+    /// Relevés rangés dans une des thématiques choisies (S-079) ; un ensemble vide ne filtre rien.
+    public static func withThematics(_ clippings: [Clipping], _ ids: Set<String>) -> [Clipping] {
+        guard !ids.isEmpty else { return clippings }
+        return clippings.filter { !ids.isDisjoint(with: $0.thematicIDs) }
+    }
+
     /// Export Markdown des relevés d'un livre (texte modifié s'il existe).
-    public static func markdown(title: String, author: String, clippings: [Clipping]) -> String {
+    /// `label` nomme la couleur ou le thème d'un surlignage (rien pour le jaune sans recherche).
+    public static func markdown(title: String, author: String, clippings: [Clipping],
+                                label: (Clipping) -> String? = { $0.color?.label }) -> String {
         var out = "# \(title)\n"
         if !author.isEmpty { out += "\n*\(author)*\n" }
         for c in clippings {
-            let meta = [c.kind == .note ? "Note" : "Surlignement", c.location, c.added].filter { !$0.isEmpty }
+            let meta = [c.kind == .note ? "Note" : "Surlignement", c.kind == .note ? "" : label(c) ?? "", c.location, c.added]
+                .filter { !$0.isEmpty }
             out += "\n---\n\n" + (c.kind == .note ? "📝 " : "> ")
                 + c.displayText.replacingOccurrences(of: "\n", with: c.kind == .note ? "\n" : "\n> ")
-                + "\n\n<small>" + meta.joined(separator: " · ") + "</small>\n"
+                + "\n\n" + (c.hasNote ? "📝 " + (c.note ?? "") + "\n\n" : "")
+                + "<small>" + meta.joined(separator: " · ") + "</small>\n"
         }
         return out
     }

@@ -87,7 +87,7 @@ struct ContentView: View {
         }
         let selected = Self.unique(selection.sorted().compactMap(resolve))
         let commands = BookCommands(
-            books: sidebar == .kindle || sidebar == .notes ? [] : selected,
+            books: sidebar == .kindle || sidebar == .notes || sidebar?.isThematic == true ? [] : selected,
             list: sidebar, library: library, kindle: kindle,
             afterTrash: { selection = Self.nextSelection(after: selection, in: groups) },
             toggleQuickLook: { quickLookURL = quickLookURL == nil ? selected.first?.url : nil })
@@ -100,6 +100,9 @@ struct ContentView: View {
             Group {
                 if sidebar == .kindle {
                     KindleView(search: search, gridMode: gridMode, selection: $kindleSelection)
+                } else if case .thematic(let id) = sidebar {
+                    // Toutes les notes d'une thématique, de tous les livres (S-080).
+                    ThematicNotesView(thematicID: id, search: search, selectedBook: $notesBook).id(id)
                 } else if sidebar == .notes {
                     // Livres annotés (colonne étroite) et notes du livre choisi (large) ; sa fiche est à droite.
                     HSplitView {
@@ -130,7 +133,7 @@ struct ContentView: View {
             .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série, genre…")
         } detail: {
             Group {
-                if sidebar == .notes {
+                if sidebar == .notes || sidebar?.isThematic == true {
                     if let key = notesBook, let book = library.books(titleKey: key).first(where: { $0.trashedAt == nil }) {
                         let identity = library.identity(of: book)
                         let files = library.visibleBooks.filter { library.identity(of: $0) == identity }
@@ -191,6 +194,7 @@ struct ContentView: View {
         case .sent: "Envoyés à la Kindle"
         case .toReview: "À vérifier"
         case .notes: "Notes et surlignages"
+        case .thematic(let id): AppServices.shared.researches.research(id: id)?.name ?? "Thématique"
         case .trash: "Corbeille"
         case .kindle: kindle.displayName ?? "Kindle"
         case .pending: "En attente d'envoi"

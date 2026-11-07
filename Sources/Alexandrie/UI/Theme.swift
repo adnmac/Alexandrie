@@ -1,3 +1,4 @@
+import AlexandrieCore
 import AppKit
 import SwiftUI
 
@@ -55,15 +56,39 @@ enum ReaderTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Surlignage, en CSS : assez clair pour garder le texte lisible sur chaque papier.
-    var highlight: String {
-        switch self {
-        case .light, .sepia: "rgba(255, 204, 0, 0.42)"
-        case .dark: "rgba(255, 204, 0, 0.32)"
-        }
+    /// Surlignage de cette couleur, en CSS : assez clair pour garder le texte lisible sur chaque papier.
+    func highlight(_ mark: HighlightMark) -> String {
+        let (r, g, b) = mark.rgb
+        return "rgba(\(r), \(g), \(b), \(self == .dark ? 0.32 : 0.42))"
     }
 
     var paperColor: Color { Color(nsColor: NSColor(css: paper)) }
+
+    /// Surlignage d'une page de PDF (annotation) : la couleur de `highlight` sur papier clair, un PDF gardant son papier.
+    static func pdfHighlight(_ mark: HighlightMark) -> NSColor {
+        let (r, g, b) = mark.rgb
+        return NSColor(srgbRed: CGFloat(r) / 255, green: CGFloat(g) / 255, blue: CGFloat(b) / 255, alpha: 0.42)
+    }
+}
+
+extension HighlightMark {
+    /// Pastille pleine de la couleur d'un surlignage ou d'un thème.
+    var swatch: Color {
+        let (r, g, b) = rgb
+        return Color(.sRGB, red: Double(r) / 255, green: Double(g) / 255, blue: Double(b) / 255)
+    }
+}
+
+/// Couleurs des surlignages (S-073) : les teintes système de macOS, en sRGB (`HighlightColor.hex`).
+extension HighlightColor {
+    /// Pastille pleine, pour choisir la couleur et la rappeler dans « Notes et surlignages ».
+    var swatch: Color { HighlightMark(self).swatch }
+
+    /// Couleur du prochain surlignage : la dernière choisie.
+    static var current: HighlightColor {
+        get { UserDefaults.standard.string(forKey: "highlightColor").flatMap(HighlightColor.init(rawValue:)) ?? .yellow }
+        set { UserDefaults.standard.set(newValue.rawValue, forKey: "highlightColor") }
+    }
 }
 
 private extension NSColor {

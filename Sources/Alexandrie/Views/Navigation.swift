@@ -11,6 +11,8 @@ enum SidebarItem: Hashable {
     case shelf(String)
     /// Notes et surlignages importés des Kindle.
     case notes
+    /// Toutes les notes d'une thématique (S-080), par son identifiant.
+    case thematic(String)
     case format(BookFormat)
     /// Clé de regroupement (voir `AuthorNames`), pas une graphie particulière.
     case author(String)
@@ -33,11 +35,14 @@ enum SortOrder: String, CaseIterable, Identifiable {
 }
 
 extension SidebarItem {
+    /// Page d'une thématique (S-080).
+    var isThematic: Bool { if case .thematic = self { true } else { false } }
+
     /// Pages où « Mettre à la corbeille » est proposé (menu du livre, menu Livre, touche Supprimer).
     var allowsTrash: Bool {
         switch self {
         case .all, .recent, .toReview, .format, .author, .series, .genre, .folder: true
-        case .sent, .pending, .shelf, .trash, .kindle, .notes: false
+        case .sent, .pending, .shelf, .trash, .kindle, .notes, .thematic: false
         }
     }
 }
@@ -54,6 +59,7 @@ extension SidebarItem {
         case .pending: "pending"
         case .trash: "trash"
         case .notes: "notes"
+        case .thematic(let id): "thematic:" + id
         case .shelf(let id): "shelf:" + id
         case .format(let f): "format:" + f.rawValue
         case .author(let key): "author:" + key
@@ -74,6 +80,7 @@ extension SidebarItem {
         case ("pending", nil): self = .pending
         case ("trash", nil): self = .trash
         case ("notes", nil): self = .notes
+        case ("thematic", let id?): self = .thematic(id)
         case ("shelf", let id?): self = .shelf(id)
         case ("format", let f?): guard let format = BookFormat(rawValue: f) else { return nil }; self = .format(format)
         case ("author", let key?): self = .author(key)

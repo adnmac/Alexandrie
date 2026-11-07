@@ -23,6 +23,8 @@ enum Snapshot {
         /// Livre affiché dans la fiche (titre).
         var book: String? = nil
         var notes: String? = nil
+        /// Teintes gardées dans la page Notes (S-074, S-079), séparées par des virgules.
+        var notesColors: String? = nil
     }
 
     static func pages(_ library: LibraryStore) -> [Page] {
@@ -32,6 +34,7 @@ enum Snapshot {
             Page(name: "envoyes", item: .sent),
             Page(name: "a-verifier", item: .toReview),
             Page(name: "notes", item: .notes, notes: ShelfSync.normalize("Le Port des brumes")),
+            Page(name: "notes-couleurs", item: .notes, notes: ShelfSync.normalize("Le Port des brumes"), notesColors: "#FF375F"),
             Page(name: "corbeille", item: .trash),
             Page(name: "en-attente", item: .pending),
             Page(name: "kindle", item: .kindle),
@@ -42,7 +45,8 @@ enum Snapshot {
             Page(name: "genre", item: .genre(GenreNames.key("Policier"))),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),
                  book: "Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours"),
-        ] + (SeedData.externalFolder.map { [Page(name: "dossier-exemple", item: .folder($0.standardizedFileURL.path), book: "Orbite")] } ?? [])
+        ] + (AppServices.shared.researches.researches.first.map { [Page(name: "thematique", item: .thematic($0.id), notes: ShelfSync.normalize("Le Port des brumes"))] } ?? [])
+          + (SeedData.externalFolder.map { [Page(name: "dossier-exemple", item: .folder($0.standardizedFileURL.path), book: "Orbite")] } ?? [])
     }
 
     static func run(library: LibraryStore, kindle: KindleMonitor, sidebar: Binding<SidebarItem?>, selection: Binding<Set<String>>,
@@ -79,6 +83,7 @@ enum Snapshot {
                 selection.wrappedValue = page.book.flatMap { t in library.visibleBooks.first { $0.title == t } }
                     .map { [$0.id] } ?? []
                 if let notes = page.notes { notesBook.wrappedValue = notes }
+                UserDefaults.standard.set(page.notesColors ?? "", forKey: "notesHues")
                 try? await Task.sleep(for: .seconds(0.8))
                 capture(to: "\(dir)/\(page.name)-\(mode).png")
             }
@@ -134,12 +139,37 @@ enum Snapshot {
                 NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
                 try? await Task.sleep(for: .seconds(0.8))
                 capture(to: "\(dir)/\(shot.name)-\(mode).png", window: window)
+                await drawWebPage(of: window, into: "\(dir)/\(shot.name)-\(mode).png")
             }
             window?.close()
             try? await Task.sleep(for: .seconds(0.5))
         }
         reading.theme = .light
         reading.textScale = 1
+    }
+
+    /// WebKit dessine la page d'un EPUB dans un autre processus, que `screencapture` ne voit pas : l'image
+    /// de la page, rendue par WebKit lui-même, est posée à sa place dans la capture.
+    private static func drawWebPage(of window: NSWindow?, into path: String) async {
+        func find(_ view: NSView) -> ReaderWebView? {
+            (view as? ReaderWebView) ?? view.subviews.lazy.compactMap(find).first
+        }
+        guard let window, let root = window.contentView, let web = find(root),
+              let page = try? await web.takeSnapshot(configuration: nil),
+              let data = FileManager.default.contents(atPath: path), let shot = NSBitmapImageRep(data: data),
+              // Image neuve : le PNG de screencapture (alpha non prémultiplié) refuse qu'on y dessine.
+              let canvas = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: shot.pixelsWide, pixelsHigh: shot.pixelsHigh,
+                                            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
+              let context = NSGraphicsContext(bitmapImageRep: canvas) else { return }
+        let scale = CGFloat(shot.pixelsWide) / window.frame.width
+        let frame = web.convert(web.bounds, to: nil)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        shot.draw(in: CGRect(x: 0, y: 0, width: shot.pixelsWide, height: shot.pixelsHigh))
+        page.draw(in: CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale))
+        NSGraphicsContext.restoreGraphicsState()
+        try? canvas.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     }
 
     /// Feuilles qu'on ne peut pas ouvrir sans Kindle branchée : chacune dans une fenêtre de sa taille.
@@ -150,9 +180,11 @@ enum Snapshot {
         let sheets: [(String, AnyView)] = [
             ("liseuse", AnyView(NameReaderSheet())),
             ("kindle", AnyView(KindleEditSheet(document: document, edits: edits))),
+            ("recherches", AnyView(ResearchesSheet(selected: AppServices.shared.researches.researches.first?.id))),
         ]
         for (name, view) in sheets {
-            let host = NSHostingController(rootView: view.environment(library).environment(kindle))
+            let host = NSHostingController(rootView: view.environment(library).environment(kindle)
+                .environment(AppServices.shared.researches))
             host.sizingOptions = [.preferredContentSize]
             // Sans barre de titre, comme une feuille : la capture montre tout le contenu, rien d'autre.
             let window = NSWindow(contentViewController: host)

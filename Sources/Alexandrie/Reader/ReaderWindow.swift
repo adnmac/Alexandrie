@@ -27,7 +27,11 @@ struct ReaderView: View {
     let book: Book
     @Environment(LibraryStore.self) private var library
     @Environment(ReadingStore.self) private var reading
+    @Environment(KindleMonitor.self) private var kindle
+    @Environment(ResearchStore.self) private var researches
     @State private var content: Content?
+    /// Feuille « Recherches » ouverte (S-075).
+    @State private var managesResearches = false
     @State private var failure: String?
     /// Table des matières ouverte ou fermée, pour tous les livres.
     @AppStorage("readerContentsVisible") private var showsContents = false
@@ -51,6 +55,12 @@ struct ReaderView: View {
         .task { await load() }
         .onChange(of: reading.textScale) { applySettings() }
         .onChange(of: reading.theme) { applySettings() }
+        .onChange(of: kindle.readerHighlights(of: book)) { showHighlights() }
+        // Un thème renommé ou recoloré : les passages sont redessinés.
+        .onChange(of: researches.list.researches) { redrawHighlights() }
+        .sheet(isPresented: $managesResearches) {
+            ResearchesSheet(selected: researches.activeResearch(for: book)?.id)
+        }
         .onDisappear { reading.saveNow() }
     }
 
@@ -146,6 +156,13 @@ struct ReaderView: View {
     // MARK: Réglages du texte (S-069)
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        ToolbarItem(placement: .primaryAction) { researchMenu }
+        ToolbarItem(placement: .primaryAction) {
+            Button { highlight() } label: { Label("Surligner", systemImage: "highlighter") }
+                .keyboardShortcut("h", modifiers: [.command, .shift])
+                .disabled(!hasSelection)
+                .help("Surligner la sélection (⇧⌘H) ; un clic sur le passage surligné y ajoute une note")
+        }
         ToolbarItemGroup(placement: .primaryAction) {
             ControlGroup {
                 Button { reading.reduce() } label: { Label("Réduire le texte", systemImage: "textformat.size.smaller") }
@@ -166,6 +183,152 @@ struct ReaderView: View {
         }
     }
 
+    // MARK: Thématique (S-076, S-079)
+
+    /// Thématique choisie pour ce livre : les prochains surlignages y sont rangés, et sa légende nomme leurs couleurs.
+    private var researchMenu: some View {
+        Menu {
+            Picker("Thématique", selection: Binding(get: { researches.activeResearch(for: book)?.id },
+                                                    set: { researches.setActive($0, for: book) })) {
+                Text("Aucune thématique").tag(String?.none)
+                ForEach(researches.researches) { Text($0.name).tag(Optional($0.id)) }
+            }
+            .pickerStyle(.inline)
+            .labelsHidden()
+            Divider()
+            Button("Gérer les thématiques…") { managesResearches = true }
+        } label: {
+            Label(researches.activeResearch(for: book)?.name ?? "Aucune thématique", systemImage: "tag")
+                .labelStyle(.titleAndIcon)
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        // Un nom long est coupé : il ne pousse pas les réglages du texte hors de la barre d'outils.
+        .frame(maxWidth: Layout.toolbarMenu)
+        .help("Thématique de ce livre : les nouveaux surlignages y sont rangés, et sa légende nomme leurs couleurs")
+    }
+
+    // MARK: Surlignages (S-070)
+
+    private var hasSelection: Bool {
+        switch content {
+        case .epub(let c): c.hasSelection
+        case .pdf(let c): c.hasSelection
+        case nil: false
+        }
+    }
+
+    /// Surligne la sélection : le passage est enregistré avec les notes, le livre n'est pas modifié.
+    /// Avec `withNote`, sa note s'ouvre aussitôt (S-071).
+    private func highlight(withNote: Bool = false) {
+        let book = book, kindle = kindle
+        Task {
+            let passage: (anchor: ReaderAnchor, text: String)?
+            switch content {
+            case .epub(let c): passage = await c.selectedPassage(fingerprint: book.fingerprint)
+            case .pdf(let c): passage = c.selectedPassage(fingerprint: book.fingerprint)
+            case nil: passage = nil
+            }
+            guard let passage else { return }
+            var clipping = Clipping.readerHighlight(title: book.title, author: book.authorLine, text: passage.text,
+                                                    anchor: passage.anchor, isPDF: book.format == .pdf)
+            let next = researches.nextMark(for: book)
+            clipping.apply(next.mark)
+            if let thematic = next.research { clipping.setThematic(thematic, on: true) }
+            kindle.addHighlight(clipping)
+            showHighlights()
+            switch content {
+            case .epub(let c):
+                c.clearSelection()
+                if withNote { openNote(clipping.id, at: await c.noteRect(for: clipping.id)) }
+            case .pdf(let c):
+                c.clearSelection()
+                if withNote { openNote(clipping.id, at: c.noteRect(for: clipping.id)) }
+            case nil: break
+            }
+        }
+    }
+
+    /// Commandes des menus contextuels des pages (S-073).
+    private var highlightActions: ReaderHighlightActions {
+        let kindle = kindle, researches = researches, book = book
+        return ReaderHighlightActions(
+            highlight: { highlight(withNote: $0) },
+            editNote: { editNote($0) },
+            delete: { deleteHighlight($0) },
+            lookup: { kindle.clipping(id: $0) },
+            marks: { id in
+                if let c = id.flatMap(kindle.clipping(id:)) { return researches.marks(for: c) }
+                return researches.list.marks(in: researches.activeResearch(for: book)?.id)
+            },
+            mark: { id in
+                if let c = id.flatMap(kindle.clipping(id:)) { return researches.mark(of: c) }
+                return researches.nextMark(for: book).mark
+            },
+            setMark: { id, mark in
+                if let id { researches.apply(mark, to: id) } else {
+                    researches.remember(mark, in: researches.activeResearch(for: book)?.id)
+                }
+            },
+            researchName: { researches.activeResearch(for: book)?.name },
+            thematics: { researches.researches.map { ($0.id, $0.name) } },
+            setThematic: { id, thematic, on in researches.setThematic(thematic, on: on, for: id) })
+    }
+
+    private func redrawHighlights() {
+        switch content {
+        case .epub(let c): c.redraw()
+        case .pdf(let c): c.redraw()
+        case nil: break
+        }
+    }
+
+    /// « Ajouter une note… » du menu : la bulle s'ouvre sur le passage dans la page affichée.
+    private func editNote(_ id: Clipping.ID) {
+        Task {
+            switch content {
+            case .epub(let c): openNote(id, at: await c.noteRect(for: id))
+            case .pdf(let c): openNote(id, at: c.noteRect(for: id))
+            case nil: break
+            }
+        }
+    }
+
+    /// Supprime un surlignage depuis la page ; sa note, s'il en a une, est confirmée d'abord.
+    private func deleteHighlight(_ id: Clipping.ID) {
+        if kindle.clipping(id: id)?.hasNote == true {
+            let alert = NSAlert()
+            alert.messageText = "Supprimer ce surlignage et sa note ?"
+            alert.informativeText = "Il disparaît aussi de « Notes et surlignages ». Le fichier du livre n'est pas modifié."
+            alert.addButton(withTitle: "Supprimer").hasDestructiveAction = true
+            alert.addButton(withTitle: "Annuler")
+            guard alert.runModal() == .alertFirstButtonReturn else { return }
+        }
+        kindle.deleteClipping(id)
+    }
+
+    /// Ouvre la note d'un surlignage en bulle sur son passage (S-071). Une bulle AppKit, dans sa propre
+    /// fenêtre : une bulle SwiftUI resterait sous la vue web ou PDF, qui prendrait ses clics.
+    private func openNote(_ id: Clipping.ID, at rect: CGRect?) {
+        let view: NSView? = switch content {
+        case .epub(let c): c.webView
+        case .pdf(let c): c.view
+        case nil: nil
+        }
+        guard let view, let clipping = kindle.clipping(id: id) else { return }
+        NotePopover.show(clipping, kindle: kindle, at: rect ?? CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1),
+                         in: view)
+    }
+
+    private func showHighlights() {
+        let list = kindle.readerHighlights(of: book)
+        switch content {
+        case .epub(let c): c.highlights = list
+        case .pdf(let c): c.highlights = list
+        case nil: break
+        }
+    }
+
     // MARK: Chargement
 
     private func load() async {
@@ -177,7 +340,11 @@ struct ReaderView: View {
                 failure = "Ce PDF est illisible."
                 return
             }
+            controller.actions = highlightActions
+            controller.markOf = { [researches] in researches.mark(of: $0) }
+            controller.onOpenNote = { openNote($0, at: $1) }
             content = .pdf(controller)
+            showHighlights()
             // Après la mise en place de la vue : PDFKit ignore un saut de page fait avant.
             try? await Task.sleep(for: .milliseconds(50))
             controller.apply(scale: reading.textScale)
@@ -192,7 +359,11 @@ struct ReaderView: View {
                 let controller = EPUBPageController(book: prepared)
                 controller.apply(scale: reading.textScale, theme: reading.theme)
                 controller.onMove = { reading.record($0, for: book) }
+                controller.actions = highlightActions
+                controller.markOf = { [researches] in researches.mark(of: $0) }
+                controller.onOpenNote = { openNote($0, at: $1) }
                 content = .epub(controller)
+                showHighlights()
                 controller.open(chapter: start?.chapter ?? 0, fraction: start?.fraction ?? 0)
             } catch {
                 failure = error.localizedDescription
@@ -206,5 +377,27 @@ struct ReaderView: View {
         case .pdf(let c): c.apply(scale: reading.textScale)
         case nil: break
         }
+    }
+}
+
+/// Bulle de la note d'un surlignage, posée sur le passage cliqué (S-071).
+@MainActor
+enum NotePopover {
+    private static var current: NSPopover?
+
+    static func show(_ clipping: Clipping, kindle: KindleMonitor, at rect: CGRect, in view: NSView) {
+        current?.close()
+        let popover = NSPopover()
+        popover.behavior = .transient
+        let editor = HighlightNoteEditor(clipping: clipping, showsPassage: true) { [weak popover] in popover?.close() }
+            .environment(kindle)
+            .environment(AppServices.shared.researches)
+            .padding(Space.lg)
+            .frame(width: Layout.notePopover)
+        let host = NSHostingController(rootView: editor)
+        host.sizingOptions = .preferredContentSize
+        popover.contentViewController = host
+        popover.show(relativeTo: rect, of: view, preferredEdge: .maxY)
+        current = popover
     }
 }

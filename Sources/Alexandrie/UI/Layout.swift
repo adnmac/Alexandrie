@@ -12,4 +12,14 @@ enum Layout {
     static let settingsWidth: CGFloat = 520
     /// Hauteur au-delà de laquelle une feuille ou un onglet des réglages défile.
     static let maxPanelHeight: CGFloat = 640
+    /// Bulle de la note d'un surlignage, dans la fenêtre de lecture (S-071).
+    static let notePopover: CGFloat = 320
+    /// Pastille d'une couleur de surlignage (S-073).
+    static let colorSwatch: CGFloat = 18
+    /// Feuille « Recherches » (S-075) : hauteur, liste des recherches, colonne des comptes.
+    static let researchesHeight: CGFloat = 440
+    static let researchesSidebar: CGFloat = 200
+    static let countColumn: CGFloat = 24
+    /// Menu de la thématique dans la barre d'outils de lecture (S-079) : au-delà, le nom est coupé.
+    static let toolbarMenu: CGFloat = 136
 }

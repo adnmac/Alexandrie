@@ -453,7 +453,7 @@ Depends: S-066
 Acceptance:
 - [snap] La table des matières s'affiche dans une colonne repliable, chapitre courant marqué.
 - [manual] Flèches et Espace tournent les pages ; un clic sur un chapitre y va.
-Status: doing
+Status: done
 
 ### S-068 Reprendre sa lecture où je l'ai laissée
 En rouvrant un livre, la fenêtre de lecture revient à la page où je m'étais arrêté, même après avoir quitté l'app.
@@ -470,7 +470,7 @@ Acceptance:
 - [snap] La fenêtre de lecture en sépia, avec un texte agrandi.
 - [self] Taille et fond survivent au redémarrage.
 - [manual] Un PDF garde sa mise en page : seul le zoom change.
-Status: doing
+Status: done
 
 ### S-070 Surligner un passage
 Dans la fenêtre de lecture, je sélectionne un passage et je le surligne ; il apparaît dans « Notes et surlignages » à côté de ceux de la Kindle.
@@ -480,7 +480,7 @@ Acceptance:
 - [self] Un surlignage d'EPUB et un de PDF sont enregistrés avec leur position, sans modifier le fichier du livre.
 - [snap] Le passage surligné dans la fenêtre de lecture ; dans « Notes et surlignages », il porte la marque « Alexandrie ».
 - [unit] Les surlignages de l'app et ceux de la Kindle se trient ensemble par position dans le livre.
-Status: todo
+Status: done
 
 ### S-071 Annoter un surlignage
 J'ajoute une note à un surlignage, dans la fenêtre de lecture ou dans « Notes et surlignages ».
@@ -488,7 +488,7 @@ Depends: S-070
 Acceptance:
 - [self] La note est enregistrée avec le surlignage et modifiable des deux endroits.
 - [snap] Le surlignage annoté montre son repère de note dans la fenêtre de lecture.
-Status: todo
+Status: done
 
 ### S-072 Ouvrir un surlignage dans la fenêtre de lecture
 Dans « Notes et surlignages », un surlignage fait dans l'app ouvre la fenêtre de lecture à son passage.
@@ -497,6 +497,78 @@ Acceptance:
 - [self] Ouvrir un surlignage de l'app positionne la fenêtre de lecture sur son passage.
 - [manual] Les surlignages de la Kindle, sans position fiable, n'offrent pas cette action.
 Status: todo
+
+### S-073 Choisir la couleur d'un surlignage
+Je surligne en jaune, vert, bleu, rose ou violet, et je change la couleur d'un surlignage existant ; le menu de PDFKit et de WebKit, qui n'enregistrait rien, disparaît de la fenêtre de lecture.
+Depends: S-071
+Acceptance:
+- [self] La couleur est enregistrée avec le surlignage, redessinée dans l'EPUB et le PDF, et modifiable depuis la fenêtre de lecture ou « Notes et surlignages ».
+- [snap] Des surlignages de couleurs différentes dans la fenêtre de lecture et dans « Notes et surlignages ».
+- [manual] Le clic droit sur une page ne propose plus les couleurs, le zoom ni les modes d'affichage de macOS ; sur un passage surligné, il propose sa note, sa couleur et sa suppression.
+Status: done
+
+### S-074 Exporter les notes par couleur
+Dans « Notes et surlignages », je choisis les couleurs à garder (toutes, une ou plusieurs) ; la liste, la copie et l'export Markdown ne contiennent que ces surlignages.
+Depends: S-073
+Acceptance:
+- [unit] Le filtre garde les surlignages des couleurs choisies (jaune pour ceux de la Kindle) ; « Toutes » ne filtre rien ; l'export Markdown nomme la couleur.
+- [snap] La page Notes montre le choix des couleurs et le compte filtré.
+- [manual] Exporter avec deux couleurs choisies écrit un Markdown sans les autres.
+Status: done
+
+### S-075 Définir les thèmes d'une recherche
+Pour un mémoire, je crée une recherche (« Mémoire de master ») et je nomme ses couleurs (jaune = anthropologie, rose = sociologie) ; j'ajoute des couleurs à moi. J'ai plusieurs recherches en cours, chacune avec sa légende.
+Depends: S-073
+Acceptance:
+- [unit] Une recherche garde son nom et ses thèmes (nom et couleur) ; une nouvelle recherche part des cinq couleurs ; une couleur ajoutée reçoit sa teinte.
+- [self] Les recherches sont relues au redémarrage ; supprimer une recherche ou un thème rend aux surlignages concernés la couleur de base la plus proche.
+- [snap] La feuille « Recherches » : la liste des recherches, la légende de celle choisie, une couleur ajoutée.
+Status: doing
+
+### S-076 Surligner dans une recherche
+Dans la fenêtre de lecture, je choisis la recherche en cours pour ce livre ; les couleurs proposées portent les noms de ses thèmes, et chaque surlignage garde sa recherche, même si le livre sert à une autre ensuite.
+Depends: S-075
+Acceptance:
+- [self] Un surlignage fait dans une recherche est enregistré avec sa recherche et son thème, et dessiné de la couleur du thème ; la recherche choisie est retenue par livre.
+- [snap] La fenêtre de lecture montre la recherche choisie dans sa barre d'outils.
+- [manual] Le clic droit et la bulle de note proposent les thèmes par leur nom, à côté de leur couleur.
+Status: doing
+
+### S-077 Notes et export par thème
+Dans « Notes et surlignages », chaque surlignage montre son thème ; je filtre et j'exporte par thème.
+Depends: S-076
+Acceptance:
+- [unit] Le filtre garde les thèmes choisis ; l'export Markdown nomme le thème de chaque surlignage.
+- [snap] La page Notes montre le nom du thème à côté de la couleur, et le menu de filtre porte les noms des thèmes.
+Status: doing
+
+### S-078 Exporter toute une recherche par thème
+Pour rédiger, j'exporte une recherche entière : tous ses livres, classés par thème, chaque passage avec sa source et sa note.
+Depends: S-077
+Acceptance:
+- [unit] Le Markdown suit l'ordre de la légende, saute les thèmes vides, range les passages par livre puis en ordre de lecture, et donne pour chacun le livre, l'auteur, l'emplacement et la note.
+- [snap] La feuille « Recherches » propose « Exporter la recherche… » avec le nombre de passages.
+- [manual] Le fichier enregistré s'ouvre dans un éditeur Markdown, un titre par thème.
+Status: doing
+
+### S-079 Séparer couleurs et thématiques
+Une thématique (« Rénovation des voiries ») classe des surlignages ; ses couleurs nomment des catégories (jaune = construction, bleu = analyse des coûts). Un passage a une couleur et peut appartenir à plusieurs thématiques : deux sélecteurs, « Couleurs » et « Thématiques », dans la lecture comme dans « Notes et surlignages ».
+Depends: S-078
+Acceptance:
+- [unit] Un surlignage garde sa couleur et ses thématiques séparément ; le nom de sa couleur se lit dans la légende de chaque thématique ; filtrer par couleurs et par thématiques se combinent ; l'export d'une thématique classe ses passages par couleur nommée.
+- [self] Les surlignages des recherches d'avant sont repris : leur thématique et leur couleur sont gardées. Supprimer une thématique la retire des surlignages sans toucher à leur couleur.
+- [snap] La page Notes montre les menus « Couleurs » et « Thématiques » ; la fenêtre de lecture, la thématique choisie ; la feuille « Thématiques », une légende nommée.
+- [manual] Le clic droit et la bulle de note proposent « Couleur » (catégories nommées) et « Thématiques » (à cocher).
+Status: doing
+
+### S-080 Toutes les notes d'une thématique
+Dans la barre latérale, chaque thématique ouvre toutes ses notes et surlignages, de tous les livres de la bibliothèque ; je les trie par couleur (catégorie), par livre ou par date, je filtre par couleur et j'exporte dans l'ordre choisi.
+Depends: S-079
+Acceptance:
+- [unit] Les passages d'une thématique se rangent par couleur nommée (ordre de la légende), par livre (alphabétique, puis ordre de lecture) ou par date d'ajout (récents d'abord) ; l'export suit le même ordre.
+- [snap] La section « Thématiques » de la barre latérale et la page d'une thématique, triée par couleur.
+- [manual] Un clic sur le titre du livre d'un passage montre sa fiche.
+Status: doing
 
 ## Later
 

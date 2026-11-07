@@ -11,6 +11,21 @@ final class PDFPageController {
     private(set) var page = 0
     var pageCount: Int { document?.pageCount ?? 0 }
     @ObservationIgnored var onMove: (ReadingPosition) -> Void = { _ in }
+    /// Du texte est sélectionné : il peut être surligné (S-070).
+    private(set) var hasSelection = false
+    /// Commandes de surlignage des menus contextuels de la page.
+    @ObservationIgnored var actions = ReaderHighlightActions()
+    /// Couleur affichée d'un surlignage : son thème ou sa couleur de base (S-076).
+    @ObservationIgnored var markOf: (Clipping) -> HighlightMark = { HighlightMark($0.highlightColor) }
+    /// Clic sur un passage surligné (S-071) : sa note s'ouvre, posée sur ce rectangle de la vue.
+    @ObservationIgnored var onOpenNote: (Clipping.ID, CGRect) -> Void = { _, _ in }
+    /// Surlignage auquel appartient chaque annotation dessinée.
+    @ObservationIgnored private var annotationIDs: [ObjectIdentifier: Clipping.ID] = [:]
+    /// Surlignages faits dans l'app, dessinés en annotations sur les pages. Le document n'est jamais
+    /// enregistré : le fichier du PDF ne change pas.
+    @ObservationIgnored var highlights: [Clipping] = [] {
+        didSet { if highlights != oldValue { drawHighlights() } }
+    }
 
     @ObservationIgnored private(set) lazy var view: ReaderPDFView = {
         let view = ReaderPDFView()
@@ -21,6 +36,12 @@ final class PDFPageController {
         view.controller = self
         NotificationCenter.default.addObserver(forName: .PDFViewPageChanged, object: view, queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.pageChanged() }
+        }
+        NotificationCenter.default.addObserver(forName: .PDFViewSelectionChanged, object: view, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self else { return }
+                self.hasSelection = !(self.view.currentSelection?.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            }
         }
         return view
     }()
@@ -70,6 +91,70 @@ final class PDFPageController {
         view.scaleFactor = fit * scale
     }
 
+    // MARK: Surlignages (S-070)
+
+    /// Passage sélectionné sur sa page (la première, en vue page par page) ; nil sans texte sélectionné.
+    func selectedPassage(fingerprint: String) -> (anchor: ReaderAnchor, text: String)? {
+        guard let document, let selection = view.currentSelection, let page = selection.pages.first else { return nil }
+        let count = selection.numberOfTextRanges(on: page)
+        let text = (selection.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard count > 0, !text.isEmpty else { return nil }
+        let first = selection.range(at: 0, on: page), last = selection.range(at: count - 1, on: page)
+        let index = document.index(for: page)
+        let anchor = ReaderAnchor(book: fingerprint, chapter: index, start: first.location,
+                                  end: last.location + last.length, order: index + 1)
+        return (anchor, text)
+    }
+
+    func clearSelection() { view.clearSelection() }
+
+    private static let marker = "Alexandrie"
+
+    /// Redessine les surlignages : une couleur de thème a pu changer.
+    func redraw() { drawHighlights() }
+
+    private func drawHighlights() {
+        guard let document else { return }
+        for i in 0..<document.pageCount {
+            guard let page = document.page(at: i) else { continue }
+            for a in page.annotations where a.userName == Self.marker { page.removeAnnotation(a) }
+        }
+        annotationIDs = [:]
+        for h in highlights {
+            guard let anchor = h.anchor, let page = document.page(at: anchor.chapter),
+                  let selection = page.selection(for: NSRange(location: anchor.start, length: anchor.end - anchor.start))
+            else { continue }
+            for (i, line) in selection.selectionsByLine().enumerated() {
+                let annotation = PDFAnnotation(bounds: line.bounds(for: page), forType: .highlight, withProperties: nil)
+                annotation.color = ReaderTheme.pdfHighlight(markOf(h))
+                annotation.userName = Self.marker
+                // Repère de note (S-071) : PDFKit pose sa bulle de commentaire sur un surlignage qui a un contenu.
+                if i == 0, h.hasNote { annotation.contents = h.note }
+                add(annotation, to: page, for: h.id)
+            }
+        }
+    }
+
+    private func add(_ annotation: PDFAnnotation, to page: PDFPage, for id: Clipping.ID) {
+        page.addAnnotation(annotation)
+        annotationIDs[ObjectIdentifier(annotation)] = id
+    }
+
+    /// Surlignage sous ce point de la vue, s'il y en a un.
+    func highlight(at point: CGPoint) -> (id: Clipping.ID, rect: CGRect)? {
+        guard let page = view.page(for: point, nearest: false),
+              let annotation = page.annotation(at: view.convert(point, to: page)),
+              let id = annotationIDs[ObjectIdentifier(annotation)] else { return nil }
+        return (id, view.convert(annotation.bounds, from: page))
+    }
+
+    /// Rectangle du passage surligné sur la page affichée, pour y poser sa note (S-071).
+    func noteRect(for id: Clipping.ID) -> CGRect? {
+        guard let current = view.currentPage,
+              let annotation = current.annotations.first(where: { annotationIDs[ObjectIdentifier($0)] == id }) else { return nil }
+        return view.convert(annotation.bounds, from: current)
+    }
+
     private func pageChanged() {
         guard let document, let current = view.currentPage else { return }
         page = document.index(for: current)
@@ -80,6 +165,45 @@ final class PDFPageController {
 /// Vue PDF de la fenêtre de lecture : flèches, Espace et touches de page tournent les pages.
 final class ReaderPDFView: PDFView {
     weak var controller: PDFPageController?
+
+    /// Commandes de PDFKit retirées du menu contextuel (S-073) : ses surlignages et notes, qui ne
+    /// seraient pas enregistrés, et le zoom et les modes d'affichage, que la fenêtre de lecture règle elle-même.
+    private static let hiddenActions: Set<String> = [
+        "_removeMarkup:", "_removeNote:", "_setAutoSize:", "zoomIn:", "zoomOut:", "_setActualSize:",
+        "_setSinglePage:", "_setSinglePageScrolling:", "_setDoublePage:", "_setDoublePageScrolling:",
+    ]
+
+    /// Menu contextuel : les commandes d'Alexandrie en tête, celles de PDFKit qui n'ont pas lieu d'être retirées.
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = super.menu(for: event) ?? NSMenu()
+        for item in menu.items {
+            let action = item.action.map(NSStringFromSelector) ?? ""
+            // Le choix de couleur de PDFKit est une vue, sans action.
+            if Self.hiddenActions.contains(action) || item.view != nil { menu.removeItem(item) }
+        }
+        guard let controller else { return menu }
+        let selection = !(currentSelection?.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let hit = controller.highlight(at: convert(event.locationInWindow, from: nil))?.id
+        HighlightMenu.insert(HighlightMenu.items(selection: selection, highlight: hit, actions: controller.actions), into: menu)
+        HighlightMenu.tidy(menu)
+        return menu
+    }
+
+    /// Surlignage sous le clic : sa note s'ouvre au relâchement, si aucun texte n'a été sélectionné (S-071).
+    private var pressed: Clipping.ID?
+
+    override func mouseDown(with event: NSEvent) {
+        pressed = event.clickCount == 1 ? controller?.highlight(at: convert(event.locationInWindow, from: nil))?.id : nil
+        super.mouseDown(with: event)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        super.mouseUp(with: event)
+        defer { pressed = nil }
+        guard let pressed, let controller, !controller.hasSelection,
+              let hit = controller.highlight(at: convert(event.locationInWindow, from: nil)), hit.id == pressed else { return }
+        controller.onOpenNote(hit.id, hit.rect)
+    }
 
     override func keyDown(with event: NSEvent) {
         guard let controller, event.modifierFlags.intersection([.command, .control, .option]).isEmpty else {

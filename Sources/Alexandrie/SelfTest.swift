@@ -214,6 +214,215 @@ struct SelfTest {
         await testFolders(library: library, first: folder, sources: sources, store: store)
         await testPDF(library: library, folder: folder)
         await testReading(library: library, folder: folder)
+        await testHighlights(library: library, folder: folder)
+    }
+
+    /// Surlignages de la fenêtre de lecture (S-070) : une vraie sélection dans un EPUB et dans un PDF,
+    /// enregistrée avec sa position parmi les notes, redessinée, et le fichier du livre intact.
+    private mutating func testHighlights(library: LibraryStore, folder: URL) async {
+        let directories = library.directories
+        guard let epub = library.visibleBooks.first(where: { $0.format == .epub && $0.folderPath(in: folder) }),
+              let pdf = library.visibleBooks.first(where: { $0.format == .pdf && $0.title == "Manuel du fleuve" }),
+              let prepared = await Task.detached(operation: { try? ReaderBook.prepare(epub, directories: directories) }).value
+        else {
+            check("livres à surligner présents", false)
+            return
+        }
+        let originals = [epub.url, pdf.url].map { try? Data(contentsOf: $0) }
+        let kindle = KindleMonitor()
+
+        // EPUB : sélection des caractères 3 à 18 du premier paragraphe, dans la vraie page.
+        let reader = EPUBPageController(book: prepared)
+        // Taille d'une fenêtre de lecture : la page est mise en colonnes, la note posée sur le passage visible.
+        reader.webView.frame = CGRect(x: 0, y: 0, width: 800, height: 600)
+        reader.open(chapter: 0)
+        var ready = false
+        let deadline = Date().addingTimeInterval(20)
+        while !ready && Date() < deadline {
+            try? await Task.sleep(for: .milliseconds(100))
+            ready = await reader.js("typeof alx === 'object' && document.readyState === 'complete'") as? Bool == true
+        }
+        _ = await reader.js("""
+            (() => { const t = document.querySelector('p').firstChild, r = document.createRange();
+              r.setStart(t, 3); r.setEnd(t, 18); const s = getSelection(); s.removeAllRanges(); s.addRange(r); })()
+            """)
+        let expected = await reader.js("document.querySelector('p').firstChild.data.substring(3, 18).trim()") as? String
+        await Self.wait(timeout: 5) { reader.hasSelection }
+        let epubPassage = await reader.selectedPassage(fingerprint: epub.fingerprint)
+        check("EPUB : la sélection active « Surligner »", reader.hasSelection)
+        check("EPUB : passage repéré dans son chapitre", epubPassage.map { $0.text == expected && $0.anchor.chapter == 0
+            && $0.anchor.end > $0.anchor.start && $0.anchor.order >= 1 } ?? false,
+              "\(String(describing: epubPassage)) attendu « \(expected ?? "?") »")
+        if let epubPassage {
+            kindle.addHighlight(.readerHighlight(title: epub.title, author: epub.authorLine, text: epubPassage.text,
+                                                 anchor: epubPassage.anchor, isPDF: false))
+            reader.highlights = kindle.readerHighlights(of: epub)
+            try? await Task.sleep(for: .milliseconds(300))
+            let marked = await reader.js("[...document.querySelectorAll('mark.alx-hl')].map(m => m.textContent).join('')") as? String
+            check("EPUB : le passage surligné est dessiné dans la page", marked?.trimmingCharacters(in: .whitespaces) == expected,
+                  marked ?? "rien")
+        }
+
+        // PDF : une ligne de la première page.
+        let pdfReader = PDFPageController(url: pdf.url)
+        var pdfPassage: (anchor: ReaderAnchor, text: String)?
+        if let page = pdfReader.document?.page(at: 0), let string = page.string {
+            let range = (string as NSString).range(of: "Chaque saison change sa couleur")
+            pdfReader.view.setCurrentSelection(page.selection(for: range), animate: false)
+            pdfPassage = pdfReader.selectedPassage(fingerprint: pdf.fingerprint)
+            check("PDF : passage repéré sur sa page", pdfPassage.map { $0.text == "Chaque saison change sa couleur"
+                && $0.anchor.chapter == 0 && $0.anchor.start == range.location && $0.anchor.order == 1 } ?? false,
+                  "\(String(describing: pdfPassage))")
+        }
+        if let pdfPassage {
+            kindle.addHighlight(.readerHighlight(title: pdf.title, author: pdf.authorLine, text: pdfPassage.text,
+                                                 anchor: pdfPassage.anchor, isPDF: true))
+            pdfReader.highlights = kindle.readerHighlights(of: pdf)
+            let drawn = pdfReader.document?.page(at: 0)?.annotations.filter { $0.type == "Highlight" }.count ?? 0
+            check("PDF : le passage surligné est dessiné sur la page", drawn > 0, "\(drawn) annotation(s)")
+        }
+
+        // Notes (S-071) : écrites d'un côté, relues et modifiables de l'autre ; repère dessiné dans la page.
+        if let h = kindle.readerHighlights(of: epub).first {
+            kindle.setNote(h.id, "Note depuis la lecture")
+            reader.highlights = kindle.readerHighlights(of: epub)
+            try? await Task.sleep(for: .milliseconds(300))
+            let shown = await reader.js("[...document.querySelectorAll('mark.alx-note')].map(m => m.title)[0] || ''") as? String
+            let marker = await reader.js("document.querySelectorAll('mark.alx-note-end').length") as? Int
+            check("EPUB : repère de note dessiné sur le passage", shown == "Note depuis la lecture" && marker == 1,
+                  "\(shown ?? "rien"), \(marker ?? 0) repère(s)")
+            let rect = await reader.noteRect(for: h.id)
+            check("EPUB : la note s'ouvre sur le passage", rect.map { $0.width > 0 && $0.height > 0 } ?? false,
+                  "\(String(describing: rect))")
+            // Modifiée depuis « Notes et surlignages » : même enregistrement, page redessinée.
+            KindleMonitor().setNote(h.id, "Note modifiée dans les notes")
+            let edited = KindleMonitor()
+            reader.highlights = edited.readerHighlights(of: epub)
+            try? await Task.sleep(for: .milliseconds(300))
+            let updated = await reader.js("(document.querySelector('mark.alx-note') || {}).title || ''") as? String
+            check("note modifiée des deux endroits", updated == "Note modifiée dans les notes"
+                  && edited.clipping(id: h.id)?.note == "Note modifiée dans les notes", updated ?? "rien")
+            kindle.setNote(h.id, "Note modifiée dans les notes")
+        }
+        if let h = kindle.readerHighlights(of: pdf).first {
+            kindle.setNote(h.id, "Note du PDF")
+            pdfReader.highlights = kindle.readerHighlights(of: pdf)
+            let notes = pdfReader.document?.page(at: 0)?.annotations.filter { $0.type == "Highlight" && $0.contents == "Note du PDF" }.count ?? 0
+            check("PDF : repère de note dessiné sur la page", notes == 1, "\(notes) repère(s)")
+            kindle.setNote(h.id, "  ")
+            pdfReader.highlights = kindle.readerHighlights(of: pdf)
+            let left = pdfReader.document?.page(at: 0)?.annotations.filter { !($0.contents ?? "").isEmpty }.count ?? 0
+            check("note vide retirée, surlignage gardé", left == 0 && kindle.readerHighlights(of: pdf).first?.note == nil
+                  && kindle.readerHighlights(of: pdf).count == 1)
+        }
+
+        // Couleurs (S-073) : enregistrées, redessinées dans les deux pages ; menus sans les commandes de PDFKit.
+        if let h = kindle.readerHighlights(of: epub).first {
+            kindle.setColor(h.id, .blue)
+            reader.highlights = kindle.readerHighlights(of: epub)
+            try? await Task.sleep(for: .milliseconds(300))
+            let blue = await reader.js("document.querySelectorAll('mark[data-mark=\"#0A84FF\"]').length") as? Int ?? 0
+            let shade = await reader.js("getComputedStyle(document.querySelector('mark[data-mark=\"#0A84FF\"]')).backgroundColor") as? String
+            check("EPUB : surlignage redessiné en bleu", blue > 0 && (shade ?? "").contains("10, 132, 255"), shade ?? "rien")
+        }
+        if let h = kindle.readerHighlights(of: pdf).first {
+            kindle.setColor(h.id, .purple)
+            pdfReader.highlights = kindle.readerHighlights(of: pdf)
+            let colored = pdfReader.document?.page(at: 0)?.annotations.contains {
+                $0.type == "Highlight" && $0.color.usingColorSpace(.sRGB).map { abs($0.redComponent - 175.0 / 255) < 0.01 } == true
+            } ?? false
+            check("PDF : surlignage redessiné en violet", colored)
+            let actions = ReaderHighlightActions(lookup: { kindle.clipping(id: $0) })
+            let titles = HighlightMenu.items(selection: true, highlight: h.id, actions: actions).map(\.title)
+            check("menu d'un passage surligné : note, couleur, suppression",
+                  titles.contains("Surligner") && titles.contains("Couleur") && titles.contains("Supprimer le surlignage"),
+                  titles.joined(separator: ", "))
+            let page = pdfReader.view
+            page.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+            let event = NSEvent.mouseEvent(with: .rightMouseDown, location: .zero, modifierFlags: [], timestamp: 0,
+                                           windowNumber: 0, context: nil, eventNumber: 0, clickCount: 1, pressure: 1)
+            let menu = event.flatMap { page.menu(for: $0) }
+            let leftovers = menu?.items.compactMap { $0.action.map(NSStringFromSelector) }
+                .filter { ["zoomIn:", "zoomOut:", "_setSinglePage:", "_removeMarkup:"].contains($0) } ?? ["pas de menu"]
+            check("PDF : menu sans zoom, modes d'affichage ni surlignage de PDFKit", leftovers.isEmpty, leftovers.joined(separator: ", "))
+        }
+        // Thématiques (S-075, S-079) : légende nommée, passage rangé dans deux thématiques, couleur à part.
+        let store = ResearchStore(directories: library.directories, kindle: kindle)
+        var roads = store.addResearch(name: "Rénovation des voiries")
+        roads.themes[0].name = "Construction"
+        let added = roads.addTheme(name: "Mesures de trafic")
+        store.update(roads)
+        var memoir = store.addResearch(name: "Mémoire de master")
+        memoir.themes[0].name = "Anthropologie"
+        store.update(memoir)
+        if let h = kindle.readerHighlights(of: epub).first {
+            store.setActive(roads.id, for: epub)
+            let next = store.nextMark(for: epub)
+            check("thématique choisie retenue pour le livre, première couleur proposée",
+                  ResearchStore(directories: library.directories, kindle: kindle).activeResearch(for: epub)?.id == roads.id
+                  && next.mark.label == "Construction" && next.research == roads.id, next.mark.label)
+            store.setThematic(roads.id, on: true, for: h.id)
+            store.setThematic(memoir.id, on: true, for: h.id)
+            store.apply(HighlightMark(added), to: h.id)
+            reader.markOf = { store.mark(of: $0) }
+            reader.highlights = kindle.readerHighlights(of: epub)
+            try? await Task.sleep(for: .milliseconds(300))
+            let shade = await reader.js("getComputedStyle(document.querySelector('mark[data-mark=\"\(added.color)\"]')).backgroundColor") as? String
+            let (r, g, b) = HighlightMark(added).rgb
+            let saved = KindleMonitor().clipping(id: h.id)
+            check("passage dans deux thématiques, couleur ajoutée dessinée",
+                  saved?.thematicIDs == [roads.id, memoir.id] && saved?.colorHex == added.color
+                  && (shade ?? "").contains("\(r), \(g), \(b)"), shade ?? "rien")
+            check("nom de la couleur lu dans chaque légende", saved.map {
+                store.mark(of: $0).label == "Mesures de trafic" && store.mark(of: $0, in: memoir.id).label == "Couleur personnalisée"
+            } ?? false)
+            let reopened = ResearchStore(directories: library.directories, kindle: kindle)
+            check("thématiques relues au redémarrage", reopened.research(id: roads.id)?.themes.map(\.displayName).last == "Mesures de trafic")
+            let export = store.exportMarkdown(research: roads.id) ?? ""
+            check("export de la thématique : couleur nommée, livre et passage (S-078)",
+                  export.contains("## Mesures de trafic") && export.contains("### \(epub.title)") && export.contains("> \(h.text)"),
+                  String(export.prefix(120)))
+            store.delete(roads.id)
+            check("thématique supprimée : retirée du passage, couleur gardée", kindle.clipping(id: h.id).map {
+                $0.thematicIDs == [memoir.id] && $0.colorHex == added.color } ?? false)
+            store.delete(memoir.id)
+            kindle.setColor(h.id, .blue)
+        }
+        // Surlignage d'avant S-079 (recherche et thème) : repris au chargement.
+        if let h = kindle.readerHighlights(of: pdf).first {
+            let old = store.addResearch(name: "Ancienne recherche")
+            kindle.modifyClippings { c in
+                guard c.id == h.id else { return false }
+                c.research = old.id
+                c.theme = old.themes[2].id
+                c.thematics = nil
+                return true
+            }
+            _ = ResearchStore(directories: library.directories, kindle: kindle)
+            let migrated = kindle.clipping(id: h.id)
+            check("surlignage d'avant les thématiques repris", migrated.map {
+                $0.research == nil && $0.thematicIDs == [old.id] && $0.highlightColor == .blue } ?? false)
+            store.delete(old.id)
+            kindle.setColor(h.id, .purple)
+        }
+
+        check("couleur relue au redémarrage",
+              Set(KindleMonitor().readerHighlights(of: epub).map(\.highlightColor) + KindleMonitor().readerHighlights(of: pdf).map(\.highlightColor))
+                == [.blue, .purple])
+
+        // Relus au redémarrage, rangés avec les notes, livres intacts.
+        let reopened = KindleMonitor()
+        let saved = reopened.readerHighlights(of: epub) + reopened.readerHighlights(of: pdf)
+        check("surlignages relus au redémarrage avec leur position",
+              saved.count == 2 && saved.allSatisfy { $0.isFromApp && $0.anchor != nil }
+                && saved.first?.note == "Note modifiée dans les notes",
+              "\(saved.count) surlignage(s)")
+        check("surlignages dans « Notes et surlignages »",
+              reopened.clippingBooks.contains { $0.id == ShelfSync.normalize(epub.title) && $0.clippings.contains(where: \.isFromApp) })
+        check("fichiers des livres inchangés après surlignage", [epub.url, pdf.url].map { try? Data(contentsOf: $0) } == originals)
+        for h in saved { reopened.deleteClipping(h.id) }
+        check("surlignage de l'app supprimé pour de bon",
+              KindleMonitor().clippings.allSatisfy { !$0.isFromApp })
     }
 
     /// Fenêtre de lecture (S-066, S-068, S-069) : préparation de chaque format, position, réglages.

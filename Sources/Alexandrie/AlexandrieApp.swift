@@ -9,6 +9,7 @@ struct AlexandrieApp: App {
     @State private var kindle = AppServices.shared.kindle
     @State private var updates = AppServices.shared.updates
     @State private var reading = AppServices.shared.reading
+    @State private var researches = AppServices.shared.researches
     /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
     @ObservedObject private var menu = MenuState.shared
 
@@ -19,6 +20,7 @@ struct AlexandrieApp: App {
                 .environment(kindle)
                 .environment(updates)
                 .environment(reading)
+                .environment(researches)
                 .frame(minWidth: 960, minHeight: 600)
                 // ALEXANDRIE_GRID=1 : grille de 8 pt, zones et sondes dessinées sur la fenêtre.
                 .overlay { if GridOverlay.enabled { GridOverlay() } }
@@ -44,6 +46,7 @@ struct AlexandrieApp: App {
                 .environment(library)
                 .environment(kindle)
                 .environment(reading)
+                .environment(researches)
                 .frame(minWidth: 480, minHeight: 560)
         }
         .defaultSize(width: 760, height: 940)

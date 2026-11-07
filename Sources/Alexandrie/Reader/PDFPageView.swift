@@ -79,6 +79,17 @@ final class PDFPageController {
         pageChanged()
     }
 
+    /// Montre un passage trouvé (S-083) : sa page, et la `occurrence`-ième apparition exacte de `text` sélectionnée.
+    func show(page index: Int, text: String, occurrence: Int) {
+        go(to: index)
+        guard let document, let page = document.page(at: index) else { return }
+        let found = document.findString(text, withOptions: []).filter { $0.pages.contains(page) }
+        let pick = found.indices.contains(occurrence) ? found[occurrence] : found.first
+        guard let pick else { return }
+        view.setCurrentSelection(pick, animate: true)
+        view.go(to: pick)
+    }
+
     func next() { view.goToNextPage(nil) }
     func previous() { view.goToPreviousPage(nil) }
 

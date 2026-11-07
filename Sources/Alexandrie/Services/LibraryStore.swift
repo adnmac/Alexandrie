@@ -120,6 +120,12 @@ final class LibraryStore {
 
     func identity(of book: Book) -> String { identities[book.id] ?? BookGroups.key(book) }
 
+    /// Nombre de livres d'une liste de fichiers : les fichiers d'un même livre comptent pour un (barre latérale).
+    func bookCount(_ list: [Book]) -> Int {
+        let identities = identities
+        return Set(list.map { identities[$0.id] ?? BookGroups.key($0) }).count
+    }
+
     /// Fichiers masqués : même livre, même format qu'un fichier gardé (voir `BookGroups.duplicates`).
     var hiddenDuplicates: Set<Book.ID> {
         let books = self.books

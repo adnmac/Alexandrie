@@ -570,6 +570,48 @@ Acceptance:
 - [manual] Un clic sur le titre du livre d'un passage montre sa fiche.
 Status: doing
 
+### S-081 Indexer le texte des livres
+Alexandrie lit une fois le texte de chaque livre (EPUB, MOBI, AZW3, PDF) et le garde dans un index, en arrière-plan, pour chercher dans le contenu sans attendre.
+Depends: S-066
+Acceptance:
+- [unit] Le texte d'un EPUB est extrait chapitre par chapitre, sans balises ni styles, entités décodées ; l'index trouve un livre par un mot de son texte, sans tenir compte des accents ni des majuscules, et par le début d'un mot.
+- [self] Les livres de la bibliothèque sont indexés en arrière-plan, puis un livre ajouté ; un livre retiré quitte l'index ; les livres protégés (DRM) sont ignorés.
+Status: done
+
+### S-082 Chercher dans le contenu des livres
+Dans le champ de recherche, je choisis « Titres, auteurs… » ou « Contenu des livres » ; le contenu donne une liste des livres avec le nombre de passages et des extraits, le mot trouvé en gras.
+Depends: S-081
+Acceptance:
+- [unit] Les extraits entourent le mot trouvé, sans tenir compte des accents ni des majuscules, et comptent ses passages.
+- [snap] La liste des résultats dans le contenu, avec extraits, et la progression de l'indexation.
+Status: done
+
+### S-083 Ouvrir un passage trouvé
+Un clic sur un extrait ouvre la fenêtre de lecture au passage, mot sélectionné.
+Depends: S-082
+Acceptance:
+- [self] Ouvrir un extrait d'EPUB et de PDF montre la page du passage, le mot sélectionné.
+- [manual] Une fenêtre de lecture déjà ouverte pour ce livre saute au passage.
+Status: done
+
+### S-084 Chercher l'écriture exacte
+« Odyssée » (l'œuvre) et « odyssée » (un long voyage) ne disent pas la même chose : une option « Écriture exacte » ne garde que les passages écrits exactement comme la recherche, majuscules et accents compris.
+Depends: S-082
+Acceptance:
+- [unit] En écriture exacte, « Odyssée » ne trouve ni « odyssée » ni « Odyssee » ; sans l'option, il les trouve tous.
+- [self] Un livre dont le texte n'a le mot qu'avec une autre écriture n'est plus dans les résultats.
+- [snap] La barre « Chercher dans » montre l'option, cochée, et les résultats exacts.
+Status: done
+
+### S-085 Parcourir les renvois d'une recherche en lisant
+Ouverte depuis la recherche dans le contenu, la fenêtre de lecture montre dans sa colonne de gauche la liste des passages où le mot apparaît, et au-dessus de la page une barre pour aller au renvoi précédent ou suivant.
+Depends: S-083
+Acceptance:
+- [self] Tous les passages du livre sont listés, dans l'ordre, avec leur chapitre ou leur page ; aller au suivant ouvre sa page, mot sélectionné.
+- [snap] La fenêtre de lecture avec la liste des renvois à gauche et la barre « 2 sur 5 ».
+- [manual] ⌘G et ⇧⌘G passent au renvoi suivant et précédent ; fermer la barre rend la table des matières.
+Status: done
+
 ## Later
 
 - Envoyer les surlignages faits dans l'app vers la Kindle.

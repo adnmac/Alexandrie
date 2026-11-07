@@ -8,6 +8,35 @@ enum ReaderWindows {
     static var open: (Book.ID) -> Void = { _ in }
 }
 
+/// Passage à montrer à l'ouverture d'une fenêtre de lecture (S-083) : section (chapitre ou page),
+/// texte exact et son rang dans la section.
+struct ReaderTarget: Equatable {
+    let section: Int
+    let text: String
+    let occurrence: Int
+    /// Recherche d'où vient le passage (S-085) : ses renvois sont listés dans la fenêtre de lecture.
+    var query = ""
+    var exact = false
+    let id = UUID()
+}
+
+/// Passages demandés par la recherche dans le contenu, par livre : la fenêtre de lecture les prend en
+/// s'ouvrant, ou tout de suite si elle l'est déjà.
+@MainActor @Observable
+final class ReaderLaunch {
+    static let shared = ReaderLaunch()
+    private(set) var targets: [Book.ID: ReaderTarget] = [:]
+
+    func open(_ book: Book, at target: ReaderTarget) {
+        targets[book.id] = target
+        ReaderWindows.open(book.id)
+    }
+
+    func take(_ id: Book.ID) -> ReaderTarget? {
+        targets.removeValue(forKey: id)
+    }
+}
+
 /// Fenêtre « Lecture » (S-066) : le livre dont l'identifiant est passé à `openWindow`.
 struct ReaderWindow: View {
     let bookID: Book.ID?
@@ -35,6 +64,14 @@ struct ReaderView: View {
     @State private var failure: String?
     /// Table des matières ouverte ou fermée, pour tous les livres.
     @AppStorage("readerContentsVisible") private var showsContents = false
+    /// Renvois de la recherche dans le contenu (S-085) : passages du mot cherché, celui affiché, et la recherche.
+    @State private var hits: [ContentSearch.Snippet] = []
+    @State private var hitIndex = 0
+    @State private var hitQuery = ""
+    /// Colonne de gauche : table des matières ou renvois de la recherche.
+    @State private var sidebarMode: SidebarMode = .contents
+
+    enum SidebarMode: Hashable { case contents, hits }
 
     enum Content {
         case epub(EPUBPageController)
@@ -44,10 +81,11 @@ struct ReaderView: View {
     var body: some View {
         NavigationSplitView(columnVisibility: Binding(get: { showsContents ? .all : .detailOnly },
                                                       set: { showsContents = $0 != .detailOnly })) {
-            contents
-                .navigationSplitViewColumnWidth(min: 200, ideal: 240, max: 360)
+            sidebar
+                .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 380)
         } detail: {
             page
+                .safeAreaInset(edge: .top, spacing: 0) { if !hits.isEmpty { hitsBar } }
         }
         .navigationTitle(book.title)
         .navigationSubtitle(book.authorLine)
@@ -61,6 +99,7 @@ struct ReaderView: View {
         .sheet(isPresented: $managesResearches) {
             ResearchesSheet(selected: researches.activeResearch(for: book)?.id)
         }
+        .onChange(of: ReaderLaunch.shared.targets[book.id]) { jumpToTarget() }
         .onDisappear { reading.saveNow() }
     }
 
@@ -150,6 +189,109 @@ struct ReaderView: View {
                     .padding(.leading, CGFloat(entry.depth) * Space.md)
                     .tag(entry.id)
             }
+        }
+    }
+
+    // MARK: Renvois de la recherche (S-085)
+
+    /// Colonne de gauche : la table des matières, ou, ouverte depuis la recherche, la liste des renvois.
+    @ViewBuilder private var sidebar: some View {
+        if hits.isEmpty {
+            contents
+        } else {
+            VStack(spacing: 0) {
+                Picker("Afficher", selection: $sidebarMode) {
+                    Text("Sommaire").tag(SidebarMode.contents)
+                    Text("Renvois (\(hits.count))").tag(SidebarMode.hits)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .controlSize(.small)
+                .padding(Space.sm)
+                if sidebarMode == .hits { hitsList } else { contents }
+            }
+        }
+    }
+
+    private var hitsList: some View {
+        List(selection: Binding(get: { hitIndex }, set: { if let i = $0 { goToHit(i) } })) {
+            ForEach(Array(hits.enumerated()), id: \.offset) { i, hit in
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(hitPlace(hit)).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                    Text("\(hit.before)\(Text(hit.match).bold())\(hit.after)")
+                        .font(.callout)
+                        .lineLimit(3)
+                }
+                .padding(.vertical, 2)
+                .tag(i)
+            }
+        }
+    }
+
+    /// Où se trouve un renvoi : la page d'un PDF, ou le titre du chapitre.
+    private func hitPlace(_ hit: ContentSearch.Snippet) -> String {
+        if book.format == .pdf { return "Page \(hit.section + 1)" }
+        let entry = entries.last { $0.chapter <= hit.section }
+        return entry.map { $0.title.isEmpty ? "Chapitre \(hit.section + 1)" : $0.title } ?? "Chapitre \(hit.section + 1)"
+    }
+
+    /// Barre au-dessus de la page : le mot cherché, le renvoi affiché, précédent et suivant (⇧⌘G, ⌘G).
+    private var hitsBar: some View {
+        HStack(spacing: Space.sm) {
+            Image(systemName: "text.magnifyingglass").foregroundStyle(.secondary).accessibilityHidden(true)
+            Text("« \(hitQuery) »").font(.callout.weight(.semibold)).lineLimit(1)
+            Text("\(hitIndex + 1) sur \(hits.count)").font(.callout.monospacedDigit()).foregroundStyle(.secondary)
+            Spacer()
+            ControlGroup {
+                Button { goToHit(hitIndex - 1) } label: { Label("Renvoi précédent", systemImage: "chevron.up") }
+                    .keyboardShortcut("g", modifiers: [.command, .shift])
+                    .disabled(hitIndex == 0)
+                    .help("Renvoi précédent (⇧⌘G)")
+                Button { goToHit(hitIndex + 1) } label: { Label("Renvoi suivant", systemImage: "chevron.down") }
+                    .keyboardShortcut("g", modifiers: .command)
+                    .disabled(hitIndex >= hits.count - 1)
+                    .help("Renvoi suivant (⌘G)")
+            }
+            .fixedSize()
+            Button {
+                hits = []
+                sidebarMode = .contents
+            } label: { Label("Fermer la recherche", systemImage: "xmark.circle.fill") }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+                .keyboardShortcut(.cancelAction)
+                .help("Fermer la recherche ; la colonne rend la table des matières")
+        }
+        .controlSize(.small)
+        .padding(.horizontal, Space.lg)
+        .padding(.vertical, Space.sm)
+        .background(.bar)
+    }
+
+    /// Montre un renvoi : sa page, le mot sélectionné.
+    private func goToHit(_ index: Int) {
+        guard hits.indices.contains(index) else { return }
+        hitIndex = index
+        let hit = hits[index]
+        switch content {
+        case .epub(let c): c.open(chapter: hit.section, text: hit.match, occurrence: hit.occurrence)
+        case .pdf(let c): c.show(page: hit.section, text: hit.match, occurrence: hit.occurrence)
+        case nil: break
+        }
+    }
+
+    /// Renvois d'une recherche venue de la liste des résultats : chargés, colonne de gauche ouverte dessus.
+    private func loadHits(for target: ReaderTarget) {
+        guard !target.query.isEmpty else { return }
+        let book = book
+        Task {
+            let found = await AppServices.shared.contentIndexer.passages(of: book, query: target.query, exact: target.exact)
+            guard !found.isEmpty else { return }
+            hits = found
+            hitQuery = target.query
+            hitIndex = found.firstIndex { $0.section == target.section && $0.match == target.text && $0.occurrence == target.occurrence } ?? 0
+            sidebarMode = .hits
+            showsContents = true
         }
     }
 
@@ -349,6 +491,7 @@ struct ReaderView: View {
             try? await Task.sleep(for: .milliseconds(50))
             controller.apply(scale: reading.textScale)
             controller.go(to: start?.chapter ?? 0)
+            jumpToTarget()
             controller.onMove = { reading.record($0, for: book) }
         } else {
             let directories = library.directories
@@ -364,10 +507,24 @@ struct ReaderView: View {
                 controller.onOpenNote = { openNote($0, at: $1) }
                 content = .epub(controller)
                 showHighlights()
-                controller.open(chapter: start?.chapter ?? 0, fraction: start?.fraction ?? 0)
+                // Un passage trouvé l'emporte sur la position de lecture.
+                if ReaderLaunch.shared.targets[book.id] != nil { jumpToTarget() } else {
+                    controller.open(chapter: start?.chapter ?? 0, fraction: start?.fraction ?? 0)
+                }
             } catch {
                 failure = error.localizedDescription
             }
+        }
+    }
+
+    /// Passage trouvé par la recherche dans le contenu (S-083), s'il y en a un pour ce livre.
+    private func jumpToTarget() {
+        guard content != nil, let target = ReaderLaunch.shared.take(book.id) else { return }
+        loadHits(for: target)
+        switch content {
+        case .epub(let c): c.open(chapter: target.section, text: target.text, occurrence: target.occurrence)
+        case .pdf(let c): c.show(page: target.section, text: target.text, occurrence: target.occurrence)
+        case nil: break
         }
     }
 

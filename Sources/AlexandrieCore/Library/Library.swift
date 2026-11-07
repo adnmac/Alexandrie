@@ -216,6 +216,11 @@ public struct AppDirectories: Sendable {
     public var clippings: URL { base.appendingPathComponent("clippings.json") }
     /// Recherches et leurs thèmes (voir `ResearchList`).
     public var researches: URL { base.appendingPathComponent("researches.json") }
+    /// Texte des livres pour la recherche dans le contenu (voir `BookText`), un fichier par empreinte.
+    public var texts: URL { base.appendingPathComponent("Texte", isDirectory: true) }
+    /// Index SearchKit de ce texte (voir `ContentIndex`) et la liste des livres déjà indexés.
+    public var contentIndex: URL { base.appendingPathComponent("Recherche/contenu.index") }
+    public var contentIndexState: URL { base.appendingPathComponent("Recherche/indexes.json") }
     /// Copies datées de l'index (voir `IndexBackups`).
     public var backups: URL { base.appendingPathComponent("Sauvegardes", isDirectory: true) }
     public var covers: URL { base.appendingPathComponent("Covers", isDirectory: true) }

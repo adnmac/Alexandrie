@@ -19,10 +19,10 @@ struct SidebarView: View {
         List(selection: $selection) {
             Section("Bibliothèque") {
                 let books = library.visibleBooks
-                row("Tous les livres", "books.vertical", .all, count: books.count)
+                row("Tous les livres", "books.vertical", .all, count: count(books))
                 row("Ajoutés récemment", "clock", .recent)
                 row("Envoyés à la Kindle", "checkmark.circle", .sent,
-                    count: books.filter { $0.lastSentAt != nil }.count)
+                    count: count(books.filter { $0.lastSentAt != nil }))
                 row("À vérifier", "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
                 let notes = kindle.clippings.filter { $0.kind != .bookmark }.count
                 if notes > 0 || selection == .notes {
@@ -30,7 +30,7 @@ struct SidebarView: View {
                         .help("Notes et surlignages importés des Kindle")
                 }
                 row("Corbeille", library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
-                    count: library.trashedBooks.count)
+                    count: count(library.trashedBooks))
                     .help("Livres supprimés, restaurables tant que la corbeille n'est pas vidée")
             }
 
@@ -84,7 +84,7 @@ struct SidebarView: View {
                     Button("Éjecter la Kindle") { Task { await kindle.eject() } }
                         .disabled(!kindle.canEject || kindle.isBusy)
                 }
-                let pending = library.pendingSends.count
+                let pending = count(library.pendingSends)
                 if pending > 0 || selection == .pending {
                     row("En attente d'envoi", "clock.arrow.circlepath", .pending, count: pending)
                         .help("Livres envoyés automatiquement dès que la Kindle sera branchée")
@@ -118,7 +118,7 @@ struct SidebarView: View {
                         ForEach(library.folders, id: \.path) { folder in
                             let unavailable = library.unavailableFolders.contains(folder.path)
                             row(LibraryFolders.name(of: folder.path), unavailable ? "externaldrive.badge.xmark" : "folder",
-                                .folder(folder.path), count: library.books(inFolder: folder.path).count)
+                                .folder(folder.path), count: count(library.books(inFolder: folder.path)))
                                 .foregroundStyle(unavailable ? .secondary : .primary)
                                 .help(unavailable ? "Indisponible : disque débranché ou dossier introuvable. Ses livres restent dans la bibliothèque et reviendront au rebranchement."
                                       : folder.path)
@@ -163,14 +163,30 @@ struct SidebarView: View {
             Section {
                 CollapsibleHeader(title: "Auteurs", count: authors.count, isExpanded: $authorsExpanded)
                 if authorsExpanded {
+                    let perAuthor = authorCounts(library.visibleBooks)
                     ForEach(authors) { a in
-                        row(a.name, "person", .author(a.key), count: a.bookCount)
+                        row(a.name, "person", .author(a.key), count: perAuthor[a.key] ?? a.bookCount)
                             .help(a.variants.count > 1 ? "Graphies regroupées : " + a.variants.joined(separator: " · ") : a.name)
                     }
                 }
             }
         }
         .listStyle(.sidebar)
+    }
+
+    /// Nombre de livres, pas de fichiers : les fichiers d'un même livre (EPUB, MOBI, PDF…) comptent pour un,
+    /// comme dans la grille.
+    private func count(_ list: [Book]) -> Int { library.bookCount(list) }
+
+    /// Livres de chaque auteur (clé de regroupement), chaque livre compté une fois quel que soit son nombre de fichiers.
+    private func authorCounts(_ books: [Book]) -> [String: Int] {
+        let identities = library.identities
+        var seen: [String: Set<String>] = [:]
+        for b in books {
+            let identity = identities[b.id] ?? BookGroups.key(b)
+            for key in AuthorNames.keys(of: b) { seen[key, default: []].insert(identity) }
+        }
+        return seen.mapValues(\.count)
     }
 
     private func row(_ title: String, _ icon: String, _ tag: SidebarItem, count: Int? = nil) -> some View {

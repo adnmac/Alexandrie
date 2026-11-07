@@ -49,7 +49,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     }()
 
     /// Ce qu'il faut faire une fois le chapitre chargé.
-    private enum Landing { case fraction(Double), last, fragment(String) }
+    private enum Landing { case fraction(Double), last, fragment(String), text(String, Int) }
     @ObservationIgnored private var landing: Landing = .fraction(0)
     @ObservationIgnored private var settings = (scale: 1.0, theme: ReaderTheme.light)
 
@@ -63,6 +63,12 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
 
     func open(chapter: Int, fraction: Double = 0) {
         load(chapter, landing: .fraction(fraction))
+    }
+
+    /// Ouvre un chapitre sur un passage trouvé (S-083) : la `occurrence`-ième apparition exacte de `text`,
+    /// sélectionnée, à sa page.
+    func open(chapter: Int, text: String, occurrence: Int) {
+        load(chapter, landing: .text(text, occurrence))
     }
 
     func open(_ entry: ReaderBook.Entry) {
@@ -183,6 +189,12 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         case .fraction(let f): await js("alx.setFraction(\(f))")
         case .last: await js("alx.last()")
         case .fragment(let id): await js("alx.show(\(Self.quoted(id)))")
+        case .text(let text, let occurrence):
+            // Sans la graphie exacte (blancs du livre différents), le premier mot à la place.
+            if await js("alx.findText(\(Self.quoted(text)), \(occurrence))") as? Bool != true,
+               let word = text.split(separator: " ").first.map(String.init) {
+                await js("alx.findText(\(Self.quoted(word)), 0)")
+            }
         }
         await refresh()
     }
@@ -305,6 +317,26 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
           return shown ? this.box(shown) : null;
         },
         setHighlights(list) { this.unmark(); list.forEach(h => this.mark(h)); },
+        // Passage trouvé (S-083) : n-ième apparition exacte dans le texte du corps, sélectionnée, à sa page.
+        findText(t, n) {
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), nodes = [];
+          for (let x = walker.nextNode(); x; x = walker.nextNode()) nodes.push(x);
+          const full = nodes.map(x => x.data).join('');
+          let at = -1;
+          for (let k = 0; k <= n; k++) { at = full.indexOf(t, at + 1); if (at < 0) return false; }
+          const point = (pos) => {
+            let p = 0;
+            for (const x of nodes) { if (pos <= p + x.data.length) return [x, pos - p]; p += x.data.length; }
+            return null;
+          };
+          const a = point(at), b = point(at + t.length);
+          if (!a || !b) return false;
+          const r = document.createRange();
+          r.setStart(a[0], a[1]); r.setEnd(b[0], b[1]);
+          const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          this.goTo(Math.floor((r.getBoundingClientRect().left + root().scrollLeft) / this.width()));
+          return true;
+        },
       };
       window.alx = alx;
       alx.layout();

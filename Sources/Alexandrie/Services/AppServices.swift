@@ -10,6 +10,7 @@ final class AppServices {
     let updates = UpdateMonitor()
     lazy var reading = ReadingStore(directories: library.directories)
     lazy var researches = ResearchStore(directories: library.directories, kindle: kindle)
+    lazy var contentIndexer = ContentIndexer(directories: library.directories)
 
     private init() {}
 }

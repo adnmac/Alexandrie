@@ -50,7 +50,8 @@ enum Snapshot {
     }
 
     static func run(library: LibraryStore, kindle: KindleMonitor, sidebar: Binding<SidebarItem?>, selection: Binding<Set<String>>,
-                    notesBook: Binding<String?>, openSettings: OpenSettingsAction) async {
+                    notesBook: Binding<String?>, search: Binding<String>, searchScope: Binding<SearchScope>,
+                    openSettings: OpenSettingsAction) async {
         guard let dir = directory else { return }
         guard AppDirectories.testStore != nil else {
             print("SNAPSHOT refusé : ALEXANDRIE_STORE doit désigner un dossier de test dans /tmp")
@@ -88,6 +89,24 @@ enum Snapshot {
                 capture(to: "\(dir)/\(page.name)-\(mode).png")
             }
         }
+        // Recherche dans le contenu (S-082) : un mot du texte des livres d'exemple, une fois l'index fait.
+        if only == nil || only?.contains("recherche-contenu") == true {
+            await AppServices.shared.contentIndexer.waitUntilIdle()
+            searchScope.wrappedValue = .content
+            // Écriture exacte (S-084) cochée : « brume » en minuscules.
+            UserDefaults.standard.set(true, forKey: "contentSearchExact")
+            search.wrappedValue = "brume"
+            sidebar.wrappedValue = .all
+            selection.wrappedValue = []
+            for mode in ["light", "dark"] {
+                NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+                try? await Task.sleep(for: .seconds(1.5))
+                capture(to: "\(dir)/recherche-contenu-\(mode).png")
+            }
+            search.wrappedValue = ""
+            searchScope.wrappedValue = .titles
+            UserDefaults.standard.set(false, forKey: "contentSearchExact")
+        }
         if only == nil || only?.contains("lecture") == true {
             await captureReader(library: library, dir: dir)
         }
@@ -118,10 +137,12 @@ enum Snapshot {
     /// sépia avec un texte agrandi. Réglages remis à leur valeur ensuite (bundle de capture à part).
     private static func captureReader(library: LibraryStore, dir: String) async {
         let reading = AppServices.shared.reading
-        let shots: [(name: String, title: String, theme: ReaderTheme, scale: Double, contents: Bool)] = [
-            ("lecture-epub", "Le Port des brumes", .light, 1, true),
-            ("lecture-pdf", "Manuel du fleuve", .light, 1, false),
-            ("lecture-sepia", "Le Port des brumes", .sepia, 1.4, false),
+        let shots: [(name: String, title: String, theme: ReaderTheme, scale: Double, contents: Bool, query: String?)] = [
+            ("lecture-epub", "Le Port des brumes", .light, 1, true, nil),
+            ("lecture-pdf", "Manuel du fleuve", .light, 1, false, nil),
+            ("lecture-sepia", "Le Port des brumes", .sepia, 1.4, false, nil),
+            // Ouverte depuis la recherche dans le contenu (S-085) : renvois à gauche, deuxième passage affiché.
+            ("lecture-renvois", "Le Port des brumes", .light, 1, false, "phare"),
         ]
         for shot in shots {
             guard let book = library.visibleBooks.first(where: { $0.title == shot.title }) else { continue }
@@ -132,6 +153,14 @@ enum Snapshot {
                 reading.record(ReadingPosition(chapter: 1, fraction: 0.5, percent: 0.375), for: book)
             }
             UserDefaults.standard.set(shot.contents, forKey: "readerContentsVisible")
+            if let query = shot.query {
+                await AppServices.shared.contentIndexer.waitUntilIdle()
+                let hits = await AppServices.shared.contentIndexer.passages(of: book, query: query, exact: false)
+                if hits.count > 1 {
+                    ReaderLaunch.shared.open(book, at: ReaderTarget(section: hits[1].section, text: hits[1].match,
+                                                                    occurrence: hits[1].occurrence, query: query))
+                }
+            }
             ReaderWindows.open(book.id)
             try? await Task.sleep(for: .seconds(2.5))
             let window = NSApp.windows.first { $0.title == book.title && $0.isVisible }

@@ -15,6 +15,11 @@ struct ContentView: View {
     @State private var selection = Set<String>()
     @State private var kindleSelection: KindleDocument.ID?
     @State private var search = ""
+    /// Champ de recherche : fiches des livres, ou leur texte (S-082).
+    @State private var searchScope: SearchScope = .titles
+    /// Écriture exacte dans le contenu (S-084), gardée d'une recherche à l'autre.
+    @AppStorage("contentSearchExact") private var contentSearchExact = false
+    @Environment(ContentIndexer.self) private var contentIndexer
     @State private var sort: SortOrder = .title
     @AppStorage("gridMode") private var gridMode = true
     /// Page et sélection rendues au lancement suivant. Dans les réglages de l'app, pas dans l'état de la
@@ -53,13 +58,18 @@ struct ContentView: View {
             library.undoManager = undoManager
             restorePage()
         }
+        // Texte des livres indexé en arrière-plan (S-081), après chaque analyse du dossier ou ajout.
+        .onChange(of: library.isScanning, initial: true) { _, scanning in
+            if !scanning { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+        }
+        .onChange(of: library.visibleBooks.count) { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
         .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
         .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
         .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
         .task {
             guard Snapshot.directory != nil else { return }
             await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
-                               openSettings: openSettings)
+                               search: $search, searchScope: $searchScope, openSettings: openSettings)
         }
         .onChange(of: undoManager) { _, manager in library.undoManager = manager }
         // Kindle inconnue : on lui donne un nom, une fois pour toutes.
@@ -118,19 +128,29 @@ struct ContentView: View {
                         }
                         .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
                     }
+                } else if searchScope == .content && !search.trimmingCharacters(in: .whitespaces).isEmpty {
+                    ContentSearchView(query: search.trimmingCharacters(in: .whitespaces), exact: contentSearchExact,
+                                      selection: $selection)
                 } else {
                     libraryPage(groups: groups, selected: selected, resolve: resolve)
                 }
             }
             .navigationSplitViewColumnWidth(min: 420, ideal: 640)
             .safeAreaInset(edge: .top, spacing: 0) {
+                // Où chercher (S-082) : visible dès qu'une recherche est tapée, sur les pages de livres.
+                if !search.trimmingCharacters(in: .whitespaces).isEmpty && sidebar != .kindle && sidebar != .notes
+                    && sidebar?.isThematic != true {
+                    SearchScopeBar(scope: $searchScope, exact: $contentSearchExact)
+                }
                 if let release = updates.releaseBanner {
                     ReleaseBanner(release: release)
                 } else if let info = updates.banner {
                     UpdateBanner(info: info)
                 }
             }
-            .searchable(text: $search, placement: .toolbar, prompt: "Titre, auteur, série, genre…")
+            .searchable(text: $search, placement: .toolbar,
+                        prompt: searchScope == .content ? "Mot ou expression dans les livres" : "Titre, auteur, série, genre…")
+
         } detail: {
             Group {
                 if sidebar == .notes || sidebar?.isThematic == true {
@@ -351,7 +371,7 @@ struct ContentView: View {
         default: break
         }
         let query = search.trimmingCharacters(in: .whitespaces)
-        if !query.isEmpty {
+        if !query.isEmpty && searchScope == .titles {
             // Aussi les livres dont une note ou un surlignage Kindle contient le texte cherché.
             let withNotes = kindle.titleKeys(withClippingsMatching: query)
             list = list.filter { b in

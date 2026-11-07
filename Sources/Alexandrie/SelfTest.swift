@@ -215,6 +215,136 @@ struct SelfTest {
         await testPDF(library: library, folder: folder)
         await testReading(library: library, folder: folder)
         await testHighlights(library: library, folder: folder)
+        await testContentSearch(library: library, folder: folder)
+    }
+
+    /// Recherche dans le contenu (S-081 à S-083) : la bibliothèque indexée en arrière-plan, un mot trouvé dans
+    /// un EPUB et dans un PDF, le passage ouvert et sélectionné, un livre retiré puis remis.
+    private mutating func testContentSearch(library: LibraryStore, folder: URL) async {
+        let directories = library.directories
+        let books = library.visibleBooks
+        guard let epub = books.first(where: { $0.format == .epub && $0.folderPath(in: folder) && BookText.canExtract($0) }),
+              let pdf = books.first(where: { $0.format == .pdf && $0.title == "Manuel du fleuve" }) else {
+            check("livres à chercher présents", false)
+            return
+        }
+        // Barre latérale : un livre en plusieurs fichiers compte pour un, comme dans la grille.
+        let shown = BookGroups.make(books, identities: library.identities)
+        check("« Tous les livres » compte des livres, pas des fichiers", library.bookCount(books) == shown.count
+              && (shown.contains(where: \.isGroup) ? shown.count < books.count : shown.count == books.count),
+              "\(library.bookCount(books)) livre(s) pour \(books.count) fichier(s)")
+        let indexer = ContentIndexer(directories: directories)
+        indexer.refresh(books: books, identities: library.identities)
+        await indexer.waitUntilIdle()
+        let readable = BookText.filesToIndex(books, identities: library.identities)
+        let textFiles = (try? FileManager.default.contentsOfDirectory(atPath: directories.texts.path)) ?? []
+        check("texte des livres indexé en arrière-plan", !indexer.isIndexing && indexer.indexed == Set(readable.map(\.fingerprint))
+              && textFiles.count == readable.count, "\(textFiles.count) texte(s) sur \(readable.count)")
+        // Un livre en plusieurs fichiers n'est lu qu'une fois.
+        let groups = BookGroups.make(books, identities: library.identities)
+        check("un seul fichier indexé par livre", groups.allSatisfy { g in g.books.filter { indexer.indexed.contains($0.fingerprint) }.count <= 1 }
+              && readable.count <= groups.count, "\(readable.count) fichier(s) pour \(groups.count) livre(s), \(groups.filter(\.isGroup).count) en plusieurs fichiers")
+        check("livres protégés ignorés", books.filter(\.isDRMProtected).allSatisfy {
+            !FileManager.default.fileExists(atPath: BookText.url(of: $0.fingerprint, in: directories).path) })
+
+        // PDF : un mot de sa première page, sans accents ni majuscules.
+        let fleuve = await indexer.search("BATELIERS", in: books)
+        let pdfHit = fleuve.first { $0.book.id == pdf.id }
+        check("PDF trouvé par un mot de son texte", pdfHit.map { $0.count >= 1 && $0.snippets.first?.match == "bateliers" } ?? false,
+              fleuve.map(\.book.title).joined(separator: ", "))
+
+        // Écriture exacte (S-084) : « Bateliers », absent avec cette majuscule, ne trouve plus le PDF.
+        let exactWrong = await indexer.search("Bateliers", in: books, exact: true)
+        let exactRight = await indexer.search("bateliers", in: books, exact: true)
+        check("écriture exacte : majuscule respectée", !exactWrong.contains { $0.book.id == pdf.id }
+              && exactRight.contains { $0.book.id == pdf.id })
+
+        // EPUB : un mot long de son deuxième paragraphe, cherché par son début.
+        let text = BookText.load(BookText.url(of: epub.fingerprint, in: directories))
+        // Un mot long qui revient au moins deux fois : les renvois (S-085) ont un suivant.
+        let words = text?.sections.first?.split(whereSeparator: { !$0.isLetter }).map(String.init).filter { $0.count >= 7 } ?? []
+        let word = words.first { w in text.map { ContentSearch.matches(in: $0, query: w).count >= 2 } ?? false } ?? words.first
+        guard let text, let word else {
+            check("mot à chercher dans l'EPUB", false)
+            return
+        }
+        let found = await indexer.search(String(word.prefix(5)), in: books)
+        let epubHit = found.first { $0.book.id == epub.id }
+        check("EPUB trouvé par le début d'un mot", epubHit != nil, "« \(word.prefix(5)) » : \(found.map(\.book.title))")
+
+        // Ouvrir le passage : EPUB dans la vraie page, mot sélectionné.
+        if let snippet = ContentSearch.matches(in: text, query: word).snippets.first {
+            let directories = library.directories
+            if let prepared = await Task.detached(operation: { try? ReaderBook.prepare(epub, directories: directories) }).value {
+                let reader = EPUBPageController(book: prepared)
+                reader.webView.frame = CGRect(x: 0, y: 0, width: 800, height: 600)
+                reader.open(chapter: snippet.section, text: snippet.match, occurrence: snippet.occurrence)
+                var selected: String?
+                let end = Date().addingTimeInterval(20)
+                while selected != snippet.match && Date() < end {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    selected = await reader.js("window.getSelection().toString()") as? String
+                }
+                check("EPUB : passage ouvert, mot sélectionné", selected == snippet.match, selected ?? "rien")
+                // Renvois (S-085) : tous les passages, dans l'ordre ; le suivant s'ouvre, mot sélectionné.
+                let hits = await indexer.passages(of: epub, query: word, exact: false)
+                let all = ContentSearch.matches(in: text, query: word, limit: .max)
+                let ordered = zip(hits, hits.dropFirst()).allSatisfy { $0.section <= $1.section }
+                check("renvois : tous les passages du livre, dans l'ordre", hits.count == all.count && hits.count == all.snippets.count
+                      && ordered, "\(hits.count) renvoi(s) pour \(all.count) passage(s)")
+                if let next = hits.dropFirst().first {
+                    reader.open(chapter: next.section, text: next.match, occurrence: next.occurrence)
+                    var position = 0.0
+                    let deadline = Date().addingTimeInterval(20)
+                    var landed = false
+                    while !landed && Date() < deadline {
+                        try? await Task.sleep(for: .milliseconds(150))
+                        // Le passage suivant : même mot, rang suivant dans sa section.
+                        let r = await reader.js("""
+                            (() => { const s = getSelection(); if (!s.rangeCount) return -1;
+                              const r = document.createRange(); r.setStart(document.body, 0);
+                              r.setEnd(s.getRangeAt(0).startContainer, s.getRangeAt(0).startOffset); return r.toString().length; })()
+                            """) as? NSNumber
+                        position = r?.doubleValue ?? -1
+                        let selected = await reader.js("window.getSelection().toString()") as? String
+                        landed = reader.chapter == next.section && position >= 0 && selected == next.match
+                    }
+                    check("renvoi suivant : sa page, mot sélectionné", landed, "chapitre \(reader.chapter + 1), position \(position)")
+                }
+            }
+        }
+        // PDF : la page du passage, mot sélectionné.
+        if let snippet = pdfHit?.snippets.first {
+            let reader = PDFPageController(url: pdf.url)
+            reader.view.frame = CGRect(x: 0, y: 0, width: 600, height: 800)
+            reader.show(page: snippet.section, text: snippet.match, occurrence: snippet.occurrence)
+            check("PDF : page du passage, mot sélectionné",
+                  reader.page == snippet.section && reader.view.currentSelection?.string == snippet.match,
+                  "page \(reader.page + 1), « \(reader.view.currentSelection?.string ?? "") »")
+            // Renvois (S-085) : « fleuve » revient sur plusieurs pages ; chaque renvoi ouvre sa page, mot sélectionné.
+            let hits = await indexer.passages(of: pdf, query: "fleuve", exact: false)
+            var visited: [String] = []
+            for hit in hits.prefix(4) {
+                reader.show(page: hit.section, text: hit.match, occurrence: hit.occurrence)
+                visited.append("p\(reader.page + 1):\(reader.view.currentSelection?.string ?? "-")")
+            }
+            check("PDF : renvois parcourus, chacun à sa page", hits.count >= 2 && zip(hits.prefix(4), visited).allSatisfy {
+                $1 == "p\($0.section + 1):\($0.match)" }, visited.joined(separator: " "))
+        }
+
+        // Livre retiré de la bibliothèque : il quitte l'index ; remis, il y revient.
+        indexer.refresh(books: books.filter { $0.id != pdf.id }, identities: library.identities)
+        let gone = await indexer.search("bateliers", in: books)
+        check("livre retiré : hors de l'index, texte effacé", !indexer.indexed.contains(pdf.fingerprint) && gone.isEmpty
+              && !FileManager.default.fileExists(atPath: BookText.url(of: pdf.fingerprint, in: directories).path))
+        indexer.refresh(books: books, identities: library.identities)
+        await indexer.waitUntilIdle()
+        let back = await indexer.search("bateliers", in: books)
+        check("livre remis : de nouveau trouvé", back.contains { $0.book.id == pdf.id })
+        // Relu au lancement suivant : l'index et la liste des livres indexés sont sur le disque.
+        let saved = (try? Data(contentsOf: directories.contentIndexState)).flatMap { try? JSONDecoder().decode([String].self, from: $0) }
+        check("index relu au lancement suivant", FileManager.default.fileExists(atPath: directories.contentIndex.path)
+              && Set(saved ?? []) == indexer.indexed, "\(saved?.count ?? 0) livre(s) enregistrés")
     }
 
     /// Surlignages de la fenêtre de lecture (S-070) : une vraie sélection dans un EPUB et dans un PDF,

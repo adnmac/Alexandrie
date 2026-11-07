@@ -22,4 +22,7 @@ enum Layout {
     static let countColumn: CGFloat = 24
     /// Menu de la thématique dans la barre d'outils de lecture (S-079) : au-delà, le nom est coupé.
     static let toolbarMenu: CGFloat = 136
+    /// Recherche dans le contenu (S-082) : couverture d'un résultat, barre de progression de l'indexation.
+    static let resultCover: CGFloat = 48
+    static let indexProgress: CGFloat = 160
 }

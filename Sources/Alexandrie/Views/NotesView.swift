@@ -405,12 +405,14 @@ struct NoteRow: View {
                     if clipping.isFromApp {
                         Button(action: openInReader) { Label("Lire", systemImage: "book") }
                             .labelStyle(.iconOnly)
+                            .buttonStyle(.hover)
                             .disabled(readerBook == nil)
                             .help(readerBook == nil ? "Le livre n'est plus dans la bibliothèque"
                                   : "Ouvrir la fenêtre de lecture à ce passage")
                     }
                     if clipping.kind == .highlight && !editingNote {
                         Button(clipping.hasNote ? "Modifier la note" : "Ajouter une note") { editingNote = true }
+                            .buttonStyle(.hover)
                             .fixedSize()
                             .help(clipping.isFromApp ? "Note visible aussi dans la fenêtre de lecture"
                                   : "Note gardée dans Alexandrie ; la Kindle n'est pas modifiée")

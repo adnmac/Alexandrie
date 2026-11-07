@@ -35,6 +35,7 @@ L'app n'a donc pas de sélecteur d'accent ni de réglage clair/sombre : elle sui
 
 - Les pastilles neutres (format, « principal », nombre de fichiers) : `.background(.quaternary, in: Capsule())`.
 - Pas de verre (Liquid Glass) sur le contenu : couvertures, lignes, fiches. Le verre est pour les barres.
+- Petite action posée dans une ligne (relevé de notes) : `.buttonStyle(.hover)`, qui répond au survol (fond `.quaternary`, `.tertiary` à l'appui, curseur en main) ; un bouton `.borderless` seul ne montre rien au survol.
 
 ## Rayons — `Radius.swift`
 
@@ -42,6 +43,7 @@ L'app n'a donc pas de sélecteur d'accent ni de réglage clair/sombre : elle sui
 | --- | --- | --- |
 | `Radius.cover` | 4 | couverture, et tout ce qui se pose dessus (contour de sélection) |
 | `Radius.field` | 4 | cadre dessiné autour d'un `TextEditor` |
+| `Radius.hover` | 5 | fond de survol d'un bouton sans bordure (`.buttonStyle(.hover)`) |
 | `Radius.dropZone` | 12 | contour pointillé de dépôt de fichiers sur la fenêtre |
 
 - Angles imbriqués concentriques : rayon intérieur = rayon extérieur - marge.

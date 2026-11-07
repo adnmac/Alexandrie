@@ -14,6 +14,8 @@ final class ResearchStore {
         url = directories.researches
         list = ResearchList.load(directories.researches)
         self.kindle = kindle
+        // Le travail d'un mémoire : une copie datée par jour, comme la bibliothèque et les notes (audit, § 2).
+        _ = try? IndexBackups.backUpToday(directories.researches, to: directories.backups, name: "researches")
         // Surlignages d'avant S-079 (recherche et thème) : leur thématique et leur couleur sont reprises.
         let list = list
         kindle.modifyClippings { c in
@@ -120,7 +122,12 @@ final class ResearchStore {
         research(id: id).map { ResearchExport.markdown($0, clippings: kindle.clippings) }
     }
 
+    /// Un échec (disque plein, dossier verrouillé) est signalé : les thématiques ne se perdent pas en silence.
     private func save() {
-        try? ResearchList.save(list, to: url)
+        do {
+            try ResearchList.save(list, to: url)
+        } catch {
+            kindle.lastError = "Impossible d'enregistrer les thématiques : \(error.localizedDescription)"
+        }
     }
 }

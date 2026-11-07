@@ -105,16 +105,20 @@ Les réglages sont dans `UserDefaults`.
 - les destinataires et leur pays : la BnF en France, Open Library (Internet Archive) aux États-Unis, GitHub aux États-Unis ;
 - un moyen de tout effacer : supprimer le dossier de données, ce que l'app pourrait proposer.
 
-## 6. Ordre proposé
+## 6. Étape 1 faite (code)
 
-1. **Code, sans dépendre d'un achat :**
-   - JavaScript des livres coupé ;
-   - explications des autorisations ;
-   - accord pour la vérification en ligne dans l'accueil ;
-   - erreurs d'enregistrement signalées ;
-   - sauvegarde des thématiques ;
-   - rapports de plantage MetricKit ;
-   - User-Agent unique.
+Corrigé le 7 novembre 2026, chaque point vérifié par le selftest ou une capture :
+- **JavaScript des livres coupé.** Les scripts d'Alexandrie tournent dans `WKContentWorld.defaultClient`. Le selftest le vérifie : le script d'une page ne s'exécute pas, ceux d'Alexandrie si ; surlignages, notes et renvois marchent toujours.
+- **Autorisations expliquées.** Clés `NSRemovableVolumes…`, `NSDocumentsFolder…`, `NSDesktopFolder…`, `NSDownloadsFolder…` et `NSNetworkVolumes…UsageDescription` dans l'`Info.plist` (`scripts/bundle.sh`).
+- **Vérification en ligne sur accord.** Désactivée tant que l'utilisateur n'a pas répondu : case dans l'accueil (décochée), ou feuille au lancement pour une bibliothèque déjà en place.
+- **Enregistrements ratés signalés.** Thématiques et positions de lecture affichent une erreur au lieu d'échouer en silence.
+- **Sauvegardes datées.** Elles couvrent aussi les thématiques et les positions de lecture.
+- **Rapports de plantage (MetricKit).** Gardés dans `Rapports/`, proposés au lancement suivant (« Afficher dans le Finder », « Ne pas envoyer », « Envoyer par e-mail… »). Le bouton d'e-mail n'apparaît que si `ALEXANDRIE_SUPPORT_EMAIL` est défini au moment de `scripts/bundle.sh`.
+- **User-Agent unique.** `Alexandrie/<version> (macOS)` pour toutes les requêtes, téléchargement compris.
+
+## 7. Ordre proposé
+
+1. ~~**Code, sans dépendre d'un achat.**~~ Fait (voir § 6).
 2. **Compte Apple :** Developer ID, *hardened runtime*, notarisation dans `scripts/release.sh`, conservation des `.dSYM`.
 3. **Distribution :** dépôt privé, canal de mises à jour public, plateforme de vente et clés de licence.
 4. **Textes :** CGV, mentions légales, politique de confidentialité (à partir du § 5).

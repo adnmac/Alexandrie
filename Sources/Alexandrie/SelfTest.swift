@@ -537,6 +537,25 @@ struct SelfTest {
             store.delete(memoir.id)
             kindle.setColor(h.id, .blue)
         }
+        // Audit, § 2 : thématiques sauvegardées chaque jour, échec d'enregistrement signalé.
+        _ = ResearchStore(directories: directories, kindle: kindle)
+        check("thématiques sauvegardées chaque jour", IndexBackups.list(directories.backups, name: "researches").count == 1)
+        let broken = AppDirectories(base: directories.base.appendingPathComponent("verrouille", isDirectory: true))
+        try? FileManager.default.createDirectory(at: broken.researches, withIntermediateDirectories: true)
+        let warned = KindleMonitor()
+        warned.lastError = nil
+        ResearchStore(directories: broken, kindle: warned).addResearch(name: "Perdue ?")
+        check("échec d'enregistrement des thématiques signalé", warned.lastError?.contains("thématiques") == true,
+              warned.lastError ?? "rien")
+
+        // Audit, § 4 : un rapport de plantage est gardé, proposé, puis effacé si l'utilisateur refuse.
+        let reports = CrashReports.shared
+        reports.discardAll()
+        reports.store(Data(#"{"crashDiagnostics":[]}"#.utf8))
+        let kept = reports.pending.count
+        reports.discardAll()
+        check("rapport de plantage gardé puis effacé au refus", kept == 1 && reports.pending.isEmpty && !reports.isEnabled)
+
         // Surlignage d'avant S-079 (recherche et thème) : repris au chargement.
         if let h = kindle.readerHighlights(of: pdf).first {
             let old = store.addResearch(name: "Ancienne recherche")
@@ -558,6 +577,19 @@ struct SelfTest {
         check("couleur relue au redémarrage",
               Set(KindleMonitor().readerHighlights(of: epub).map(\.highlightColor) + KindleMonitor().readerHighlights(of: pdf).map(\.highlightColor))
                 == [.blue, .purple])
+
+        // Le JavaScript d'un livre ne s'exécute pas ; celui d'Alexandrie, si (audit, § 2).
+        reader.webView.loadHTMLString("<html><body><p>Texte</p><script>document.body.setAttribute('data-livre', 'oui')</script></body></html>",
+                                      baseURL: nil)
+        var ours: Bool?
+        let jsEnd = Date().addingTimeInterval(10)
+        while ours != true && Date() < jsEnd {
+            try? await Task.sleep(for: .milliseconds(150))
+            ours = await reader.js("typeof alx === 'object' && document.body.textContent.includes('Texte')") as? Bool
+        }
+        let bookScript = await reader.js("document.body.getAttribute('data-livre')") as? String
+        check("JavaScript du livre coupé, scripts d'Alexandrie actifs", ours == true && bookScript == nil,
+              "Alexandrie : \(String(describing: ours)), livre : \(bookScript ?? "rien")")
 
         // Relus au redémarrage, rangés avec les notes, livres intacts.
         let reopened = KindleMonitor()

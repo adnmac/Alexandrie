@@ -32,15 +32,18 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
 
     @ObservationIgnored private(set) lazy var webView: ReaderWebView = {
         let configuration = WKWebViewConfiguration()
+        // Le JavaScript des livres ne s'exécute pas : un EPUB piégé ne lance pas son code (audit, § 2).
+        // Les scripts d'Alexandrie vivent dans un monde à part, qui voit la page mais pas le code du livre.
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = false
         configuration.userContentController.addUserScript(
-            WKUserScript(source: Self.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
+            WKUserScript(source: Self.script, injectionTime: .atDocumentEnd, forMainFrameOnly: true, in: Self.world))
         configuration.userContentController.add(ScriptRelay { [weak self] message in
             switch message {
             case .selection(let selected): self?.hasSelection = selected
             case .open(let id, let rect): self?.onOpenNote(id, rect)
             case .menuTarget(let id): self?.menuTarget = id
             }
-        }, name: "alx")
+        }, contentWorld: Self.world, name: "alx")
         let view = ReaderWebView(frame: .zero, configuration: configuration)
         view.navigationDelegate = self
         view.controller = self
@@ -214,9 +217,12 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         onMove(ReadingPosition(chapter: chapter, fraction: fraction, percent: percent))
     }
 
+    /// Monde des scripts d'Alexandrie, séparé de celui du livre.
+    static let world = WKContentWorld.defaultClient
+
     @discardableResult
     func js(_ source: String) async -> Any? {
-        try? await webView.evaluateJavaScript(source)
+        try? await webView.evaluateJavaScript(source, contentWorld: Self.world)
     }
 
     static func quoted(_ s: String) -> String {

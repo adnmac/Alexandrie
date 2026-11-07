@@ -64,6 +64,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSApplicationCategoryType</key><string>public.app-category.books</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>AlexandrieCommit</key><string>${COMMIT}</string>
+  <!-- Adresse qui reçoit les rapports de plantage que l'utilisateur choisit d'envoyer (vide : Finder seulement). -->
+  <key>AlexandrieSupportEmail</key><string>${ALEXANDRIE_SUPPORT_EMAIL:-}</string>
+  <!-- Explications des autorisations demandées par macOS (audit, § 3). -->
+  <key>NSRemovableVolumesUsageDescription</key><string>Alexandrie envoie vos livres à votre Kindle et lit ses notes et surlignages quand elle est branchée.</string>
+  <key>NSDocumentsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Documents, sans les modifier.</string>
+  <key>NSDesktopFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés sur le Bureau, sans les modifier.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Téléchargements, sans les modifier.</string>
+  <key>NSNetworkVolumesUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés sur un volume réseau, sans les modifier.</string>
 </dict>
 </plist>
 PLIST

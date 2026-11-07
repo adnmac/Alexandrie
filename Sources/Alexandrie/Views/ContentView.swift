@@ -47,6 +47,13 @@ struct ContentView: View {
             if connected { Task { await kindle.sendPending(library: library) } }
         }
         .sheet(isPresented: $showReview) { CatalogReviewSheet() }
+        // Après un plantage : le rapport n'est envoyé que si l'utilisateur le décide.
+        .sheet(isPresented: Binding(get: { !CrashReports.shared.pending.isEmpty && Snapshot.directory == nil },
+                                    set: { _ in })) { CrashReportSheet() }
+        // Bibliothèque d'avant l'audit : la vérification en ligne attend une réponse, posée une fois.
+        .sheet(isPresented: Binding(get: { library.hasLibrary && !library.catalogConsentAnswered
+                                         && AppDirectories.testStore == nil && Snapshot.directory == nil },
+                                    set: { _ in })) { CatalogConsentSheet() }
         // Depuis la fiche : « Voir les notes » ouvre la vue Notes sur ce livre.
         .onChange(of: kindle.notesRequest) { _, key in
             guard let key else { return }

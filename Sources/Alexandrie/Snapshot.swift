@@ -209,8 +209,14 @@ enum Snapshot {
         let sheets: [(String, AnyView)] = [
             ("liseuse", AnyView(NameReaderSheet())),
             ("kindle", AnyView(KindleEditSheet(document: document, edits: edits))),
+            ("verification-en-ligne", AnyView(CatalogConsentSheet())),
+            ("plantage", AnyView(CrashReportSheet())),
+            ("accueil", AnyView(OnboardingView().frame(width: 900, height: 620))),
             ("recherches", AnyView(ResearchesSheet(selected: AppServices.shared.researches.researches.first?.id))),
         ]
+        // Un rapport factice, pour la feuille « plantage » (dossier de test seulement).
+        CrashReports.shared.store(Data("{}".utf8))
+        defer { CrashReports.shared.discardAll() }
         for (name, view) in sheets {
             let host = NSHostingController(rootView: view.environment(library).environment(kindle)
                 .environment(AppServices.shared.researches))

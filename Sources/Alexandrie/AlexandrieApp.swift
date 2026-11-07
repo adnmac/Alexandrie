@@ -139,6 +139,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Nécessaire quand le binaire est lancé hors bundle (swift run).
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        // Rapports de plantage remis par macOS au lancement suivant (audit, § 4).
+        CrashReports.shared.start()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }

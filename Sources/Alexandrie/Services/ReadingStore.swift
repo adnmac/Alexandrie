@@ -13,6 +13,7 @@ final class ReadingStore {
     init(directories: AppDirectories) {
         url = directories.readingLog
         positions = ReadingLog.load(directories.readingLog)
+        _ = try? IndexBackups.backUpToday(directories.readingLog, to: directories.backups, name: "reading")
         NotificationCenter.default.addObserver(forName: NSApplication.willTerminateNotification, object: nil,
                                                queue: .main) { [weak self] _ in
             MainActor.assumeIsolated { self?.saveNow() }
@@ -35,7 +36,12 @@ final class ReadingStore {
     func saveNow() {
         saveTask?.cancel()
         saveTask = nil
-        try? ReadingLog.save(positions, to: url)
+        do {
+            try ReadingLog.save(positions, to: url)
+        } catch {
+            // Signalé dans la fenêtre principale ; la position reste en mémoire et sera réessayée.
+            AppServices.shared.library.lastError = "Impossible d'enregistrer la position de lecture : \(error.localizedDescription)"
+        }
     }
 
     // MARK: Réglages du texte (valables pour tous les livres)

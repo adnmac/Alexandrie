@@ -381,15 +381,22 @@ final class LibraryStore {
     private(set) var catalogChecking: Book.ID?
     private(set) var catalogErrors: [Book.ID: String] = [:]
 
-    /// Vérifie automatiquement les livres qui apparaissent dans la bibliothèque.
+    /// Vérifie automatiquement les livres qui apparaissent dans la bibliothèque. Désactivé tant que l'utilisateur
+    /// n'a pas répondu (accueil, ou feuille au lancement) : les titres lus sont une donnée sensible (audit, § 3 et 5).
     var autoCheckCatalog: Bool {
         get {
             access(keyPath: \.autoCheckCatalog)
             // Données de test : pas de requête vers la BnF ni Open Library.
             guard AppDirectories.testStore == nil else { return false }
-            return UserDefaults.standard.object(forKey: "catalogAutoCheck") as? Bool ?? true
+            return UserDefaults.standard.object(forKey: "catalogAutoCheck") as? Bool ?? false
         }
         set { withMutation(keyPath: \.autoCheckCatalog) { UserDefaults.standard.set(newValue, forKey: "catalogAutoCheck") } }
+    }
+
+    /// L'utilisateur a dit oui ou non à la vérification en ligne.
+    var catalogConsentAnswered: Bool {
+        access(keyPath: \.autoCheckCatalog)
+        return UserDefaults.standard.object(forKey: "catalogAutoCheck") != nil
     }
 
     var pendingSuggestionCount: Int { visibleBooks.filter { !$0.catalogSuggestions.isEmpty }.count }

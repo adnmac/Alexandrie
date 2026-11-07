@@ -7,7 +7,7 @@ public struct CoverFinder: Sendable {
     public init(fetch: CatalogClient.Fetch? = nil) {
         self.fetch = fetch ?? { url in
             var request = URLRequest(url: url, timeoutInterval: 20)
-            request.setValue("Alexandrie (macOS)", forHTTPHeaderField: "User-Agent")
+            request.setValue(UserAgent.value, forHTTPHeaderField: "User-Agent")
             let (data, response) = try await URLSession.shared.data(for: request)
             guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
             return data

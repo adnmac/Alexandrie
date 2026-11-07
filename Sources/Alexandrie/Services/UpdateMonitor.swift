@@ -109,7 +109,9 @@ final class UpdateMonitor {
         guard installState != .downloading, installState != .installing else { return }
         installState = .downloading
         do {
-            let (downloaded, _) = try await URLSession.shared.download(from: release.downloadURL)
+            var request = URLRequest(url: release.downloadURL)
+            request.setValue(UserAgent.value, forHTTPHeaderField: "User-Agent")
+            let (downloaded, _) = try await URLSession.shared.download(for: request)
             // Le fichier téléchargé est temporaire : il est mis à l'abri tout de suite.
             let work = FileManager.default.temporaryDirectory
                 .appendingPathComponent("alexandrie-update-\(UUID().uuidString)", isDirectory: true)

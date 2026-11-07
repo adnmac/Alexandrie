@@ -149,7 +149,6 @@ struct ContentView: View {
                     && sidebar?.isThematic != true {
                     SearchScopeBar(scope: $searchScope, exact: $contentSearchExact)
                 }
-                if Licensing.shared.showsReminder { TrialBanner() }
                 if let release = updates.releaseBanner {
                     ReleaseBanner(release: release)
                 } else if let info = updates.banner {

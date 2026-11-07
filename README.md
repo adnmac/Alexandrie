@@ -12,7 +12,6 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par c�
 - Envoi sur la Kindle : copie directe des MOBI/AZW3/PDF, **conversion automatique EPUB → AZW3** (la Kindle ne lit pas l'EPUB par USB), avec miniature de couverture.
 - **Fenêtre de lecture** (⌘L ou double-clic) pour EPUB, MOBI, AZW3 et PDF : pages au clavier, table des matières, reprise là où la lecture s'est arrêtée (« % lu » dans la fiche), taille du texte et fond clair, sépia ou sombre, surlignages (⇧⌘H) rangés avec ceux de la Kindle dans « Notes et surlignages », d'où ils rouvrent la lecture à leur passage, et leurs notes (clic sur le passage surligné) et couleurs, modifiables des deux côtés. Des thématiques (« Rénovation des voiries », un mémoire) classent les surlignages, un passage pouvant en avoir plusieurs, et nomment leurs couleurs (jaune = construction) ; la fenêtre de lecture choisit la thématique du livre, les notes se filtrent par couleurs et par thématiques, et chaque thématique a sa page dans la barre latérale : toutes ses notes, de tous les livres, triées par couleur nommée, par livre ou par date, et exportées en Markdown dans cet ordre.
 - **Recherche dans le contenu** : le champ de recherche cherche dans les titres, auteurs… ou dans le texte des livres (EPUB, MOBI, AZW3, PDF), indexé en arrière-plan, un fichier par livre, avec une option « Écriture exacte » (majuscules et accents) ; chaque livre trouvé montre ses extraits, et un extrait ouvre la fenêtre de lecture au passage, avec la liste des renvois du mot dans la colonne de gauche et ⌘G / ⇧⌘G pour passer de l'un à l'autre.
-- **Licence** : essai de 14 jours avec toutes les fonctions, puis l'envoi à la Kindle demande une clé de licence (Réglages > Licence), vérifiée sans connexion. Vente et clés : `docs/VENTE.md`.
 - PDF : tel quel, **marges rognées** (le texte paraît plus grand) ou **texte redimensionnable** (texte extrait en AZW3, chapitres d'après la table du PDF) ; l'original n'est jamais modifié.
 - **Conversion MOBI/AZW3 → EPUB** (KF7, KF8 et fichiers hybrides).
 - Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
@@ -93,3 +92,16 @@ ALEXANDRIE_FIXTURES=/dossier/de/livres scripts/test.sh   # + conversions sur de 
 - Les livres protégés par DRM ne sont ni convertis ni déverrouillés (un AZW3 acheté peut toutefois être recopié tel quel).
 - Le format KFX n'est pas pris en charge.
 - La conversion EPUB → AZW3 vise les livres courants (texte, images, CSS, table des matières) ; les mises en page complexes peuvent être moins fidèles qu'avec Calibre.
+
+## Confidentialité
+
+Alexandrie est gratuite, sans compte, sans mesure d'audience ni publicité. Tout reste sur le Mac, dans `~/Library/Application Support/Alexandrie/`, sauf deux connexions, que l'on peut couper dans Réglages > Général :
+
+- **Vérification en ligne des livres**, seulement après accord (accueil ou Réglages) : l'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library.
+- **Recherche de mises à jour** : l'app demande à GitHub la dernière version publiée de ce dépôt.
+
+Les rapports de plantage restent sur le Mac ; ils ne partent que si l'utilisateur choisit de les envoyer. Le détail est dans `docs/AUDIT-PRODUCTION.md`, § 5.
+
+## Licence
+
+Alexandrie est un logiciel libre, distribué sous [licence MIT](LICENSE). Les skills BAMA de `.claude/skills/` sont aussi sous licence MIT (voir `.claude/skills/BAMA-COMMIT`).

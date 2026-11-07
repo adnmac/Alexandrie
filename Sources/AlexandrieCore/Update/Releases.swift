@@ -11,11 +11,8 @@ public struct ReleaseInfo: Equatable, Sendable {
 }
 
 extension UpdateChecker {
-    /// Dépôt public qui ne contient que les versions publiées (le code est dans un dépôt privé).
-    public static let releasesRepository = "adnmac/Alexandrie-versions"
-
     public static var latestReleaseURL: URL {
-        URL(string: "https://api.github.com/repos/\(releasesRepository)/releases/latest")!
+        URL(string: "https://api.github.com/repos/\(repository)/releases/latest")!
     }
 
     /// Dernière version publiée, si elle est plus récente que `currentVersion` ; nil sinon (ou si aucune n'est publiée).

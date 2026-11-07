@@ -53,15 +53,28 @@ final class UpdateMonitor {
         return r
     }
 
-    /// Versions publiées seulement (dépôt public des versions) : le code, privé, n'est plus consulté.
+    /// Versions publiées d'abord (installables), puis, pour une app construite depuis git, les commits de main.
     func check() async {
         guard status != .checking else { return }
         status = .checking
+        var releasesReached = false
         do {
-            status = try await checker.newerRelease(than: currentVersion).map(Status.release) ?? .upToDate
+            if let release = try await checker.newerRelease(than: currentVersion) {
+                status = .release(release)
+                return
+            }
+            releasesReached = true
+        } catch {}
+        guard let currentCommit else {
+            status = releasesReached ? .upToDate : .failed("versions publiées inaccessibles")
+            return
+        }
+        do {
+            status = try await checker.check(currentCommit: currentCommit).map(Status.available) ?? .upToDate
         } catch {
-            // Hors ligne, quota de l'API atteint, ou aucune version encore publiée.
-            status = .failed(error.localizedDescription)
+            // Commit local pas encore sur GitHub (app construite sur ce Mac) : à jour si GitHub a répondu pour
+            // les versions ; sinon hors ligne ou quota de l'API atteint.
+            status = releasesReached ? .upToDate : .failed(error.localizedDescription)
         }
     }
 

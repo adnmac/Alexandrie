@@ -106,7 +106,7 @@ struct ReaderRow: View {
 
 /// Onglets des réglages, dans l'ordre des réglages Mac.
 enum SettingsTab: String, CaseIterable {
-    case general, library, kindle, licence
+    case general, library, kindle
 
     static let storageKey = "settingsTab"
 
@@ -115,7 +115,6 @@ enum SettingsTab: String, CaseIterable {
         case .general: "Général"
         case .library: "Bibliothèque"
         case .kindle: "Kindle"
-        case .licence: "Licence"
         }
     }
 
@@ -124,7 +123,6 @@ enum SettingsTab: String, CaseIterable {
         case .general: "gearshape"
         case .library: "books.vertical"
         case .kindle: "ipad.landscape"
-        case .licence: "key"
         }
     }
 }
@@ -164,7 +162,7 @@ struct SettingsView: View {
                                 .disabled(updates.status == .checking)
                         }
                     }
-                    Text("Alexandrie demande à GitHub la dernière version publiée (github.com/\(UpdateChecker.releasesRepository)) ; rien d'autre n'est envoyé.")
+                    Text("Seul l'identifiant de la version installée est envoyé à GitHub (github.com/\(UpdateChecker.repository)).")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
@@ -261,12 +259,6 @@ struct SettingsView: View {
             .fitsContent()
             .tabItem { Label(SettingsTab.kindle.title, systemImage: SettingsTab.kindle.symbol) }
             .tag(SettingsTab.kindle)
-
-            LicenceSettings()
-                .formStyle(.grouped)
-                .fitsContent()
-                .tabItem { Label(SettingsTab.licence.title, systemImage: SettingsTab.licence.symbol) }
-                .tag(SettingsTab.licence)
         }
         // Largeur des réglages Mac ; la hauteur suit l'onglet (fitsContent).
         .frame(width: Layout.settingsWidth)

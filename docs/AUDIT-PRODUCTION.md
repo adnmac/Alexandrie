@@ -116,17 +116,13 @@ Corrigé le 7 novembre 2026, chaque point vérifié par le selftest ou une captu
 - **Rapports de plantage (MetricKit).** Gardés dans `Rapports/`, proposés au lancement suivant (« Afficher dans le Finder », « Ne pas envoyer », « Envoyer par e-mail… »). Le bouton d'e-mail n'apparaît que si `ALEXANDRIE_SUPPORT_EMAIL` est défini au moment de `scripts/bundle.sh`.
 - **User-Agent unique.** `Alexandrie/<version> (macOS)` pour toutes les requêtes, téléchargement compris.
 
-## 7. Étapes 3 et 4 faites (7 novembre 2026)
+## 7. Décision : gratuit et libre (7 novembre 2026)
 
-Sans Developer ID : l'étape 2 est écartée (voir `docs/VENTE.md`).
+Alexandrie ne sera pas vendue. Elle reste **gratuite**, sous **licence MIT**, dans le dépôt public `adnmac/Alexandrie`.
 
-- **Dépôt privé.** `adnmac/Alexandrie` est privé. Les versions sont publiées dans le dépôt public `adnmac/Alexandrie-versions`, que l'app consulte ; elle ne compare plus de commits. `scripts/release.sh` y publie.
-- **Vente sur le site de l'éditeur.** Clés de licence signées (Ed25519), vérifiées par l'app sans serveur. Essai de 14 jours, puis l'envoi à la Kindle demande une clé. Onglet Réglages > Licence et bandeau des derniers jours d'essai. Clés délivrées par `scripts/licence.swift`, ou par le site (fonction PHP dans `docs/VENTE.md`).
-- **Textes.** Modèles dans `docs/legal/` : conditions de vente et de licence, mentions légales, politique de confidentialité. Ils sont à compléter (identité, prix, prestataires) et à faire relire.
-
-## 8. Ordre proposé
-
-1. ~~**Code, sans dépendre d'un achat.**~~ Fait (voir § 6).
-2. **Compte Apple :** Developer ID, *hardened runtime*, notarisation dans `scripts/release.sh`, conservation des `.dSYM`.
-3. **Distribution :** dépôt privé, canal de mises à jour public, plateforme de vente et clés de licence.
-4. **Textes :** CGV, mentions légales, politique de confidentialité (à partir du § 5).
+Conséquences sur cet audit :
+- **§ 1 sans objet** : pas de Developer ID ni de notarisation, pas de licence ni de paiement, pas de CGV. Le dépôt public n'est plus un problème : la licence MIT dit ce que chacun peut en faire.
+- **Mises à jour** : l'app consulte les versions publiées de ce dépôt (et les commits de `main` pour une app construite depuis git).
+- **Installation** : l'app n'étant pas notarisée, chaque personne l'autorise une fois dans Réglages Système > Confidentialité et sécurité (« Ouvrir quand même »).
+- **Vie privée (§ 5)** : le RGPD s'applique aussi à une app gratuite. L'inventaire est repris dans la section « Confidentialité » du README.
+- **Toujours valables** : les corrections de l'étape 1 (§ 6) et les points 🟢 restants.

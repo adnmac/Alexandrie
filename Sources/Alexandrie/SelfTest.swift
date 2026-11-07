@@ -1,5 +1,4 @@
 import AlexandrieCore
-import CryptoKit
 import AppKit
 import Foundation
 import PDFKit
@@ -217,41 +216,6 @@ struct SelfTest {
         await testReading(library: library, folder: folder)
         await testHighlights(library: library, folder: folder)
         await testContentSearch(library: library, folder: folder)
-        testLicensing()
-    }
-
-    /// Licence (docs/VENTE.md) : essai de 14 jours, envoi refusé ensuite, clé valide acceptée et gardée,
-    /// clé fabriquée refusée.
-    private mutating func testLicensing() {
-        let suite = "be.adnmac.alexandrie.selftest.licence"
-        UserDefaults().removePersistentDomain(forName: suite)
-        guard let defaults = UserDefaults(suiteName: suite) else { return check("réglages de licence de test", false) }
-        let seller = Curve25519.Signing.PrivateKey()
-        var clock = Date()
-        let start = clock
-        Licensing.enforcedInTests = true
-        defer { Licensing.enforcedInTests = false }
-        let licensing = Licensing(defaults: defaults, now: { clock }, publicKey: seller.publicKey)
-        check("essai : 14 jours, envoi permis", licensing.remainingTrialDays == 14 && licensing.canSend && !licensing.showsReminder)
-        clock = start.addingTimeInterval(12 * 86_400)
-        check("essai : rappel les trois derniers jours", licensing.remainingTrialDays == 2 && licensing.showsReminder && licensing.canSend)
-        clock = start.addingTimeInterval(20 * 86_400)
-        check("essai terminé : envoi refusé", !licensing.canSend)
-        // Relancer l'app ne relance pas l'essai.
-        let relaunched = Licensing(defaults: defaults, now: { clock }, publicKey: seller.publicKey)
-        check("essai non relancé au lancement suivant", !relaunched.canSend && relaunched.trial.start == start)
-        let forged = (try? LicenseKey.make(License(id: "X", name: "Pirate", issued: "2026-11-07"),
-                                           privateKey: Curve25519.Signing.PrivateKey())) ?? ""
-        check("clé fabriquée refusée", !licensing.activate(forged) && !licensing.canSend)
-        let key = (try? LicenseKey.make(License(id: "CMD-42", name: "Léa Fontaine", issued: "2026-11-07"), privateKey: seller)) ?? ""
-        check("clé valide acceptée : envoi permis", licensing.activate(key) && licensing.canSend && licensing.license?.name == "Léa Fontaine")
-        let afterRelaunch = Licensing(defaults: defaults, now: { clock }, publicKey: seller.publicKey)
-        check("licence gardée au lancement suivant", afterRelaunch.license?.id == "CMD-42" && afterRelaunch.canSend)
-        afterRelaunch.deactivate()
-        check("licence retirée de ce Mac", !Licensing(defaults: defaults, now: { clock }, publicKey: seller.publicKey).canSend)
-        // La clé publique intégrée à l'app est valide (l'app ne plante pas en la lisant).
-        check("clé publique des licences lisible", Licensing.publicKey.rawRepresentation.count == 32)
-        UserDefaults().removePersistentDomain(forName: suite)
     }
 
     /// Recherche dans le contenu (S-081 à S-083) : la bibliothèque indexée en arrière-plan, un mot trouvé dans

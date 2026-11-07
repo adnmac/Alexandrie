@@ -17,7 +17,23 @@ struct ReaderTarget: Equatable {
     /// Recherche d'où vient le passage (S-085) : ses renvois sont listés dans la fenêtre de lecture.
     var query = ""
     var exact = false
+    /// Surlignage ouvert depuis les notes (S-072) : sa position exacte, plutôt que le texte à retrouver.
+    var anchor: ReaderAnchor?
     let id = UUID()
+
+    /// Passage d'un surlignage fait dans l'app.
+    init(anchor: ReaderAnchor, text: String) {
+        self.init(section: anchor.chapter, text: text, occurrence: 0)
+        self.anchor = anchor
+    }
+
+    init(section: Int, text: String, occurrence: Int, query: String = "", exact: Bool = false) {
+        self.section = section
+        self.text = text
+        self.occurrence = occurrence
+        self.query = query
+        self.exact = exact
+    }
 }
 
 /// Passages demandés par la recherche dans le contenu, par livre : la fenêtre de lecture les prend en
@@ -522,8 +538,12 @@ struct ReaderView: View {
         guard content != nil, let target = ReaderLaunch.shared.take(book.id) else { return }
         loadHits(for: target)
         switch content {
-        case .epub(let c): c.open(chapter: target.section, text: target.text, occurrence: target.occurrence)
-        case .pdf(let c): c.show(page: target.section, text: target.text, occurrence: target.occurrence)
+        case .epub(let c):
+            if let a = target.anchor { c.open(chapter: a.chapter, start: a.start, end: a.end) }
+            else { c.open(chapter: target.section, text: target.text, occurrence: target.occurrence) }
+        case .pdf(let c):
+            if let a = target.anchor { c.show(page: a.chapter, range: NSRange(location: a.start, length: a.end - a.start)) }
+            else { c.show(page: target.section, text: target.text, occurrence: target.occurrence) }
         case nil: break
         }
     }

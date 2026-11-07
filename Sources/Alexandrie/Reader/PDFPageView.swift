@@ -90,6 +90,14 @@ final class PDFPageController {
         view.go(to: pick)
     }
 
+    /// Montre un surlignage (S-072) : sa page, et le passage sélectionné.
+    func show(page index: Int, range: NSRange) {
+        go(to: index)
+        guard let page = document?.page(at: index), let selection = page.selection(for: range) else { return }
+        view.setCurrentSelection(selection, animate: true)
+        view.go(to: selection)
+    }
+
     func next() { view.goToNextPage(nil) }
     func previous() { view.goToPreviousPage(nil) }
 

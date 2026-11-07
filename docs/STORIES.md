@@ -496,7 +496,7 @@ Depends: S-070
 Acceptance:
 - [self] Ouvrir un surlignage de l'app positionne la fenêtre de lecture sur son passage.
 - [manual] Les surlignages de la Kindle, sans position fiable, n'offrent pas cette action.
-Status: todo
+Status: doing
 
 ### S-073 Choisir la couleur d'un surlignage
 Je surligne en jaune, vert, bleu, rose ou violet, et je change la couleur d'un surlignage existant ; le menu de PDFKit et de WebKit, qui n'enregistrait rien, disparaît de la fenêtre de lecture.

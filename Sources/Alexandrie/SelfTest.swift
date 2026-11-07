@@ -410,6 +410,25 @@ struct SelfTest {
             pdfReader.highlights = kindle.readerHighlights(of: pdf)
             let drawn = pdfReader.document?.page(at: 0)?.annotations.filter { $0.type == "Highlight" }.count ?? 0
             check("PDF : le passage surligné est dessiné sur la page", drawn > 0, "\(drawn) annotation(s)")
+            // Ouvert depuis les notes (S-072) : sa page, le passage sélectionné.
+            pdfReader.go(to: 3)
+            pdfReader.show(page: pdfPassage.anchor.chapter,
+                           range: NSRange(location: pdfPassage.anchor.start, length: pdfPassage.anchor.end - pdfPassage.anchor.start))
+            check("PDF : surlignage ouvert à son passage", pdfReader.page == pdfPassage.anchor.chapter
+                  && pdfReader.view.currentSelection?.string == pdfPassage.text, pdfReader.view.currentSelection?.string ?? "rien")
+        }
+        if let epubPassage {
+            // Ouvert depuis les notes (S-072) : le chapitre, le passage sélectionné à sa page.
+            _ = await reader.js("window.getSelection().removeAllRanges()")
+            reader.open(chapter: epubPassage.anchor.chapter, start: epubPassage.anchor.start, end: epubPassage.anchor.end)
+            var selected: String?
+            let end = Date().addingTimeInterval(10)
+            while selected?.trimmingCharacters(in: .whitespaces) != epubPassage.text && Date() < end {
+                try? await Task.sleep(for: .milliseconds(150))
+                selected = await reader.js("window.getSelection().toString()") as? String
+            }
+            check("EPUB : surlignage ouvert à son passage", selected?.trimmingCharacters(in: .whitespaces) == epubPassage.text,
+                  selected ?? "rien")
         }
 
         // Notes (S-071) : écrites d'un côté, relues et modifiables de l'autre ; repère dessiné dans la page.

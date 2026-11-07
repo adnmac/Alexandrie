@@ -49,7 +49,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     }()
 
     /// Ce qu'il faut faire une fois le chapitre chargé.
-    private enum Landing { case fraction(Double), last, fragment(String), text(String, Int) }
+    private enum Landing { case fraction(Double), last, fragment(String), text(String, Int), range(Int, Int) }
     @ObservationIgnored private var landing: Landing = .fraction(0)
     @ObservationIgnored private var settings = (scale: 1.0, theme: ReaderTheme.light)
 
@@ -69,6 +69,11 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     /// sélectionnée, à sa page.
     func open(chapter: Int, text: String, occurrence: Int) {
         load(chapter, landing: .text(text, occurrence))
+    }
+
+    /// Ouvre un chapitre sur un surlignage (S-072) : ses positions dans le texte du corps, sélectionnées, à leur page.
+    func open(chapter: Int, start: Int, end: Int) {
+        load(chapter, landing: .range(start, end))
     }
 
     func open(_ entry: ReaderBook.Entry) {
@@ -189,6 +194,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         case .fraction(let f): await js("alx.setFraction(\(f))")
         case .last: await js("alx.last()")
         case .fragment(let id): await js("alx.show(\(Self.quoted(id)))")
+        case .range(let start, let end): await js("alx.selectPos(\(start), \(end))")
         case .text(let text, let occurrence):
             // Sans la graphie exacte (blancs du livre différents), le premier mot à la place.
             if await js("alx.findText(\(Self.quoted(text)), \(occurrence))") as? Bool != true,
@@ -317,6 +323,23 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
           return shown ? this.box(shown) : null;
         },
         setHighlights(list) { this.unmark(); list.forEach(h => this.mark(h)); },
+        // Surlignage ouvert depuis les notes (S-072) : positions dans le texte du corps, sélectionnées, à leur page.
+        selectPos(start, end) {
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          let pos = 0, a = null, b = null;
+          for (let x = walker.nextNode(); x; x = walker.nextNode()) {
+            const len = x.data.length;
+            if (!a && start <= pos + len) a = [x, start - pos];
+            if (!b && end <= pos + len) { b = [x, end - pos]; break; }
+            pos += len;
+          }
+          if (!a || !b) return false;
+          const r = document.createRange();
+          r.setStart(a[0], a[1]); r.setEnd(b[0], b[1]);
+          const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+          this.goTo(Math.floor((r.getBoundingClientRect().left + root().scrollLeft) / this.width()));
+          return true;
+        },
         // Passage trouvé (S-083) : n-ième apparition exacte dans le texte du corps, sélectionnée, à sa page.
         findText(t, n) {
           const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT), nodes = [];

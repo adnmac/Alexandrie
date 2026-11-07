@@ -315,7 +315,21 @@ struct NotesEditor: View {
 struct NoteRow: View {
     @Environment(KindleMonitor.self) private var kindle
     @Environment(ResearchStore.self) private var researches
+    @Environment(LibraryStore.self) private var library
     let clipping: Clipping
+
+    /// Livre d'un surlignage fait dans l'app, s'il est encore dans la bibliothèque (S-072). Un relevé de la
+    /// Kindle n'a pas de position fiable : il n'en a pas.
+    private var readerBook: Book? {
+        guard let anchor = clipping.anchor else { return nil }
+        return library.visibleBooks.first { $0.fingerprint == anchor.book }
+    }
+
+    /// Ouvre la fenêtre de lecture au passage, sélectionné (S-072).
+    private func openInReader() {
+        guard let book = readerBook, let anchor = clipping.anchor else { return }
+        ReaderLaunch.shared.open(book, at: ReaderTarget(anchor: anchor, text: clipping.text))
+    }
     @State private var editing = false
     @State private var editingNote = false
     @State private var draft = ""
@@ -359,7 +373,9 @@ struct NoteRow: View {
                     }
                     .accessibilityLabel("Note : \(note)")
                 }
-                HStack(spacing: 8) {
+                // Infos sur toute la largeur, actions en dessous : une colonne étroite ne les casse plus.
+                VStack(alignment: .leading, spacing: Space.xs) {
+                HStack(alignment: .firstTextBaseline, spacing: Space.sm) {
                     // Thème nommé (S-077) : « Anthropologie · chapitre 2 · … ».
                     // Couleur nommée et thématiques (S-079) : « Construction · Voiries · chapitre 2 · … ».
                     let theme = clipping.kind == .highlight && !clipping.thematicIDs.isEmpty
@@ -383,7 +399,16 @@ struct NoteRow: View {
                         }
                     }
                     if clipping.isEdited { Text("· modifiée").foregroundStyle(Palette.warning) }
+                }
+                HStack(spacing: Space.sm) {
                     Spacer()
+                    if clipping.isFromApp {
+                        Button(action: openInReader) { Label("Lire", systemImage: "book") }
+                            .labelStyle(.iconOnly)
+                            .disabled(readerBook == nil)
+                            .help(readerBook == nil ? "Le livre n'est plus dans la bibliothèque"
+                                  : "Ouvrir la fenêtre de lecture à ce passage")
+                    }
                     if clipping.kind == .highlight && !editingNote {
                         Button(clipping.hasNote ? "Modifier la note" : "Ajouter une note") { editingNote = true }
                             .fixedSize()
@@ -391,6 +416,10 @@ struct NoteRow: View {
                                   : "Note gardée dans Alexandrie ; la Kindle n'est pas modifiée")
                     }
                     Menu {
+                        if clipping.isFromApp {
+                            Button("Lire ce passage", action: openInReader).disabled(readerBook == nil)
+                            Divider()
+                        }
                         Button("Modifier le texte") {
                             draft = clipping.displayText
                             editing = true
@@ -426,6 +455,7 @@ struct NoteRow: View {
                     .fixedSize()
                     .help("Autres actions")
                     .accessibilityLabel("Autres actions")
+                }
                 }
                 .font(.caption).foregroundStyle(.secondary)
                 .buttonStyle(.borderless)

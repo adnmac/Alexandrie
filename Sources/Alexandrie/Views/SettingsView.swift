@@ -51,7 +51,14 @@ struct BackupsRow: View {
         let backups = library.backups
         LabeledContent("Dernière sauvegarde") {
             HStack {
-                Text(backups.first.map { $0.date.formatted(date: .long, time: .omitted) } ?? "aucune")
+                // Text(String) ne traduit pas : « aucune » passe par sa propre clé du catalogue.
+                Group {
+                    if let last = backups.first {
+                        Text(last.date.formatted(date: .long, time: .omitted))
+                    } else {
+                        Text("aucune")
+                    }
+                }
                     .foregroundStyle(.secondary)
                 Menu("Restaurer…") {
                     ForEach(backups, id: \.url) { b in

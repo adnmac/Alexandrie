@@ -21611,6 +21611,34 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
+            "value" : "ninguno"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geen"
+          }
+        }
+      }
+    },
+    "aucune" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keine"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "none"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "ninguna"
           }
         },

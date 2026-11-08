@@ -79,6 +79,14 @@ enum Snapshot {
         }
         SeedData.prepare(library)
         try? await Task.sleep(for: .seconds(1.5))
+        // Captures du site foluna.app : fenêtre principale en plein écran (ALEXANDRIE_SNAPSHOT_FULLSCREEN=1).
+        let fullScreen = ProcessInfo.processInfo.environment["ALEXANDRIE_SNAPSHOT_FULLSCREEN"] == "1"
+        if fullScreen, let window = mainWindow, !window.styleMask.contains(.fullScreen) {
+            NSApp.activate()
+            window.makeKeyAndOrderFront(nil)
+            window.toggleFullScreen(nil)
+            try? await Task.sleep(for: .seconds(2.5))
+        }
 
         for mode in ["light", "dark"] {
             NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
@@ -184,6 +192,10 @@ enum Snapshot {
             ("lecture-police", "Le Port des brumes", .dark, 1.1, false, nil, .avenir),
             // Ouverte depuis la recherche dans le contenu (S-085) : renvois à gauche, deuxième passage affiché.
             ("lecture-renvois", "Le Port des brumes", .light, 1, false, "phare", .book),
+            // Les trois fonds de page, sur la même page et à la même taille (site foluna.app).
+            ("lecture-fond-clair", "Le Port des brumes", .light, 1.2, false, nil, .book),
+            ("lecture-fond-sepia", "Le Port des brumes", .sepia, 1.2, false, nil, .book),
+            ("lecture-fond-sombre", "Le Port des brumes", .dark, 1.2, false, nil, .book),
         ]
         for shot in shots {
             guard let book = library.visibleBooks.first(where: { $0.title == shot.title }) else { continue }

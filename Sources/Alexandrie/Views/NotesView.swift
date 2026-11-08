@@ -433,7 +433,7 @@ struct NoteRow: View {
                     let theme = clipping.kind == .highlight && !clipping.thematicIDs.isEmpty
                         ? ([researches.mark(of: clipping).label] + researches.thematicNames(of: clipping)).joined(separator: " · ") : ""
                     let meta = (clipping.kind == .note ? "Note · " : "")
-                        + [theme, clipping.location, clipping.added].filter { !$0.isEmpty }.joined(separator: " · ")
+                        + [theme, clipping.localizedLocation, clipping.localizedAdded].filter { !$0.isEmpty }.joined(separator: " · ")
                     Label {
                         // Fait dans la fenêtre de lecture (S-070) : marqué « Alexandrie », pas « Kindle ».
                         if clipping.isFromApp {

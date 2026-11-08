@@ -46,4 +46,6 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 # Après un plantage, macOS proposerait de rouvrir les fenêtres et bloquerait le lancement suivant.
 rm -rf ~/Library/Saved\ Application\ State/$BUNDLE_ID.savedState
-ALEXANDRIE_STORE="$STORE" ALEXANDRIE_SEED=1 ALEXANDRIE_SNAPSHOT="$SHOTS" "$APP/Contents/MacOS/Alexandrie" -gridMode YES -AppleLanguages "($SNAP_LANG)" "$@"
+# Exemples en anglais pour une capture anglaise ; en français pour les autres langues.
+SEED_LANG=fr; [[ "$SNAP_LANG" == en ]] && SEED_LANG=en
+ALEXANDRIE_STORE="$STORE" ALEXANDRIE_SEED=1 ALEXANDRIE_SEED_LANG="$SEED_LANG" ALEXANDRIE_SNAPSHOT="$SHOTS" "$APP/Contents/MacOS/Alexandrie" -gridMode YES -AppleLanguages "($SNAP_LANG)" "$@"

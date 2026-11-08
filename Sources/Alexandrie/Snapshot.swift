@@ -31,25 +31,25 @@ enum Snapshot {
 
     static func pages(_ library: LibraryStore) -> [Page] {
         [
-            Page(name: "tous", item: .all, book: "Le Port des brumes"),
+            Page(name: "tous", item: .all, book: SeedData.harbour),
             Page(name: "recents", item: .recent),
             Page(name: "envoyes", item: .sent),
             Page(name: "a-verifier", item: .toReview),
-            Page(name: "notes", item: .notes, notes: ShelfSync.normalize("Le Port des brumes")),
-            Page(name: "notes-couleurs", item: .notes, notes: ShelfSync.normalize("Le Port des brumes"), notesColors: "#FF375F"),
+            Page(name: "notes", item: .notes, notes: ShelfSync.normalize(SeedData.harbour)),
+            Page(name: "notes-couleurs", item: .notes, notes: ShelfSync.normalize(SeedData.harbour), notesColors: "#FF375F"),
             Page(name: "corbeille", item: .trash),
             Page(name: "en-attente", item: .pending),
             Page(name: "kindle", item: .kindle),
             Page(name: "format-azw3", item: .format(.azw3)),
-            Page(name: "format-pdf", item: .format(.pdf), book: "Manuel du fleuve"),
-            Page(name: "fiche-lecture", item: .all, book: "Les Heures lentes"),
-            Page(name: "serie", item: .series(SeriesNames.key("Commissaire Vidal")), book: "Mort à marée basse"),
-            Page(name: "genre", item: .genre(GenreNames.key("Policier"))),
+            Page(name: "format-pdf", item: .format(.pdf), book: SeedData.riverHandbook),
+            Page(name: "fiche-lecture", item: .all, book: SeedData.slowHours),
+            Page(name: "serie", item: .series(SeriesNames.key(SeedData.vidalSeries)), book: SeedData.lowTide),
+            Page(name: "genre", item: .genre(GenreNames.key(SeedData.crime))),
             Page(name: "catalogue", item: .catalog("gutenberg"), catalogBook: true),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),
-                 book: "Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours"),
-        ] + (AppServices.shared.researches.researches.first.map { [Page(name: "thematique", item: .thematic($0.id), notes: ShelfSync.normalize("Le Port des brumes"))] } ?? [])
-          + (SeedData.externalFolder.map { [Page(name: "dossier-exemple", item: .folder($0.standardizedFileURL.path), book: "Orbite")] } ?? [])
+                 book: SeedData.longHistory),
+        ] + (AppServices.shared.researches.researches.first.map { [Page(name: "thematique", item: .thematic($0.id), notes: ShelfSync.normalize(SeedData.harbour))] } ?? [])
+          + (SeedData.externalFolder.map { [Page(name: "dossier-exemple", item: .folder($0.standardizedFileURL.path), book: SeedData.orbit)] } ?? [])
     }
 
     static func run(library: LibraryStore, kindle: KindleMonitor, sidebar: Binding<SidebarItem?>, selection: Binding<Set<String>>,
@@ -100,7 +100,7 @@ enum Snapshot {
                     let opds = AppServices.shared.opds
                     await opds.open(id)
                     // Langue choisie (S-090) : le livre anglais du catalogue d'exemple est masqué.
-                    await opds.setLanguage(id, "fr")
+                    await opds.setLanguage(id, SeedData.language)
                     opds.selection[id] = opds.current(id)?.feed?.entries.first(where: \.isBook)?.id
                 }
                 try? await Task.sleep(for: .seconds(0.8))
@@ -135,7 +135,7 @@ enum Snapshot {
             searchScope.wrappedValue = .content
             // Écriture exacte (S-084) cochée : « brume » en minuscules.
             UserDefaults.standard.set(true, forKey: "contentSearchExact")
-            search.wrappedValue = "brume"
+            search.wrappedValue = SeedData.searchWord
             sidebar.wrappedValue = .all
             selection.wrappedValue = []
             for mode in ["light", "dark"] {
@@ -156,7 +156,7 @@ enum Snapshot {
         if only == nil || only?.contains("reglages") == true {
             // Sauvegarde hors du Mac : un dossier du dossier de test, et une copie déjà faite.
             let backups = AppServices.shared.backups
-            let disk = library.directories.base.appendingPathComponent("iCloud Drive (exemple)", isDirectory: true)
+            let disk = library.directories.base.appendingPathComponent(SeedData.backupFolder, isDirectory: true)
             try? FileManager.default.createDirectory(at: disk, withIntermediateDirectories: true)
             backups.folder = disk
             backups.isEnabled = true
@@ -185,17 +185,17 @@ enum Snapshot {
     private static func captureReader(library: LibraryStore, dir: String) async {
         let reading = AppServices.shared.reading
         let shots: [(name: String, title: String, theme: ReaderTheme, scale: Double, contents: Bool, query: String?, font: ReaderFont)] = [
-            ("lecture-epub", "Le Port des brumes", .light, 1, true, nil, .book),
-            ("lecture-pdf", "Manuel du fleuve", .light, 1, false, nil, .book),
-            ("lecture-sepia", "Le Port des brumes", .sepia, 1.4, false, nil, .book),
+            ("lecture-epub", SeedData.harbour, .light, 1, true, nil, .book),
+            ("lecture-pdf", SeedData.riverHandbook, .light, 1, false, nil, .book),
+            ("lecture-sepia", SeedData.harbour, .sepia, 1.4, false, nil, .book),
             // Police choisie (S-095) : sans empattements, sur papier sombre.
-            ("lecture-police", "Le Port des brumes", .dark, 1.1, false, nil, .avenir),
+            ("lecture-police", SeedData.harbour, .dark, 1.1, false, nil, .avenir),
             // Ouverte depuis la recherche dans le contenu (S-085) : renvois à gauche, deuxième passage affiché.
-            ("lecture-renvois", "Le Port des brumes", .light, 1, false, "phare", .book),
+            ("lecture-renvois", SeedData.harbour, .light, 1, false, SeedData.lighthouse, .book),
             // Les trois fonds de page, sur la même page et à la même taille (site foluna.app).
-            ("lecture-fond-clair", "Le Port des brumes", .light, 1.2, false, nil, .book),
-            ("lecture-fond-sepia", "Le Port des brumes", .sepia, 1.2, false, nil, .book),
-            ("lecture-fond-sombre", "Le Port des brumes", .dark, 1.2, false, nil, .book),
+            ("lecture-fond-clair", SeedData.harbour, .light, 1.2, false, nil, .book),
+            ("lecture-fond-sepia", SeedData.harbour, .sepia, 1.2, false, nil, .book),
+            ("lecture-fond-sombre", SeedData.harbour, .dark, 1.2, false, nil, .book),
         ]
         for shot in shots {
             guard let book = library.visibleBooks.first(where: { $0.title == shot.title }) else { continue }
@@ -258,9 +258,9 @@ enum Snapshot {
 
     /// Feuilles qu'on ne peut pas ouvrir sans Kindle branchée : chacune dans une fenêtre de sa taille.
     private static func captureSheets(library: LibraryStore, kindle: KindleMonitor, dir: String) async {
-        let document = KindleDocument(id: "exemple", path: "documents/Le Port des brumes.epub", size: 1_200_000)
-        let edits = MetadataEdits(title: "Le Port des brumes", authors: ["Hugo Lambert"],
-                                  publisher: "Éditions d'Exemple", series: "Commissaire Vidal", seriesIndex: 1)
+        let document = KindleDocument(id: "exemple", path: "documents/\(SeedData.harbour).epub", size: 1_200_000)
+        let edits = MetadataEdits(title: SeedData.harbour, authors: ["Hugo Lambert"],
+                                  publisher: SeedData.publisher, series: SeedData.vidalSeries, seriesIndex: 1)
         let sheets: [(String, AnyView)] = [
             ("liseuse", AnyView(NameReaderSheet())),
             ("kindle", AnyView(KindleEditSheet(document: document, edits: edits))),

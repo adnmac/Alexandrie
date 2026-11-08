@@ -21706,6 +21706,34 @@
         }
       }
     },
+    "chapitre %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kapitel %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "chapter %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "capítulo %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "hoofdstuk %@"
+          }
+        }
+      }
+    },
     "container.xml sans rootfile" : {
       "localizations" : {
         "de" : {
@@ -21842,6 +21870,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "de BnF"
+          }
+        }
+      }
+    },
+    "emplacement %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Position %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "location %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "posición %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "locatie %@"
           }
         }
       }
@@ -22608,6 +22664,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "macOS laat Foluna de e-reader niet lezen. Sta het toe in Systeeminstellingen › Privacy en beveiliging › "
+          }
+        }
+      }
+    },
+    "page %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seite %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "page %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "página %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "pagina %@"
           }
         }
       }

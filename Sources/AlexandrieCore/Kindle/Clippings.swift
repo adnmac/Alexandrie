@@ -210,3 +210,32 @@ public enum KindleClippings {
         try encoder.encode(clippings).write(to: url, options: .atomic)
     }
 }
+
+public extension Clipping {
+    /// Lieu affiché dans la langue de l'app. Il est enregistré avec des mots français, quelle que soit la langue
+    /// de la Kindle (« page 12 · emplacement 180-182 ») ou pour la fenêtre de lecture (« chapitre 2 »).
+    var localizedLocation: String {
+        location.components(separatedBy: " · ").map { part in
+            if part.hasPrefix("page ") { return String(localized: "page \(String(part.dropFirst(5)))") }
+            if part.hasPrefix("emplacement ") { return String(localized: "emplacement \(String(part.dropFirst(12)))") }
+            if part.hasPrefix("chapitre ") { return String(localized: "chapitre \(String(part.dropFirst(9)))") }
+            return part
+        }.joined(separator: " · ")
+    }
+
+    /// Date affichée. Celle d'un surlignage de la fenêtre de lecture est écrite en français (comme une Kindle
+    /// française) : hors du français, elle suit la langue de l'app. Celle d'une Kindle reste telle quelle.
+    var localizedAdded: String {
+        let language = Bundle.main.preferredLocalizations.first ?? "fr"
+        guard isFromApp, !language.hasPrefix("fr") else { return added }
+        let french = DateFormatter()
+        french.locale = Locale(identifier: "fr_FR")
+        french.dateFormat = "EEEE d MMMM yyyy HH:mm:ss"
+        guard let date = french.date(from: added) else { return added }
+        let shown = DateFormatter()
+        shown.locale = Locale(identifier: language)
+        shown.dateStyle = .full
+        shown.timeStyle = .short
+        return shown.string(from: date)
+    }
+}

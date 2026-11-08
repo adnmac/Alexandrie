@@ -23,49 +23,78 @@ enum SeedData {
         var external = false
     }
 
+    /// Exemples en anglais pour les captures anglaises du site (`ALEXANDRIE_SEED_LANG=en`, posé par `scripts/snap.sh`) ;
+    /// en français sinon, y compris pour le self-test.
+    static let english = ProcessInfo.processInfo.environment["ALEXANDRIE_SEED_LANG"] == "en"
+    static func t(_ french: String, _ englishText: String) -> String { english ? englishText : french }
+
+    /// Noms repris par les captures (`Snapshot.swift`) : ils suivent la langue des exemples.
+    static let harbour = t("Le Port des brumes", "Harbour of Mists")
+    static let slowHours = t("Les Heures lentes", "The Slow Hours")
+    static let lowTide = t("Mort à marée basse", "Death at Low Tide")
+    static let longHistory = t("Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours",
+                               "A Very Long History of the Mapping of the North Seas, from Antiquity to the Present Day")
+    static let orbit = t("Orbite", "Orbit")
+    static let travelNotebook = t("Carnet de voyage", "Travel Notebook")
+    static let riverHandbook = t("Manuel du fleuve", "River Handbook")
+    static let oldMaps = t("Plans anciens", "Old Maps")
+    static let vidalSeries = t("Commissaire Vidal", "Inspector Vidal")
+    static let crime = t("Policier", "Crime")
+    static let publisher = t("Éditions d'Exemple", "Example Press")
+    static let language = t("fr", "en")
+    /// Mot du texte des livres (recherche dans le contenu) et mot des renvois de la fenêtre de lecture.
+    static let searchWord = t("brume", "mist")
+    static let lighthouse = t("phare", "lighthouse")
+    static let backupFolder = t("iCloud Drive (exemple)", "iCloud Drive (example)")
+
     static let samples: [Sample] = [
-        Sample(title: "La Maison au bord du fleuve", authors: ["Claire Morel"], genre: "Roman", year: "2019", cover: .systemTeal),
-        Sample(title: "Les Heures lentes", authors: ["Claire Morel"], genre: "Roman", year: "2022", cover: .systemIndigo),
-        Sample(title: "Le Port des brumes", authors: ["Hugo Lambert"], genre: "Policier", series: "Commissaire Vidal",
+        Sample(title: t("La Maison au bord du fleuve", "The House by the River"), authors: ["Claire Morel"],
+               genre: t("Roman", "Novel"), year: "2019", cover: .systemTeal),
+        Sample(title: slowHours, authors: ["Claire Morel"], genre: t("Roman", "Novel"), year: "2022", cover: .systemIndigo),
+        Sample(title: harbour, authors: ["Hugo Lambert"], genre: crime, series: vidalSeries,
                index: 1, year: "2015", cover: .systemGray, chapters: 4),
-        Sample(title: "Mort à marée basse", authors: ["Hugo Lambert"], genre: "Policier", series: "Commissaire Vidal",
+        Sample(title: lowTide, authors: ["Hugo Lambert"], genre: crime, series: vidalSeries,
                index: 2, year: "2016", cover: .systemBrown),
-        Sample(title: "Le Dernier Ferry", authors: ["Hugo Lambert"], genre: "Policier", series: "Commissaire Vidal",
+        Sample(title: t("Le Dernier Ferry", "The Last Ferry"), authors: ["Hugo Lambert"], genre: crime, series: vidalSeries,
                index: 3, year: "2018", cover: .systemRed),
-        Sample(title: "Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours",
-               authors: ["Inès Garnier"], genre: "Histoire", year: "2011", cover: .systemOrange),
-        Sample(title: "Orbite", authors: ["Samuel Okafor"], genre: "Science-fiction", year: "2021", cover: .black, external: true),
-        Sample(title: "Les Jardins de Titan", authors: ["Samuel Okafor"], genre: "Science-fiction", series: "Cycle de Saturne",
+        Sample(title: longHistory, authors: ["Inès Garnier"], genre: t("Histoire", "History"), year: "2011", cover: .systemOrange),
+        Sample(title: orbit, authors: ["Samuel Okafor"], genre: t("Science-fiction", "Science Fiction"), year: "2021",
+               cover: .black, external: true),
+        Sample(title: t("Les Jardins de Titan", "The Gardens of Titan"), authors: ["Samuel Okafor"],
+               genre: t("Science-fiction", "Science Fiction"), series: t("Cycle de Saturne", "Saturn Cycle"),
                index: 1, year: "2023", cover: .systemPurple, external: true),
-        Sample(title: "Sel", authors: ["Léa Fontaine"], genre: "Poésie", year: "2020", cover: nil),
-        Sample(title: "Petit traité de la patience", authors: ["Marc Aubert", "Julie Roy"], genre: "Essai", year: "2017",
-               cover: .systemGreen),
-        Sample(title: "Nuit d'orage à Bruges", authors: ["Anne Verhaegen"], genre: "Policier", year: "2024", cover: .systemPink),
-        Sample(title: "Le Goût des pommes", authors: ["Léa Fontaine"], genre: "Roman", year: "2025", cover: .systemYellow),
-        Sample(title: "Atlas des vents", authors: ["Inès Garnier"], genre: "Histoire", year: "2014", cover: .systemCyan, azw3: true),
-        Sample(title: "Carnet de voyage", authors: ["Paul Martin"], genre: "Récit", year: "2009", cover: .systemMint),
+        Sample(title: t("Sel", "Salt"), authors: ["Léa Fontaine"], genre: t("Poésie", "Poetry"), year: "2020", cover: nil),
+        Sample(title: t("Petit traité de la patience", "A Short Treatise on Patience"), authors: ["Marc Aubert", "Julie Roy"],
+               genre: t("Essai", "Essay"), year: "2017", cover: .systemGreen),
+        Sample(title: t("Nuit d'orage à Bruges", "Storm Night in Bruges"), authors: ["Anne Verhaegen"], genre: crime,
+               year: "2024", cover: .systemPink),
+        Sample(title: t("Le Goût des pommes", "The Taste of Apples"), authors: ["Léa Fontaine"], genre: t("Roman", "Novel"),
+               year: "2025", cover: .systemYellow),
+        Sample(title: t("Atlas des vents", "Atlas of Winds"), authors: ["Inès Garnier"], genre: t("Histoire", "History"),
+               year: "2014", cover: .systemCyan, azw3: true),
+        Sample(title: travelNotebook, authors: ["Paul Martin"], genre: t("Récit", "Memoir"), year: "2009", cover: .systemMint),
     ]
 
     /// Second dossier de livres des captures (page « dossier-exemple »).
     static var externalFolder: URL? {
-        AppDirectories.testStore?.appendingPathComponent("Disque externe", isDirectory: true)
+        AppDirectories.testStore?.appendingPathComponent(t("Disque externe", "External Drive"), isDirectory: true)
     }
 
     /// Avant le lancement de l'app : remplit deux dossiers de test vides et y fait pointer `ALEXANDRIE_BOOKS`.
     static func seedIfRequested() {
         let env = ProcessInfo.processInfo.environment
         guard env["ALEXANDRIE_SEED"] == "1", let store = AppDirectories.testStore, let external = externalFolder else { return }
-        let folder = store.appendingPathComponent("Livres", isDirectory: true)
+        let folder = store.appendingPathComponent(t("Livres", "Books"), isDirectory: true)
         // Troisième dossier jamais créé : un disque débranché, pour la capture de l'état indisponible (S-062).
-        let unplugged = store.appendingPathComponent("Clé USB", isDirectory: true)
+        let unplugged = store.appendingPathComponent(t("Clé USB", "USB Stick"), isDirectory: true)
         setenv("ALEXANDRIE_BOOKS", [folder, external, unplugged].map(\.path).joined(separator: ":"), 1)
         guard !FileManager.default.fileExists(atPath: folder.path) else { return }
         do {
             for f in [folder, external] { try FileManager.default.createDirectory(at: f, withIntermediateDirectories: true) }
             for s in samples { try write(s, in: s.external ? external : folder) }
             // PDF (S-064, S-065) : un texte de plusieurs pages, et un scan sans texte.
-            try makePDF(title: "Manuel du fleuve", author: "Claire Morel", pages: 6, in: folder)
-            try makePDF(title: "Plans anciens", author: "Inès Garnier", pages: 3, scanned: true, in: folder)
+            try makePDF(title: riverHandbook, author: "Claire Morel", pages: 6, in: folder)
+            try makePDF(title: oldMaps, author: "Inès Garnier", pages: 3, scanned: true, in: folder)
             try KindleClippings.save(clippings, to: AppDirectories(base: store).clippings)
         } catch {
             FileHandle.standardError.write(Data("SEED échec : \(error.localizedDescription)\n".utf8))
@@ -79,35 +108,40 @@ enum SeedData {
             book.genre = s.genre
             library.update(book)
         }
-        if let book = library.books.first(where: { $0.title == "Carnet de voyage" }), book.trashedAt == nil {
+        if let book = library.books.first(where: { $0.title == travelNotebook }), book.trashedAt == nil {
             library.moveToTrash(book)
         }
-        if let book = library.books.first(where: { $0.title == "Orbite" }), book.pendingSendAt == nil {
+        if let book = library.books.first(where: { $0.title == orbit }), book.pendingSendAt == nil {
             library.queueForKindle([book], reader: nil)
         }
         // Lecture commencée (S-068) : la fiche montre « 42 % lu ».
-        if let book = library.books.first(where: { $0.title == "Les Heures lentes" }) {
+        if let book = library.books.first(where: { $0.title == slowHours }) {
             AppServices.shared.reading.record(ReadingPosition(chapter: 0, fraction: 0.42, percent: 0.42), for: book)
         }
         addReaderHighlights(library, kindle: AppServices.shared.kindle)
         addResearches(library, kindle: AppServices.shared.kindle, store: AppServices.shared.researches)
     }
 
+    /// Notes d'une Kindle : la date est écrite dans la langue de la Kindle (française, ou anglaise pour les captures anglaises).
     private static let clippings: [Clipping] = [
-        Clipping(title: "Le Port des brumes", author: "Hugo Lambert", kind: .highlight, location: "page 12 · emplacement 180-182",
-                 added: "mardi 3 novembre 2026 10:12:33", text: "La brume montait du port comme une marée à l'envers."),
-        Clipping(title: "Le Port des brumes", author: "Hugo Lambert", kind: .note, location: "page 12 · emplacement 182",
-                 added: "mardi 3 novembre 2026 10:13:02", text: "Relire ce passage pour la scène du quai."),
-        Clipping(title: "Le Port des brumes", author: "Hugo Lambert", kind: .highlight, location: "page 87 · emplacement 1304-1310",
-                 added: "mercredi 4 novembre 2026 21:40:11",
-                 text: "Vidal savait que les témoins se taisent rarement par peur ; le plus souvent, c'est par lassitude, parce que personne ne leur a jamais posé la bonne question."),
-        Clipping(title: "Orbite", author: "Samuel Okafor", kind: .highlight, location: "page 3 · emplacement 40-41",
-                 added: "lundi 2 novembre 2026 08:05:47", text: "Vu d'en haut, aucune frontière ne tient."),
+        Clipping(title: harbour, author: "Hugo Lambert", kind: .highlight, location: "page 12 · emplacement 180-182",
+                 added: t("mardi 3 novembre 2026 10:12:33", "Tuesday, 3 November 2026 10:12:33"),
+                 text: t("La brume montait du port comme une marée à l'envers.", "The mist rose from the harbour like a tide in reverse.")),
+        Clipping(title: harbour, author: "Hugo Lambert", kind: .note, location: "page 12 · emplacement 182",
+                 added: t("mardi 3 novembre 2026 10:13:02", "Tuesday, 3 November 2026 10:13:02"),
+                 text: t("Relire ce passage pour la scène du quai.", "Reread this passage for the scene on the quay.")),
+        Clipping(title: harbour, author: "Hugo Lambert", kind: .highlight, location: "page 87 · emplacement 1304-1310",
+                 added: t("mercredi 4 novembre 2026 21:40:11", "Wednesday, 4 November 2026 21:40:11"),
+                 text: t("Vidal savait que les témoins se taisent rarement par peur ; le plus souvent, c'est par lassitude, parce que personne ne leur a jamais posé la bonne question.",
+                         "Vidal knew that witnesses rarely keep quiet out of fear; more often it is out of weariness, because nobody has ever asked them the right question.")),
+        Clipping(title: orbit, author: "Samuel Okafor", kind: .highlight, location: "page 3 · emplacement 40-41",
+                 added: t("lundi 2 novembre 2026 08:05:47", "Monday, 2 November 2026 08:05:47"),
+                 text: t("Vu d'en haut, aucune frontière ne tient.", "Seen from above, no border holds.")),
     ]
 
     private static func write(_ s: Sample, in folder: URL) throws {
-        var meta = BookMetadata(title: s.title, authors: s.authors, language: "fr", publisher: "Éditions d'Exemple",
-                                summary: "Livre d'exemple pour les captures d'écran de Foluna.")
+        var meta = BookMetadata(title: s.title, authors: s.authors, language: language, publisher: publisher,
+                                summary: t("Livre d'exemple pour les captures d'écran de Foluna.", "Sample book for Foluna's screenshots."))
         meta.series = s.series
         meta.seriesIndex = s.index
         meta.publishedDate = s.year
@@ -129,9 +163,13 @@ enum SeedData {
             throw BookError.conversionFailed("PDF d'exemple")
         }
         let font = CTFontCreateWithName("Helvetica" as CFString, 10, nil)
-        let paragraph = ["Le fleuve descend lentement vers la mer en traversant les plaines et", "les villages endormis.",
-                         "Chaque saison change sa couleur et la hauteur de ses eaux, que les", "bateliers mesurent avec soin.",
-                         "Ce manuel décrit les passages, les écluses et les ports où l'on peut", "s'arrêter pour la nuit."]
+        let paragraph = english
+            ? ["The river flows slowly down to the sea through the plains and", "the sleeping villages.",
+               "Each season changes its colour and the height of its waters, which the", "boatmen measure with care.",
+               "This handbook describes the channels, the locks and the harbours where", "you can stop for the night."]
+            : ["Le fleuve descend lentement vers la mer en traversant les plaines et", "les villages endormis.",
+               "Chaque saison change sa couleur et la hauteur de ses eaux, que les", "bateliers mesurent avec soin.",
+               "Ce manuel décrit les passages, les écluses et les ports où l'on peut", "s'arrêter pour la nuit."]
         for n in 1...pages {
             context.beginPDFPage(nil)
             if scanned {
@@ -151,17 +189,27 @@ enum SeedData {
     }
 
     static func chapterTitle(_ c: Int, of chapters: Int) -> String {
-        let names = ["Le quai", "La brume", "Le phare", "La marée"]
-        return chapters == 1 ? "Chapitre 1" : "\(c). \(names[(c - 1) % names.count])"
+        let names = english ? ["The Quay", "The Mist", "The Lighthouse", "The Tide"] : ["Le quai", "La brume", "Le phare", "La marée"]
+        return chapters == 1 ? t("Chapitre 1", "Chapter 1") : "\(c). \(names[(c - 1) % names.count])"
     }
+
+    /// Passages surlignés dans « Le Port des brumes » (fenêtre de lecture) : ils sont dans le texte des paragraphes.
+    static let readerPassage = t("le commissaire attendait sur le quai que le dernier ferry rentre",
+                                 "the inspector waited on the quay for the last ferry to come in")
+    static let readerPinkPassage = t("on entendait seulement les haussières grincer", "all you could hear were the mooring lines creaking")
 
     /// Textes des paragraphes d'un chapitre (sans balises).
     static func paragraphs(chapter c: Int, of chapters: Int, bookTitle: String) -> [String] {
-        guard chapters > 1 else { return ["Un paragraphe de « \(bookTitle) », avec des accents : été, œuvre."] }
+        guard chapters > 1 else {
+            return [english ? "A paragraph from “\(bookTitle)”." : "Un paragraphe de « \(bookTitle) », avec des accents : été, œuvre."]
+        }
         return (1...18).map { p in
-            "La brume montait du port comme une marée à l'envers, et le commissaire attendait sur le quai que "
-                + "le dernier ferry rentre. Personne ne parlait ; on entendait seulement les haussières grincer contre "
-                + "les bittes d'amarrage et, plus loin, la corne du phare qui comptait les minutes (\(c).\(p))."
+            english
+                ? "The mist rose from the harbour like a tide in reverse, and \(readerPassage). Nobody spoke; "
+                    + "\(readerPinkPassage) against the bollards and, further off, the lighthouse horn counting the minutes (\(c).\(p))."
+                : "La brume montait du port comme une marée à l'envers, et le commissaire attendait sur le quai que "
+                    + "le dernier ferry rentre. Personne ne parlait ; on entendait seulement les haussières grincer contre "
+                    + "les bittes d'amarrage et, plus loin, la corne du phare qui comptait les minutes (\(c).\(p))."
         }
     }
 
@@ -175,15 +223,19 @@ enum SeedData {
     /// légende nomme ses couleurs ; « Mesures de trafic » est une couleur ajoutée. Le passage rose sert aussi
     /// au « Mémoire de master » : un passage, deux thématiques.
     static func addResearches(_ library: LibraryStore, kindle: KindleMonitor, store: ResearchStore) {
-        guard store.researches.isEmpty, let book = library.books.first(where: { $0.title == "Le Port des brumes" }) else { return }
-        var roads = store.addResearch(name: "Rénovation des voiries")
-        for (i, name) in ["Construction", "Entreprises", "Génie civil", "Analyse des coûts", "Réglementation"].enumerated() {
+        guard store.researches.isEmpty, let book = library.books.first(where: { $0.title == harbour }) else { return }
+        var roads = store.addResearch(name: t("Rénovation des voiries", "Road Renovation"))
+        let roadThemes = english
+            ? ["Construction", "Contractors", "Civil Engineering", "Cost Analysis", "Regulations"]
+            : ["Construction", "Entreprises", "Génie civil", "Analyse des coûts", "Réglementation"]
+        for (i, name) in roadThemes.enumerated() {
             roads.themes[i].name = name
         }
-        roads.addTheme(name: "Mesures de trafic")
+        roads.addTheme(name: t("Mesures de trafic", "Traffic Counts"))
         store.update(roads)
-        var memoir = store.addResearch(name: "Mémoire de master")
-        for (i, name) in ["Anthropologie", "Méthode", "Terrain", "Sociologie"].enumerated() { memoir.themes[i].name = name }
+        var memoir = store.addResearch(name: t("Mémoire de master", "Master's Thesis"))
+        let memoirThemes = english ? ["Anthropology", "Method", "Fieldwork", "Sociology"] : ["Anthropologie", "Méthode", "Terrain", "Sociologie"]
+        for (i, name) in memoirThemes.enumerated() { memoir.themes[i].name = name }
         memoir.themes.removeLast()
         store.update(memoir)
         store.setActive(roads.id, for: book)
@@ -195,10 +247,10 @@ enum SeedData {
     }
 
     static func addReaderHighlights(_ library: LibraryStore, kindle: KindleMonitor) {
-        if let book = library.books.first(where: { $0.title == "Le Port des brumes" }), kindle.readerHighlights(of: book).isEmpty {
+        if let book = library.books.first(where: { $0.title == harbour }), kindle.readerHighlights(of: book).isEmpty {
             // Deuxième chapitre, douzième paragraphe : sur la page où la lecture reprend.
             let text = chapterText(2, of: 4, bookTitle: book.title)
-            let passage = "le commissaire attendait sur le quai que le dernier ferry rentre"
+            let passage = readerPassage
             let paragraph = paragraphs(chapter: 2, of: 4, bookTitle: book.title)[11]
             if let p = text.range(of: paragraph), let r = text[p].range(of: passage) {
                 let start = text.utf16.distance(from: text.startIndex, to: r.lowerBound)
@@ -210,9 +262,10 @@ enum SeedData {
                                                                              end: end, order: order), isPDF: false)
                 kindle.addHighlight(clipping)
                 // Annoté (S-071) : le repère de note se voit dans la page et dans « Notes et surlignages ».
-                kindle.setNote(clipping.id, "Il attend toujours au même endroit : à rapprocher du dernier chapitre.")
+                kindle.setNote(clipping.id, t("Il attend toujours au même endroit : à rapprocher du dernier chapitre.",
+                                              "He always waits in the same spot: compare with the last chapter."))
                 // Un deuxième passage, en rose, deux paragraphes plus bas (S-073).
-                let pink = "on entendait seulement les haussières grincer"
+                let pink = readerPinkPassage
                 if let p2 = text.range(of: paragraphs(chapter: 2, of: 4, bookTitle: book.title)[13]),
                    let r2 = text[p2].range(of: pink) {
                     let start2 = text.utf16.distance(from: text.startIndex, to: r2.lowerBound)
@@ -223,16 +276,16 @@ enum SeedData {
                 }
             }
         }
-        if let book = library.books.first(where: { $0.title == "Manuel du fleuve" }), kindle.readerHighlights(of: book).isEmpty,
+        if let book = library.books.first(where: { $0.title == riverHandbook }), kindle.readerHighlights(of: book).isEmpty,
            let page = PDFDocument(url: book.url)?.page(at: 0), let string = page.string {
-            let passage = "Chaque saison change sa couleur et la hauteur de ses eaux"
+            let passage = t("Chaque saison change sa couleur et la hauteur de ses eaux", "Each season changes its colour and the height of its waters")
             let range = (string as NSString).range(of: passage)
             if range.location != NSNotFound {
                 let clipping = Clipping.readerHighlight(title: book.title, author: book.authorLine, text: passage,
                                                         anchor: ReaderAnchor(book: book.fingerprint, chapter: 0, start: range.location,
                                                                              end: NSMaxRange(range), order: 1), isPDF: true)
                 kindle.addHighlight(clipping)
-                kindle.setNote(clipping.id, "Comparer avec les relevés de crue.")
+                kindle.setNote(clipping.id, t("Comparer avec les relevés de crue.", "Compare with the flood records."))
                 // Une autre couleur que le jaune (S-073).
                 kindle.setColor(clipping.id, .green)
             }
@@ -252,7 +305,7 @@ enum SeedData {
             let body = paragraphs(chapter: c, of: chapters, bookTitle: meta.title).map { "<p>\($0)</p>" }.joined(separator: "\n")
             let html = """
                 <?xml version="1.0" encoding="utf-8"?>
-                <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="fr">
+                <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="\(meta.language ?? "fr")">
                 <head><title>\(meta.title)</title></head>
                 <body><h1>\(title)</h1>
                 \(body)

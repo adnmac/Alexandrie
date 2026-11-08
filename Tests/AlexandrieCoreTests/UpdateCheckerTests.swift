@@ -70,6 +70,64 @@ final class LockedURL: @unchecked Sendable {
         #expect(try await checker.newerRelease(than: "0.3.0") == nil)
     }
 
+    @Test func diskImageIsPreferredToZip() throws {
+        let data = Data(#"""
+        {"tag_name": "v0.4.0", "assets": [
+          {"name": "Alexandrie-0.4.0.zip", "browser_download_url": "https://example.org/Alexandrie-0.4.0.zip"},
+          {"name": "Alexandrie-0.4.0.dmg", "browser_download_url": "https://example.org/Alexandrie-0.4.0.dmg"}]}
+        """#.utf8)
+        let r = try #require(UpdateChecker.parseRelease(data))
+        #expect(r.downloadURL.lastPathComponent == "Alexandrie-0.4.0.dmg")
+        #expect(r.isDiskImage)
+        #expect(UpdateChecker.parseRelease(Self.release)?.isDiskImage == false)
+    }
+
+    /// Une image disque comme celle de scripts/release.sh : l'app en est extraite, l'image démontée.
+    @Test func appIsExtractedFromDiskImage() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("alx-dmg-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fm.removeItem(at: dir) }
+        let stage = dir.appendingPathComponent("stage/Alexandrie.app/Contents", isDirectory: true)
+        try fm.createDirectory(at: stage, withIntermediateDirectories: true)
+        try Data("v2".utf8).write(to: stage.appendingPathComponent("version"))
+        try fm.createSymbolicLink(atPath: dir.appendingPathComponent("stage/Applications").path, withDestinationPath: "/Applications")
+        let dmg = dir.appendingPathComponent("Alexandrie.dmg")
+        try DiskImage.run("/usr/bin/hdiutil", ["create", "-quiet", "-volname", "Alexandrie test", "-srcfolder",
+                                               dir.appendingPathComponent("stage").path, "-format", "UDZO", dmg.path])
+        let app = try DiskImage.extractApp(from: dmg, to: dir.appendingPathComponent("out"))
+        #expect(try String(contentsOf: app.appendingPathComponent("Contents/version"), encoding: .utf8) == "v2")
+        #expect(!(try DiskImage.run("/usr/bin/hdiutil", ["info"])).contains(dir.path))
+        #expect(throws: DiskImage.Failure.appMissing) {
+            try DiskImage.extractApp(named: "Autre.app", from: dmg, to: dir.appendingPathComponent("out2"))
+        }
+    }
+
+    /// Le script attend la fin du processus, remplace l'app et efface le dossier de travail.
+    @Test func installScriptReplacesAppAfterExit() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("alx-inst-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fm.removeItem(at: dir) }
+        let installed = dir.appendingPathComponent("Applications/Alexandrie.app")
+        let work = dir.appendingPathComponent("work")
+        let new = work.appendingPathComponent("Alexandrie.app")
+        try fm.createDirectory(at: installed, withIntermediateDirectories: true)
+        try fm.createDirectory(at: new, withIntermediateDirectories: true)
+        try Data("ancienne".utf8).write(to: installed.appendingPathComponent("v"))
+        try Data("nouvelle".utf8).write(to: new.appendingPathComponent("v"))
+        let sleeper = Process()
+        sleeper.executableURL = URL(fileURLWithPath: "/bin/sleep")
+        sleeper.arguments = ["0.5"]
+        try sleeper.run()
+        let p = try UpdateInstall.launch(waitingFor: sleeper.processIdentifier, newApp: new, installedApp: installed,
+                                         relaunch: false, cleaning: work)
+        #expect(try String(contentsOf: installed.appendingPathComponent("v"), encoding: .utf8) == "ancienne")
+        p.waitUntilExit()
+        #expect(p.terminationStatus == 0)
+        #expect(try String(contentsOf: installed.appendingPathComponent("v"), encoding: .utf8) == "nouvelle")
+        #expect(!fm.fileExists(atPath: work.path))
+        #expect(try fm.contentsOfDirectory(atPath: installed.deletingLastPathComponent().path) == ["Alexandrie.app"])
+    }
+
     @Test func releaseWithoutZipIsIgnored() {
         #expect(UpdateChecker.parseRelease(Data(#"{"tag_name": "v1.0.0", "assets": []}"#.utf8)) == nil)
     }

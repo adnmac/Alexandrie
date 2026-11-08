@@ -219,11 +219,14 @@ Acceptance:
 Status: done
 
 ### S-033 Mettre à jour l'app
-L'app signale une version plus récente et propose « Installer et relancer ».
+L'app signale une version plus récente et propose « Installer et relancer » : elle télécharge le `.dmg` de la version,
+se ferme, la nouvelle version remplace l'ancienne, puis l'app se relance.
 Screens: reglages-general
 Acceptance:
-- [unit] `ReleaseTests`, `UpdateCheckerTests`.
+- [unit] `ReleaseTests`, `UpdateCheckerTests` (le `.dmg` préféré au `.zip`, l'app extraite d'une image disque,
+  le script qui remplace l'app après sa fermeture).
 - [manual] La version téléchargée doit porter la même signature.
+- [manual] Publier une version avec `scripts/release.sh`, puis « Installer et relancer » depuis la précédente.
 Status: done
 
 ## M5 Clavier et menus

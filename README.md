@@ -49,8 +49,11 @@ Créer un certificat : racine auto-signée, signature de code).
 Avec une signature stable, macOS garde les autorisations de l'app (disque de la Kindle…) d'une version à l'autre ;
 sans certificat, la signature est ad hoc.
 
-`scripts/release.sh X.Y.Z` publie une version sur GitHub (app signée, zippée). L'app installée la signale et propose
-« Installer et relancer » : elle télécharge la version, vérifie qu'elle porte la même signature, puis la remplace.
+`scripts/release.sh X.Y.Z` publie une version sur GitHub : une image disque `Alexandrie-X.Y.Z.dmg` (l'app signée
+et un lien vers Applications) et une archive `.zip` pour les anciennes versions. L'app installée la signale et propose
+« Installer et relancer » : elle télécharge le `.dmg`, en extrait l'app, vérifie qu'elle porte la même signature,
+puis se ferme ; un script remplace alors l'app (l'ancienne revient si la copie échoue) et la relance.
+Le `.dmg` s'installe aussi à la main depuis la page de la version (glisser Alexandrie dans Applications).
 Avec les seules Command Line Tools, ces scripts chargent les plugins de macros SwiftUI et Swift Testing
 depuis `/Applications/Xcode.app` (Xcode doit être installé, mais sa licence n'a pas besoin d'être acceptée).
 

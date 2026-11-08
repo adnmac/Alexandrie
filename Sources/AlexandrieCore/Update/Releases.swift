@@ -5,9 +5,11 @@ import Security
 public struct ReleaseInfo: Equatable, Sendable {
     public var version: String
     public var notes: String
-    /// Archive de l'app signée (Alexandrie-X.Y.Z.zip).
+    /// Image disque de l'app signée (Alexandrie-X.Y.Z.dmg), sinon son archive (.zip, anciennes versions).
     public var downloadURL: URL
     public var pageURL: URL?
+
+    public var isDiskImage: Bool { downloadURL.pathExtension.lowercased() == "dmg" }
 }
 
 extension UpdateChecker {
@@ -26,12 +28,16 @@ extension UpdateChecker {
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let tag = json["tag_name"] as? String,
               let assets = json["assets"] as? [[String: Any]],
-              let zip = assets.first(where: { ($0["name"] as? String)?.hasSuffix(".zip") == true }),
-              let url = (zip["browser_download_url"] as? String).flatMap(URL.init(string:)) else { return nil }
+              let asset = Self.asset(in: assets, suffix: ".dmg") ?? Self.asset(in: assets, suffix: ".zip"),
+              let url = (asset["browser_download_url"] as? String).flatMap(URL.init(string:)) else { return nil }
         return ReleaseInfo(version: tag.hasPrefix("v") ? String(tag.dropFirst()) : tag,
                            notes: json["body"] as? String ?? "",
                            downloadURL: url,
                            pageURL: (json["html_url"] as? String).flatMap(URL.init(string:)))
+    }
+
+    static func asset(in assets: [[String: Any]], suffix: String) -> [String: Any]? {
+        assets.first { ($0["name"] as? String)?.lowercased().hasSuffix(suffix) == true }
     }
 
     /// Comparaison numérique « 0.10.0 » > « 0.9.2 ».

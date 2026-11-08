@@ -130,7 +130,7 @@ final class OPDSStore {
     func search(_ id: String, terms: String) async {
         let trimmed = terms.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        let title = "« \(trimmed) »"
+        let title = String(localized: "« \(trimmed) »")
         do {
             let template: OPDSSearchTemplate
             if let known = templates[id] {

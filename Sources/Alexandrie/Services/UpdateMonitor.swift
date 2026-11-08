@@ -104,47 +104,53 @@ final class UpdateMonitor {
         withMutation(keyPath: \.status) { UserDefaults.standard.set(r.version, forKey: Self.dismissedReleaseKey) }
     }
 
-    /// Télécharge la version, vérifie qu'elle porte la même signature, remplace l'app et la relance.
+    /// Télécharge l'image disque de la version, en extrait l'app et vérifie qu'elle porte la même signature,
+    /// puis ferme Alexandrie : un script remplace l'app une fois fermée et la relance.
     func install(_ release: ReleaseInfo) async {
         guard installState != .downloading, installState != .installing else { return }
+        let current = Bundle.main.bundleURL
+        guard FileManager.default.isWritableFile(atPath: current.deletingLastPathComponent().path) else {
+            installState = .failed(String(localized: "Le dossier « \(current.deletingLastPathComponent().path) » n'est pas modifiable : téléchargez le .dmg depuis « Détails » et installez-le à la main."))
+            return
+        }
         installState = .downloading
+        let work = FileManager.default.temporaryDirectory
+            .appendingPathComponent("alexandrie-update-\(UUID().uuidString)", isDirectory: true)
         do {
             var request = URLRequest(url: release.downloadURL)
             request.setValue(UserAgent.value, forHTTPHeaderField: "User-Agent")
             let (downloaded, _) = try await URLSession.shared.download(for: request)
             // Le fichier téléchargé est temporaire : il est mis à l'abri tout de suite.
-            let work = FileManager.default.temporaryDirectory
-                .appendingPathComponent("alexandrie-update-\(UUID().uuidString)", isDirectory: true)
             try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
-            let zip = work.appendingPathComponent("Alexandrie.zip")
-            try FileManager.default.moveItem(at: downloaded, to: zip)
+            let archive = work.appendingPathComponent(release.isDiskImage ? "Alexandrie.dmg" : "Alexandrie.zip")
+            try FileManager.default.moveItem(at: downloaded, to: archive)
             installState = .installing
-            let current = Bundle.main.bundleURL
-            try await Task.detached(priority: .userInitiated) {
-                defer { try? FileManager.default.removeItem(at: work) }
-                let unzip = Process()
-                unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
-                unzip.arguments = ["-x", "-k", zip.path, work.path]
-                try unzip.run()
-                unzip.waitUntilExit()
-                guard unzip.terminationStatus == 0 else { throw CocoaError(.fileReadCorruptFile) }
-                let app = work.appendingPathComponent("Alexandrie.app")
+            let isDiskImage = release.isDiskImage
+            let app = try await Task.detached(priority: .userInitiated) { () throws -> URL in
+                let staged = work.appendingPathComponent("nouvelle", isDirectory: true)
+                let app: URL
+                if isDiskImage {
+                    app = try DiskImage.extractApp(from: archive, to: staged)
+                } else {
+                    let unzip = Process()
+                    unzip.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+                    unzip.arguments = ["-x", "-k", archive.path, staged.path]
+                    try unzip.run()
+                    unzip.waitUntilExit()
+                    guard unzip.terminationStatus == 0 else { throw CocoaError(.fileReadCorruptFile) }
+                    app = staged.appendingPathComponent("Alexandrie.app")
+                }
                 try SignatureCheck.verifySameSigner(app)
-                _ = try FileManager.default.replaceItemAt(current, withItemAt: app)
+                return app
             }.value
-            relaunch(current)
+            // L'index est enregistré à la fermeture ; le script attend qu'elle soit finie pour remplacer l'app.
+            _ = try UpdateInstall.launch(waitingFor: ProcessInfo.processInfo.processIdentifier,
+                                         newApp: app, installedApp: current, cleaning: work)
+            NSApp.terminate(nil)
         } catch {
+            try? FileManager.default.removeItem(at: work)
             installState = .failed(error.localizedDescription)
         }
-    }
-
-    /// Relance la nouvelle version une fois celle-ci fermée (l'index est enregistré à la fermeture).
-    private func relaunch(_ app: URL) {
-        let shell = Process()
-        shell.executableURL = URL(fileURLWithPath: "/bin/sh")
-        shell.arguments = ["-c", "sleep 1; /usr/bin/open \"$0\"", app.path]
-        try? shell.run()
-        NSApp.terminate(nil)
     }
 
     /// « Plus tard » : la même version n'est plus signalée, une suivante le sera.

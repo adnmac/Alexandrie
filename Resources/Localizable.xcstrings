@@ -10624,6 +10624,34 @@
         }
       }
     },
+    "Image disque illisible : %@.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image nicht lesbar: %@."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unreadable disk image: %@."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Imagen de disco ilegible: %@."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schijfkopie onleesbaar: %@."
+          }
+        }
+      }
+    },
     "Import impossible de « %@ » : %@": {
       "localizations": {
         "de": {
@@ -11594,6 +11622,34 @@
         }
       }
     },
+    "L'image disque ne contient pas Alexandrie.app.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Das Image enthält kein Alexandrie.app."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The disk image doesn't contain Alexandrie.app."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La imagen de disco no contiene Alexandrie.app."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De schijfkopie bevat geen Alexandrie.app."
+          }
+        }
+      }
+    },
     "La Kindle reçoit le PDF d'origine, page par page.": {
       "localizations": {
         "de": {
@@ -12212,6 +12268,34 @@
           "stringUnit": {
             "state": "translated",
             "value": "De catalogus stelt correcties voor"
+          }
+        }
+      }
+    },
+    "Le dossier « %@ » n'est pas modifiable : téléchargez le .dmg depuis « Détails » et installez-le à la main.": {
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Der Ordner „%@“ kann nicht geändert werden: Lade die .dmg über „Details“ und installiere sie von Hand."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The folder “%@” can't be modified: download the .dmg from “Details” and install it manually."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La carpeta «%@» no se puede modificar: descarga el .dmg desde «Detalles» e instálalo a mano."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De map ‘%@’ kan niet worden gewijzigd: download de .dmg via ‘Details’ en installeer hem handmatig."
           }
         }
       }
@@ -14625,7 +14709,32 @@
       }
     },
     "N°": {
-      "shouldTranslate": false
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nr."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "N.º"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nr."
+          }
+        }
+      }
     },
     "OK": {
       "localizations": {
@@ -22616,7 +22725,32 @@
       }
     },
     "« %@ »": {
-      "shouldTranslate": false
+      "localizations": {
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "„%@“"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "“%@”"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "«%@»"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "‘%@’"
+          }
+        }
+      }
     },
     "« %@ » a été éjectée": {
       "localizations": {

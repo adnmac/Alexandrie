@@ -121,7 +121,7 @@ struct CatalogReviewSheet: View {
         case .confirmed?:
             Label("Confirmé", systemImage: "checkmark.circle").foregroundStyle(Palette.success).font(.caption)
         case .contradicted(let value)?:
-            Label(value.map { "« \($0) »" } ?? String(localized: "Contredit"), systemImage: "exclamationmark.triangle")
+            Label(value.map { String(localized: "« \($0) »") } ?? String(localized: "Contredit"), systemImage: "exclamationmark.triangle")
                 .foregroundStyle(Palette.warning).font(.caption)
                 .help(value.map { String(localized: "La couverture indique « \($0) »") } ?? String(localized: "La couverture porte la valeur actuelle"))
         case nil:

@@ -21,6 +21,7 @@ struct ContentView: View {
     @AppStorage("contentSearchExact") private var contentSearchExact = false
     @Environment(ContentIndexer.self) private var contentIndexer
     @Environment(OPDSStore.self) private var opds
+    @Environment(ZoteroStore.self) private var zotero
     @State private var sort: SortOrder = .title
     @AppStorage("gridMode") private var gridMode = true
     /// Page et sélection rendues au lancement suivant. Dans les réglages de l'app, pas dans l'état de la
@@ -93,6 +94,12 @@ struct ContentView: View {
         // Kindle inconnue : on lui donne un nom, une fois pour toutes.
         .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {
             NameReaderSheet()
+        }
+        // Résultat d'un envoi à Zotero (S-093, S-094).
+        .alert("Zotero", isPresented: Binding(get: { zotero.message != nil }, set: { if !$0 { zotero.message = nil } })) {
+            Button("OK") { zotero.message = nil }
+        } message: {
+            Text(zotero.message ?? "")
         }
         .alert("Erreur", isPresented: errorBinding) {
             Button("OK") { library.lastError = nil; kindle.lastError = nil }

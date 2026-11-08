@@ -88,3 +88,9 @@ extension SeedData {
         }
     }
 }
+
+extension SeedData {
+    /// Faux Zotero des captures : rien ne part vers le vrai Zotero de l'utilisateur.
+    static let zoteroServer = ZoteroMemoryServer()
+    static var zoteroClient: ZoteroLocalClient { ZoteroLocalClient(transport: zoteroServer.transport) }
+}

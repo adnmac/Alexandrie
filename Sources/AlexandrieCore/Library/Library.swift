@@ -223,6 +223,8 @@ public struct AppDirectories: Sendable {
     public var contentIndexState: URL { base.appendingPathComponent("Recherche/indexes.json") }
     /// Catalogues OPDS et livres qui en ont été téléchargés (voir `OPDSCatalogList`).
     public var opds: URL { base.appendingPathComponent("opds.json") }
+    /// Références et notes envoyées à Zotero (voir `ZoteroLinks`).
+    public var zotero: URL { base.appendingPathComponent("zotero.json") }
     /// Copies datées de l'index (voir `IndexBackups`).
     public var backups: URL { base.appendingPathComponent("Sauvegardes", isDirectory: true) }
     public var covers: URL { base.appendingPathComponent("Covers", isDirectory: true) }

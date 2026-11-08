@@ -150,6 +150,7 @@ struct SettingsView: View {
                     Text("L'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library. Aucune information n'est modifiée sans votre accord : les corrections proposées apparaissent dans la fiche du livre.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
+                ZoteroSection()
                 Section("Mises à jour") {
                     Toggle("Vérifier au démarrage s'il existe une version plus récente", isOn: Binding(
                         get: { updates.autoCheck }, set: { updates.autoCheck = $0 }))

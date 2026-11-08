@@ -18,6 +18,11 @@ final class AppServices {
     lazy var opds = OPDSStore(directories: library.directories, library: library,
                               client: Snapshot.directory != nil ? SeedData.opdsClient : OPDSClient())
 
+    /// Notes et surlignages vers Zotero (API locale) ; en mode capture, un faux Zotero en mémoire.
+    lazy var zotero = ZoteroStore(directories: library.directories, library: library, kindle: kindle,
+                                  researches: { [unowned self] in self.researches },
+                                  client: Snapshot.directory != nil ? SeedData.zoteroClient : ZoteroLocalClient())
+
     private init() {
         // Restauration demandée avant la relance : appliquée avant que la bibliothèque et les notes soient lues.
         let directories = AppDirectories()

@@ -768,7 +768,59 @@ struct SelfTest {
         check("dernier dossier jamais retiré", library.folders.count == 1 && library.books.count == before)
 
         await checkOPDS(library: library)
+        await checkZotero(library: library)
         await checkExternalBackup(library: library)
+    }
+
+    /// S-092 à S-094 : notes d'un livre et d'une thématique envoyées à un faux Zotero, sans doublon.
+    private mutating func checkZotero(library: LibraryStore) async {
+        let kindle = KindleMonitor()
+        let researches = ResearchStore(directories: library.directories, kindle: kindle)
+        let server = ZoteroMemoryServer()
+        let zotero = ZoteroStore(directories: library.directories, library: library, kindle: kindle,
+                                 researches: { researches }, client: ZoteroLocalClient(transport: server.transport))
+        guard let book = library.visibleBooks.first(where: { $0.title == "Livre importé" }) else {
+            return check("zotero : livre d'essai", false)
+        }
+        for (i, text) in ["Premier passage surligné", "Second passage, avec <balises> & guillemets \"x\""].enumerated() {
+            var c = Clipping(title: book.title, author: book.authorLine, kind: .highlight, location: "page \(i + 3)",
+                             added: "dimanche 8 novembre 2026", text: text)
+            c.uid = "zotero-\(i)"
+            if i == 1 { c.note = "Ma note" }
+            kindle.addHighlight(c)
+        }
+        let bookKey = ShelfSync.normalize(book.title)
+        let before = kindle.clippings
+
+        await zotero.check()
+        check("zotero : prêt", zotero.status == .ready(authorized: false), "\(zotero.status)")
+        await zotero.send(bookKey: bookKey)
+        let items = server.list()
+        check("zotero : référence créée et note rattachée", items.map { $0.json["itemType"] as? String } == ["book", "note"]
+              && items[1].json["parentItem"] as? String == items[0].key && (items[1].json["note"] as? String)?.contains("&lt;balises&gt;") == true,
+              zotero.message ?? "")
+        // Trousseau seulement lu : la clé du faux Zotero ne doit pas y avoir été écrite.
+        check("zotero : autorisation gardée hors du Trousseau en test", zotero.status == .ready(authorized: true)
+              && Keychain.read(service: ZoteroStore.keychainService, account: "local") != "key1")
+        await zotero.send(bookKey: bookKey)
+        check("zotero : second envoi sans doublon", server.list().count == 2 && server.authorizeCount == 1, zotero.message ?? "")
+
+        let thematic = researches.addResearch(name: "Mémoire d'essai")
+        for c in kindle.clippings where c.uid?.hasPrefix("zotero-") == true { researches.setThematic(thematic.id, on: true, for: c.id) }
+        await zotero.send(thematicID: thematic.id)
+        let notes = server.list().filter { $0.json["itemType"] as? String == "note" }
+        check("zotero : thématique envoyée sur la même référence", notes.count == 2 && server.list().count == 3
+              && notes.allSatisfy { $0.json["parentItem"] as? String == items[0].key }
+              && (notes[1].json["note"] as? String)?.contains("<h1>Mémoire d'essai — ") == true, zotero.message ?? "")
+        check("zotero : notes d'Alexandrie intactes", kindle.clippings.filter { $0.uid?.hasPrefix("zotero-") == true }.count == 2
+              && kindle.clippings.count == before.count)
+        check("zotero : correspondances enregistrées", ZoteroLinks.load(library.directories.zotero).books[bookKey]?.noteKey != nil)
+
+        server.enabled = false
+        await zotero.send(bookKey: bookKey)
+        check("zotero : accès désactivé expliqué", zotero.status == .disabled
+              && zotero.message?.contains("Réglages › Avancés") == true, zotero.message ?? "")
+        for c in kindle.clippings where c.uid?.hasPrefix("zotero-") == true { kindle.deleteClipping(c.id) }
     }
 
     /// Sauvegarde dans un dossier choisi (iCloud Drive, disque externe) et restauration au lancement suivant.

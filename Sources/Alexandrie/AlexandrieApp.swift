@@ -13,6 +13,7 @@ struct AlexandrieApp: App {
     @State private var contentIndexer = AppServices.shared.contentIndexer
     @State private var opds = AppServices.shared.opds
     @State private var backups = AppServices.shared.backups
+    @State private var zotero = AppServices.shared.zotero
     /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
     @ObservedObject private var menu = MenuState.shared
 
@@ -26,6 +27,7 @@ struct AlexandrieApp: App {
                 .environment(researches)
                 .environment(contentIndexer)
                 .environment(opds)
+                .environment(zotero)
                 .frame(minWidth: 960, minHeight: 600)
                 // ALEXANDRIE_GRID=1 : grille de 8 pt, zones et sondes dessinées sur la fenêtre.
                 .overlay { if GridOverlay.enabled { GridOverlay() } }
@@ -60,6 +62,7 @@ struct AlexandrieApp: App {
         Settings {
             SettingsView()
                 .environment(backups)
+                .environment(zotero)
                 .environment(library)
                 .environment(kindle)
                 .environment(updates)

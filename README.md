@@ -14,6 +14,7 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par c�
 - **Recherche dans le contenu** : le champ de recherche cherche dans les titres, auteurs… ou dans le texte des livres (EPUB, MOBI, AZW3, PDF), indexé en arrière-plan, un fichier par livre, avec une option « Écriture exacte » (majuscules et accents) ; chaque livre trouvé montre ses extraits, et un extrait ouvre la fenêtre de lecture au passage, avec la liste des renvois du mot dans la colonne de gauche et ⌘G / ⇧⌘G pour passer de l'un à l'autre.
 - PDF : tel quel, **marges rognées** (le texte paraît plus grand) ou **texte redimensionnable** (texte extrait en AZW3, chapitres d'après la table du PDF) ; l'original n'est jamais modifié.
 - **Conversion MOBI/AZW3 → EPUB** (KF7, KF8 et fichiers hybrides).
+- **Zotero** : « Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages, notes, couleurs et positions dans une note rattachée à la référence du livre, retrouvée par ISBN ou titre et auteur, ou créée d'après la fiche. Un nouvel envoi met la note à jour, sans doublon ; une thématique donne une note par livre. Les notes restent dans Alexandrie : ce qui change dans Zotero ne revient pas. Il faut Zotero 10 ou plus récent, ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero », et « Toujours autoriser » au premier envoi.
 - **Catalogues en ligne (OPDS)** : Project Gutenberg, Ebooks libres et gratuits et la Bibliothèque numérique romande sont proposés dans la barre latérale ; on peut ajouter l'adresse de tout catalogue OPDS 1.2 public (https, sans compte). On parcourt ses rubriques, on y cherche depuis le champ de recherche (touche Retour), un menu « Langue » ne garde que les livres de cette langue (chez Gutenberg, recherches et listes sont restreintes par le serveur), et « Télécharger » ajoute le livre à la bibliothèque comme un import ; l'envoi sur la Kindle se fait ensuite depuis sa fiche. Les livres payants ou sous DRM sont ignorés.
 - Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
 
@@ -62,6 +63,7 @@ Tout ce que l'app produit est dans `~/Library/Application Support/Alexandrie/` :
 | `Conversions/` | AZW3 et EPUB convertis (cache) |
 | `Imports/` | livres ajoutés par glisser-déposer, « Importer » ou téléchargés d'un catalogue en ligne |
 | `opds.json` | catalogues en ligne ajoutés, et livres qui en ont été téléchargés |
+| `zotero.json` | références et notes Zotero reliées à chaque livre et thématique |
 
 **Copie hors du Mac** (Réglages › Sauvegarde) : chaque jour, Alexandrie copie ses fichiers de données, les livres
 importés ou téléchargés (`Imports/`) et les couvertures dans `Sauvegarde Alexandrie`, à l'intérieur du dossier choisi :
@@ -109,6 +111,8 @@ Alexandrie est gratuite, sans compte, sans mesure d'audience ni publicité. Tout
 - **Vérification en ligne des livres**, seulement après accord (accueil ou Réglages) : l'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library.
 - **Recherche de mises à jour** : l'app demande à GitHub la dernière version publiée de ce dépôt.
 - **Catalogues en ligne (OPDS)** : rien ne part tant qu'un catalogue n'est pas ouvert dans la barre latérale ; ensuite, le catalogue reçoit les pages parcourues, les mots cherchés et les livres téléchargés. Un catalogue retiré (« Gérer les catalogues… ») n'est plus jamais contacté.
+
+L'envoi à Zotero reste sur le Mac : Alexandrie écrit dans Zotero par son API locale (`127.0.0.1`), seulement quand on clique sur « Envoyer à Zotero » ; Zotero synchronise ensuite les notes si on utilise son compte en ligne. L'autorisation donnée par Zotero est gardée dans le Trousseau.
 
 La copie hors du Mac ne passe par aucun serveur d'Alexandrie : elle écrit dans le dossier choisi ; dans iCloud Drive, c'est le compte iCloud de l'utilisateur qui la synchronise.
 

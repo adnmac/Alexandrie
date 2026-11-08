@@ -8,6 +8,7 @@ import UniformTypeIdentifiers
 struct ThematicNotesView: View {
     @Environment(KindleMonitor.self) private var kindle
     @Environment(ResearchStore.self) private var researches
+    @Environment(ZoteroStore.self) private var zotero
     let thematicID: String
     /// Recherche de la barre d'outils : filtre aussi les passages.
     let search: String
@@ -77,9 +78,13 @@ struct ThematicNotesView: View {
                             ResearchExport.markdown(research, clippings: shownClippings(research), order: order), forType: .string)
                     }
                     Button("Enregistrer en Markdown…") { export(research) }
+                    Divider()
+                    Button("Envoyer à Zotero") { Task { await zotero.send(thematicID: research.id) } }
+                        .disabled(zotero.sending != nil)
                 }
                 .fixedSize()
-                .help("Dans l'ordre et avec les couleurs choisis")
+                .help("Copier ou enregistrer dans l'ordre et avec les couleurs choisis ; Zotero reçoit une note par livre, rattachée à sa référence")
+                if zotero.sending != nil { ProgressView().controlSize(.small).help("Envoi à Zotero…") }
             }
             ViewThatFits(in: .horizontal) {
                 HStack {

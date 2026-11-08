@@ -12,7 +12,7 @@ public enum ExternalBackup {
     public static let folderName = "Sauvegarde Alexandrie"
     /// Fichiers de données copiés chaque jour (ceux qui manquent sont ignorés).
     public static let dataFiles = ["library.json", "folders.json", "readers.json", "reading.json",
-                                   "clippings.json", "researches.json", "opds.json"]
+                                   "clippings.json", "researches.json", "opds.json", "zotero.json"]
     /// Dossiers tenus à jour (fichiers nouveaux ou modifiés copiés, fichiers disparus retirés).
     public static let mirroredFolders = ["Imports", "Covers"]
     public static let defaultKeep = 30

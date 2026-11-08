@@ -57,6 +57,7 @@ struct NotesBookList: View {
 
 /// Colonne de droite de la vue Notes : les relevés d'un livre, filtrables, modifiables et exportables.
 struct NotesEditor: View {
+    @Environment(ZoteroStore.self) private var zotero
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
     @Environment(ResearchStore.self) private var researches
@@ -133,8 +134,14 @@ struct NotesEditor: View {
                         NSPasteboard.general.setString(shown.map(\.displayText).joined(separator: "\n\n"), forType: .string)
                     }
                     Button("Enregistrer en Markdown…") { export(entry, book: book, clippings: shown) }
+                    Divider()
+                    // Tous les relevés du livre, quels que soient les filtres : la note Zotero reste complète.
+                    Button("Envoyer à Zotero") { Task { await zotero.send(bookKey: entry.id) } }
+                        .disabled(zotero.sending != nil)
                 }
                 .fixedSize()
+                .help("Copier, enregistrer en Markdown, ou envoyer tous les relevés du livre à Zotero (une note rattachée à sa référence)")
+                if zotero.sending != nil { ProgressView().controlSize(.small).help("Envoi à Zotero…") }
             }
             // Colonne étroite : l'ordre passe sous le filtre plutôt que d'écraser le compteur.
             ViewThatFits(in: .horizontal) {

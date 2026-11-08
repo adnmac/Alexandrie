@@ -97,6 +97,8 @@ Chaque requête porte l'adresse IP du Mac et le User-Agent « Alexandrie (macOS)
 
 Les réglages sont dans `UserDefaults`.
 
+**Zotero**, seulement à la demande (« Envoyer à Zotero ») : les passages, notes, couleurs, thématiques et positions d'un livre, et sa fiche (titre, auteurs, ISBN, éditeur, date, langue, résumé) si sa référence est créée, vont au Zotero du Mac par son API locale (`127.0.0.1:23119`). Zotero les synchronise si l'utilisateur a un compte Zotero. L'autorisation d'écrire est gardée dans le Trousseau ; `zotero.json` garde les correspondances.
+
 **Copie hors du Mac**, si l'utilisateur l'active (Réglages › Sauvegarde) : les fichiers ci-dessus (sauf le texte indexé et les caches), les livres importés et les couvertures sont copiés chaque jour dans le dossier qu'il choisit. Dans iCloud Drive, ils partent chez Apple avec son compte iCloud, pas chez le développeur.
 
 **Pour l'App Store**, si ce canal est choisi :

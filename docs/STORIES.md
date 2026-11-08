@@ -671,6 +671,32 @@ Acceptance:
 - [manual] Avec iCloud Drive, « Sauvegarde Alexandrie » apparaît dans le Finder ; « Restaurer… » relance l'app sur la copie choisie.
 Status: done
 
+### S-092 Relier Alexandrie à Zotero
+Réglages › Général montre si Zotero est ouvert et accepte les autres applications, et explique quoi cocher ; au premier envoi, Zotero demande l'autorisation, gardée dans le Trousseau (« Oublier » la retire).
+Depends: S-071
+Acceptance:
+- [unit] Zotero fermé, accès désactivé (403), refus, trop de demandes (429), autorisation périmée (401) et Zotero trop ancien donnent chacun un message en français.
+- [self] Prêt avec un faux Zotero ; autorisation gardée en mémoire en mode test, jamais dans le Trousseau ; accès désactivé expliqué.
+- [snap] La section « Zotero » des réglages.
+Status: done
+
+### S-093 Envoyer les notes d'un livre à Zotero
+Dans les notes d'un livre, Exporter › « Envoyer à Zotero » copie tous ses passages (citation, note, couleur, thématiques, position, date) dans une note rattachée à sa référence Zotero, retrouvée ou créée ; un nouvel envoi la met à jour. Les notes restent dans Alexandrie.
+Depends: S-092
+Acceptance:
+- [unit] Référence retrouvée par ISBN, sinon titre et auteur (les articles et autres auteurs écartés), sinon créée avec prénom et nom (particules gardées) ; note HTML échappée, dans l'ordre de lecture ; second envoi sans doublon ; note modifiée dans Zotero relue (412), supprimée recréée, référence supprimée retrouvée ou recréée ; `zotero.json` relu et sauvegardé.
+- [self] Référence et note créées ; second envoi sans doublon ni nouvelle autorisation ; notes d'Alexandrie intactes.
+- [snap] Le menu Exporter de la page Notes.
+- [manual] Avec le vrai Zotero : la note apparaît sous la référence et se cite depuis le module Zotero de Word ou LibreOffice.
+Status: done
+
+### S-094 Envoyer une thématique à Zotero
+Dans une thématique, Exporter › « Envoyer à Zotero » donne une note par livre, titrée par la thématique et rattachée à la même référence que les notes du livre.
+Depends: S-093
+Acceptance:
+- [self] Une note par livre, sur la référence déjà reliée.
+Status: done
+
 ## Later
 
 - Catalogues OPDS avec compte (Calibre-Web, Kavita, Komga) et OPDS 2 (JSON).

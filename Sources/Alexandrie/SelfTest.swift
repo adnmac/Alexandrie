@@ -2,6 +2,7 @@ import AlexandrieCore
 import AppKit
 import Foundation
 import PDFKit
+import SQLite3
 
 /// Self-test : exécute les fonctions que l'interface appelle (`LibraryStore`) sur des livres générés,
 /// dans un dossier de test vide, et affiche PASS ou FAIL par étape. Code de sortie 0 si tout passe.
@@ -146,7 +147,7 @@ struct SelfTest {
             // Raccourcis > Envoyer à la Kindle : sans Kindle, le livre passe en attente.
             if let target = selection.first {
                 let answer = await SendToKindle.run(target, library: library, kindle: kindle)
-                check("Raccourcis > Envoyer à la Kindle met en attente", answer == "En attente de la Kindle"
+                check("Raccourcis > Envoyer à la liseuse met en attente", answer == "En attente de la liseuse"
                       && library.book(id: target.id)?.isPendingSend == true, answer)
                 library.removeFromKindleQueue([target.id])
             }
@@ -787,8 +788,69 @@ struct SelfTest {
         check("dernier dossier jamais retiré", library.folders.count == 1 && library.books.count == before)
 
         await checkOPDS(library: library)
+        await checkReaders(library: library)
         await checkZotero(library: library)
         await checkExternalBackup(library: library)
+    }
+
+    /// S-096 à S-098 : une Kobo et une liseuse USB simulées par des dossiers (envoi en EPUB, notes, dossier choisi).
+    private mutating func checkReaders(library: LibraryStore) async {
+        let fm = FileManager.default
+        let base = library.directories.base
+        let koboRoot = base.appendingPathComponent("Kobo factice", isDirectory: true)
+        try? fm.createDirectory(at: koboRoot.appendingPathComponent(".kobo"), withIntermediateDirectories: true)
+        guard let epub = library.visibleBooks.first(where: { $0.format == .epub && !$0.isDRMProtected }) else {
+            return check("liseuses : livre EPUB d'essai", false)
+        }
+        // Base de notes au schéma de la Kobo : un surlignage avec note sur ce livre.
+        var db: OpaquePointer?
+        if sqlite3_open(KoboAnnotations.database(onVolume: koboRoot).path, &db) == SQLITE_OK {
+            let title = epub.title.replacingOccurrences(of: "'", with: "''")
+            sqlite3_exec(db, """
+                CREATE TABLE content (ContentID TEXT, ContentType INTEGER, Title TEXT, Attribution TEXT);
+                CREATE TABLE Bookmark (BookmarkID TEXT, VolumeID TEXT, ContentID TEXT, Text TEXT, Annotation TEXT,
+                    DateCreated TEXT, ChapterProgress REAL, Hidden TEXT, Type TEXT, Color INTEGER);
+                INSERT INTO content VALUES ('file:///mnt/onboard/Books/essai.epub', 6, '\(title)', 'Jeanne Dupont');
+                INSERT INTO Bookmark VALUES ('k1', 'file:///mnt/onboard/Books/essai.epub', NULL, 'Passage surligné sur la Kobo',
+                    'Note de la Kobo', '2026-11-08T09:00:00', 0.3, 'false', 'highlight', 3);
+                """, nil, nil, nil)
+            sqlite3_close(db)
+        }
+        let kindle = KindleMonitor()
+        await kindle.simulate(VolumeKindle(root: koboRoot, brand: .kobo))
+        check("kobo : reconnue, à nommer", kindle.brand == .kobo && kindle.needsNaming)
+        kindle.nameCurrentReader("Kobo d'essai")
+        check("kobo : liseuse enregistrée avec sa marque", kindle.currentReader?.brand == .kobo
+              && (try? ReaderList.load(library.directories.readers))?.contains { $0.name == "Kobo d'essai" && $0.brand == .kobo } == true)
+        check("kobo : notes importées", kindle.clippings.contains { $0.uid == "kobo:k1" && $0.note == "Note de la Kobo"
+              && ShelfSync.normalize($0.title) == ShelfSync.normalize(epub.title) && $0.color == .green })
+
+        await kindle.send([epub], library: library)
+        let sent = koboRoot.appendingPathComponent("Books/" + epub.filename(for: .kobo))
+        check("kobo : EPUB envoyé tel quel dans Books, avec ses corrections", kindle.transfers[epub.id] == .done
+              && (try? EPUBReader(url: sent).bookMetadata().title) == epub.title, "\(String(describing: kindle.transfers[epub.id]))")
+        check("kobo : livre listé et reconnu sur l'appareil", kindle.documents.contains { $0.name == sent.lastPathComponent }
+              && kindle.isOnDevice(library.book(id: epub.id) ?? epub))
+        check("kobo : pas de miniature Kindle", !fm.fileExists(atPath: koboRoot.appendingPathComponent("system").path))
+        if let azw3 = library.visibleBooks.first(where: { $0.format == .azw3 && !$0.isDRMProtected }) {
+            await kindle.send([azw3], library: library)
+            let converted = koboRoot.appendingPathComponent("Books/" + azw3.filename(for: .kobo))
+            check("kobo : AZW3 converti en EPUB", converted.pathExtension == "epub" && (try? EPUBReader(url: converted)) != nil,
+                  "\(String(describing: kindle.transfers[azw3.id]))")
+        }
+
+        // Liseuse générique : dossier des livres choisi, reconnue par son identifiant.
+        let usbRoot = base.appendingPathComponent("Liseuse USB factice", isDirectory: true)
+        try? fm.createDirectory(at: usbRoot.appendingPathComponent("Livres"), withIntermediateDirectories: true)
+        await kindle.simulate(VolumeKindle(root: usbRoot, brand: .generic, booksFolder: "Livres"))
+        kindle.nameCurrentReader("PocketBook d'essai")
+        let usb = kindle.readers.first { $0.name == "PocketBook d'essai" }
+        check("liseuse USB : enregistrée avec son dossier", usb?.brand == .generic && usb?.booksFolder == "Livres")
+        await kindle.send([epub], library: library)
+        check("liseuse USB : EPUB envoyé dans le dossier choisi",
+              fm.fileExists(atPath: usbRoot.appendingPathComponent("Livres/" + epub.filename(for: .generic)).path))
+        await kindle.simulate(nil)
+        for reader in kindle.readers where reader.name.hasSuffix("d'essai") { kindle.forget(reader.id) }
     }
 
     /// S-092 à S-094 : notes d'un livre et d'une thématique envoyées à un faux Zotero, sans doublon.
@@ -818,9 +880,9 @@ struct SelfTest {
         check("zotero : référence créée et note rattachée", items.map { $0.json["itemType"] as? String } == ["book", "note"]
               && items[1].json["parentItem"] as? String == items[0].key && (items[1].json["note"] as? String)?.contains("&lt;balises&gt;") == true,
               zotero.message ?? "")
-        // Trousseau seulement lu : la clé du faux Zotero ne doit pas y avoir été écrite.
+        // Le Trousseau de l'utilisateur n'est jamais ouvert en test (ni lu, ni écrit) : la clé reste en mémoire.
         check("zotero : autorisation gardée hors du Trousseau en test", zotero.status == .ready(authorized: true)
-              && Keychain.read(service: ZoteroStore.keychainService, account: "local") != "key1")
+              && !zotero.useKeychain)
         await zotero.send(bookKey: bookKey)
         check("zotero : second envoi sans doublon", server.list().count == 2 && server.authorizeCount == 1, zotero.message ?? "")
 

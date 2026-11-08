@@ -9,7 +9,7 @@ struct NameReaderSheet: View {
     @State private var name = ""
     @State private var adoptExisting = true
 
-    /// Livres de la bibliothèque déjà présents sur cette Kindle.
+    /// Livres de la bibliothèque déjà présents sur cette liseuse.
     private var booksOnDevice: [Book] {
         kindle.documents.compactMap { kindle.libraryBook(for: $0, in: library) }
     }
@@ -17,15 +17,15 @@ struct NameReaderSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             Label("Nouvelle liseuse", systemImage: "ipad.landscape.badge.play").font(.title3.weight(.semibold))
-            Text("Cette Kindle est branchée pour la première fois. Donnez-lui un nom : Alexandrie la reconnaîtra ensuite automatiquement et lui tiendra une étagère de livres.")
+            Text("Cette liseuse est branchée pour la première fois. Donnez-lui un nom : Alexandrie la reconnaîtra ensuite automatiquement et lui tiendra une étagère de livres.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            TextField("Nom", text: $name, prompt: Text("ex. Kindle de Léa"))
+            TextField("Nom", text: $name, prompt: Text("ex. Liseuse de Léa"))
                 .textFieldStyle(.roundedBorder)
                 .onSubmit(save)
             let onDevice = booksOnDevice.count
             if onDevice > 0 {
-                Toggle("Ajouter à son étagère les \(onDevice) livres de la bibliothèque déjà présents sur cette Kindle",
+                Toggle("Ajouter à son étagère les \(onDevice) livres de la bibliothèque déjà présents sur cette liseuse",
                        isOn: $adoptExisting)
             }
             HStack {
@@ -42,7 +42,7 @@ struct NameReaderSheet: View {
         .padding(Space.margin)
         .frame(width: Layout.sheet)
         .noInitialFocus()
-        .onAppear { name = kindle.device?.name ?? "Kindle" }
+        .onAppear { name = kindle.device?.name ?? kindle.brand?.label ?? "Liseuse" }
     }
 
     private func save() {

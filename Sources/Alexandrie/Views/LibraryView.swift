@@ -117,11 +117,11 @@ struct LibraryView: View {
                         }
                     }
                     if (r.group?.books ?? [r.book]).contains(where: kindle.isOnDevice) {
-                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.success).help("Sur la Kindle")
+                        Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.success).help("Sur la liseuse")
                     }
                     if (r.group?.books ?? [r.book]).contains(where: \.isPendingSend) {
                         Image(systemName: "clock.arrow.circlepath").foregroundStyle(Palette.info)
-                            .help("En attente d'envoi : partira dès que la Kindle sera branchée")
+                            .help("En attente d'envoi : partira dès que la liseuse sera branchée")
                     }
                 }
                 .help(r.isFile ? r.book.path : r.book.title)
@@ -218,7 +218,7 @@ struct BookCard: View {
                 Image(systemName: "clock.arrow.circlepath").font(.caption)
                     .foregroundStyle(Palette.info)
                     .padding(4).background(.ultraThinMaterial, in: Circle())
-                    .help("En attente d'envoi : partira dès que la Kindle sera branchée")
+                    .help("En attente d'envoi : partira dès que la liseuse sera branchée")
             }
             if book.isDRMProtected {
                 Image(systemName: "lock.fill").font(.caption)
@@ -229,7 +229,7 @@ struct BookCard: View {
                 Image(systemName: "checkmark.circle.fill").font(.caption)
                     .foregroundStyle(Palette.success)
                     .padding(Space.xs).background(.ultraThinMaterial, in: Circle())
-                    .help("Présent sur la Kindle")
+                    .help("Présent sur la liseuse")
             }
         }
         .padding(Space.sm)
@@ -434,7 +434,7 @@ struct BookActions: View {
         // Déjà en attente et Kindle débranchée : le remettre en attente n'aurait aucun effet.
         if !(isPending && !kindle.isConnected) {
             KindleSendButton(books: [book]) { Text(KindleSendLabel.title(kindle)) }
-                .disabled(kindle.isBusy || !book.canSendToKindle)
+                .disabled(kindle.isBusy || !kindle.canSend(book))
         }
         ShelfActions(books: [book])
         // Retirer d'une liste ne supprime rien : le livre reste dans la bibliothèque.
@@ -444,7 +444,7 @@ struct BookActions: View {
             }
         }
         if list == .sent, library.book(id: book.id)?.lastSentAt != nil {
-            Button("Retirer de la liste « Envoyés à la Kindle »") {
+            Button("Retirer de la liste « Envoyés à la liseuse »") {
                 library.undoable("Retirer des envoyés") { library.forgetSent(book) }
             }
         }

@@ -7,9 +7,9 @@ enum SidebarItem: Hashable {
     case pending
     /// Corbeille d'Alexandrie.
     case trash
-    /// Étagère d'une liseuse (identifiant de la Kindle).
+    /// Étagère d'une liseuse (identifiant de la liseuse).
     case shelf(String)
-    /// Notes et surlignages importés des Kindle.
+    /// Notes et surlignages importés des liseuses.
     case notes
     /// Toutes les notes d'une thématique (S-080), par son identifiant.
     case thematic(String)

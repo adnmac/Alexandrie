@@ -296,7 +296,7 @@ struct OPDSEntryDetailView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                Label("Dans la bibliothèque : sa fiche permet de le lire ou de l'envoyer sur la Kindle.",
+                Label("Dans la bibliothèque : sa fiche permet de le lire ou de l'envoyer sur la liseuse.",
                       systemImage: "checkmark.circle.fill")
                     .font(.caption)
                     .foregroundStyle(.secondary)

@@ -52,22 +52,22 @@ enum SendToKindleError: Error, CustomLocalizedStringResourceConvertible {
     var localizedStringResource: LocalizedStringResource {
         switch self {
         case .notFound(let title): "Aucun livre « \(title) » dans la bibliothèque"
-        case .notSendable(let title): "« \(title) » ne peut pas être envoyé sur la Kindle"
+        case .notSendable(let title): "« \(title) » ne peut pas être envoyé sur la liseuse"
         }
     }
 }
 
-/// Raccourcis > « Envoyer à la Kindle » : envoie tout de suite si la Kindle est branchée,
-/// sinon met le livre en attente, comme Kindle > Envoyer à la Kindle (S-053).
+/// Raccourcis > « Envoyer à la liseuse » : envoie tout de suite si la liseuse est branchée,
+/// sinon met le livre en attente, comme Kindle > Envoyer à la liseuse (S-053).
 struct SendToKindleIntent: AppIntent {
-    static let title: LocalizedStringResource = "Envoyer à la Kindle"
-    static let description = IntentDescription("Copie un livre d'Alexandrie sur la Kindle branchée, ou le met en attente jusqu'à sa connexion.")
+    static let title: LocalizedStringResource = "Envoyer à la liseuse"
+    static let description = IntentDescription("Copie un livre d'Alexandrie sur la liseuse branchée, ou le met en attente jusqu'à sa connexion.")
 
     @Parameter(title: "Livre")
     var book: BookEntity
 
     static var parameterSummary: some ParameterSummary {
-        Summary("Envoyer \(\.$book) à la Kindle")
+        Summary("Envoyer \(\.$book) à la liseuse")
     }
 
     @MainActor
@@ -76,7 +76,7 @@ struct SendToKindleIntent: AppIntent {
         guard let found = services.library.book(id: book.id), found.trashedAt == nil else {
             throw SendToKindleError.notFound(book.title)
         }
-        guard found.canSendToKindle else { throw SendToKindleError.notSendable(found.title) }
+        guard services.kindle.canSend(found) else { throw SendToKindleError.notSendable(found.title) }
         let result = await SendToKindle.run(found, library: services.library, kindle: services.kindle)
         return .result(value: result, dialog: "\(result)")
     }
@@ -85,17 +85,17 @@ struct SendToKindleIntent: AppIntent {
 /// Envoi d'un livre hors de la fenêtre (Raccourcis, self-test).
 @MainActor
 enum SendToKindle {
-    /// « Envoyé sur « Kindle de Léa » », « Échec : … » ou « En attente de la Kindle ».
+    /// « Envoyé sur « Kindle de Léa » », « Échec : … » ou « En attente de la liseuse ».
     static func run(_ book: Book, library: LibraryStore, kindle: KindleMonitor) async -> String {
         if kindle.isConnected {
             await kindle.send([book], library: library)
             if case .failed(let message) = kindle.transfers[book.id] { return "Échec : \(message)" }
-            return "Envoyé " + (kindle.currentReader.map { "sur « \($0.name) »" } ?? "sur la Kindle")
+            return "Envoyé " + (kindle.currentReader.map { "sur « \($0.name) »" } ?? "sur la liseuse")
         }
         let reader = kindle.readers.count == 1 ? kindle.readers[0].id : nil
         library.queueForKindle([book], reader: reader)
         SendNotifier.prepare()
-        return "En attente de la Kindle"
+        return "En attente de la liseuse"
     }
 }
 
@@ -103,8 +103,9 @@ enum SendToKindle {
 struct AlexandrieShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: SendToKindleIntent(),
-                    phrases: ["Envoyer un livre à la Kindle avec \(.applicationName)"],
-                    shortTitle: "Envoyer à la Kindle",
+                    phrases: ["Envoyer un livre à la liseuse avec \(.applicationName)",
+                              "Envoyer un livre à la Kindle avec \(.applicationName)"],
+                    shortTitle: "Envoyer à la liseuse",
                     systemImageName: "arrow.down.to.line.compact")
     }
 }

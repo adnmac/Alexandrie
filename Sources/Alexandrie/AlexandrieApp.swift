@@ -78,7 +78,7 @@ struct BookMenuCommands: Commands {
     private var books: BookCommands? { MenuState.shared.current }
 
     var body: some Commands {
-        // Mêmes intitulés que le menu du livre (clic droit) et la fiche. Envoyer à la Kindle (⌘K) est
+        // Mêmes intitulés que le menu du livre (clic droit) et la fiche. Envoyer à la liseuse (⌘K) est
         // dans le menu Kindle : un raccourci ne vit que dans un menu.
         CommandMenu("Livre") {
             // ⌘Y comme dans le Finder ; Espace est gérée par la grille, pour ne pas voler l'espace des champs.
@@ -116,13 +116,13 @@ struct KindleCommands: Commands {
     private var books: BookCommands? { MenuState.shared.current }
 
     var body: some Commands {
-        CommandMenu("Kindle") {
+        CommandMenu("Liseuse") {
             Button(state.sendTitle) { books?.send() }
                 .keyboardShortcut("k")
                 .disabled(!state.canSend)
             Divider()
             Button("Actualiser") { Task { await kindle.refresh() } }
-            Button("Éjecter la Kindle") { Task { await kindle.eject() } }
+            Button("Éjecter la liseuse") { Task { await kindle.eject() } }
                 .keyboardShortcut("e")
         }
     }

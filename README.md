@@ -1,6 +1,6 @@
 # Alexandrie
 
-Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par câble USB**, sans Calibre.
+Bibliothèque de livres pour macOS qui charge vos livres sur une liseuse (Kindle, Kobo, ou toute liseuse USB qui lit l'EPUB) **par câble USB**, sans Calibre.
 
 - Indexe un ou plusieurs dossiers de livres existants (EPUB, MOBI, AZW3, AZW, PDF) **sans jamais les modifier** ; un dossier sur un disque débranché garde ses livres, indisponibles jusqu'au rebranchement.
 - Extrait titre, auteurs, langue, éditeur, résumé et couverture ; recherche, tri, filtres par format et auteur.
@@ -17,6 +17,8 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par c�
 - **Zotero** : « Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages, notes, couleurs et positions dans une note rattachée à la référence du livre, retrouvée par ISBN ou titre et auteur, ou créée d'après la fiche. Un nouvel envoi met la note à jour, sans doublon ; une thématique donne une note par livre. Les notes restent dans Alexandrie : ce qui change dans Zotero ne revient pas. Il faut Zotero 10 ou plus récent, ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero », et « Toujours autoriser » au premier envoi.
 - **Catalogues en ligne (OPDS)** : Project Gutenberg, Ebooks libres et gratuits et la Bibliothèque numérique romande sont proposés dans la barre latérale ; on peut ajouter l'adresse de tout catalogue OPDS 1.2 public (https, sans compte). On parcourt ses rubriques, on y cherche depuis le champ de recherche (touche Retour), un menu « Langue » ne garde que les livres de cette langue (chez Gutenberg, recherches et listes sont restreintes par le serveur), et « Télécharger » ajoute le livre à la bibliothèque comme un import ; l'envoi sur la Kindle se fait ensuite depuis sa fiche. Les livres payants ou sous DRM sont ignorés.
 - Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
+- **Kobo** (disque USB, reconnue d'elle-même) : les EPUB partent tels quels, avec vos corrections dans le fichier ; MOBI et AZW3 sont convertis en EPUB, le PDF suit son mode. Ses surlignages et notes (base `KoboReader.sqlite`, lue sur une copie) rejoignent « Notes et surlignages ».
+- **Autre liseuse USB** qui lit l'EPUB (PocketBook, Tolino…) : Réglages › Liseuses › « Ajouter une liseuse USB… », avec le dossier où vont les livres ; elle est ensuite reconnue à chaque branchement. Ses notes ne sont pas lues.
 
 ## Compiler et lancer
 
@@ -99,6 +101,9 @@ ALEXANDRIE_FIXTURES=/dossier/de/livres scripts/test.sh   # + conversions sur de 
 ```
 
 ## Limites
+
+- Kobo : les livres partent en EPUB, pas en KEPUB (le format optimisé de la Kobo) ; les couleurs de surlignage des Kobo couleur sont lues selon une correspondance supposée (jaune, rose, bleu, vert).
+- Liseuses Android (Boox) et reMarkable ne sont pas prises en charge.
 
 - Les livres protégés par DRM ne sont ni convertis ni déverrouillés (un AZW3 acheté peut toutefois être recopié tel quel).
 - Le format KFX n'est pas pris en charge.

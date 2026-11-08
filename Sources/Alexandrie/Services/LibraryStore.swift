@@ -136,7 +136,7 @@ final class LibraryStore {
     }
 
     /// Livres affichés, comptés et vérifiés en ligne. L'envoi et la reconnaissance des livres
-    /// de la Kindle passent, eux, par tous les fichiers.
+    /// de la liseuse passent, eux, par tous les fichiers.
     var visibleBooks: [Book] {
         let hidden = showDuplicates ? [] : hiddenDuplicates
         return books.filter { $0.trashedAt == nil && !hidden.contains($0.id) }
@@ -702,7 +702,7 @@ final class LibraryStore {
         setShelf(books, reader: reader, on: true)
     }
 
-    /// Retire de l'étagère sans rien supprimer, ni de la bibliothèque ni de la Kindle.
+    /// Retire de l'étagère sans rien supprimer, ni de la bibliothèque ni de la liseuse.
     func removeFromShelf(_ books: [Book], reader: Reader.ID) {
         setShelf(books, reader: reader, on: false)
     }
@@ -745,7 +745,7 @@ final class LibraryStore {
     /// Kindle branchée si aucune n'est choisie.
     func queueForKindle(_ books: [Book], reader: Reader.ID?) {
         let now = Date()
-        let ids = books.filter { $0.canSendToKindle && $0.trashedAt == nil }.map(\.id)
+        let ids = books.filter { $0.canSendToAnyReader && $0.trashedAt == nil }.map(\.id)
         mutate(ids) { b in
             if let reader {
                 var pending = b.pendingFor ?? [:]
@@ -788,8 +788,8 @@ final class LibraryStore {
         save()
     }
 
-    /// Retire un livre de la liste « Envoyés à la Kindle » (tous ses fichiers) ; rien n'est supprimé.
-    /// Le nom du fichier envoyé est gardé : il sert à reconnaître le livre s'il est encore sur la Kindle.
+    /// Retire un livre de la liste « Envoyés à la liseuse » (tous ses fichiers) ; rien n'est supprimé.
+    /// Le nom du fichier envoyé est gardé : il sert à reconnaître le livre s'il est encore sur la liseuse.
     func forgetSent(_ book: Book) {
         let ids = identities, key = identity(of: book)
         var changed = false

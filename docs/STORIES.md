@@ -706,8 +706,44 @@ Acceptance:
 - [manual] Le code (`pre`, `code`) garde sa chasse fixe ; le menu est désactivé pour un PDF ; dans une fenêtre étroite, l'icône « Aa » reste visible.
 Status: done
 
+### S-096 Envoyer des livres à une Kobo
+Une Kobo branchée en USB est reconnue d'elle-même (dossier `.kobo`) ; « Envoyer à la liseuse » y copie les EPUB tels quels avec les corrections de l'app, et convertit MOBI et AZW3 en EPUB, dans `Books/`.
+Depends: S-020
+Acceptance:
+- [unit] Kindle, Kobo et disque quelconque reconnus d'après leurs dossiers ; EPUB réécrit avec titre, auteurs, éditeur, date, langue, résumé, ISBN et série ; MOBI/AZW3 converti en EPUB ; livre Kindle sous DRM refusé pour la Kobo, EPUB sous DRM envoyé tel quel ; même copie pour la Kobo et une liseuse générique.
+- [self] Kobo simulée : nommée avec sa marque, EPUB envoyé dans Books avec ses corrections, listé et reconnu, sans miniature Kindle.
+- [snap] La page d'une Kobo : livres EPUB, marque dans la barre latérale.
+- [manual] Avec une vraie Kobo : détection, envoi, livre ouvert sur la liseuse avec les corrections. *Pas encore essayé : aucune Kobo disponible (8 novembre 2026).*
+Status: done
+
+### S-097 Importer les notes d'une Kobo
+À chaque connexion, les surlignages et notes de la Kobo (`.kobo/KoboReader.sqlite`) rejoignent « Notes et surlignages », avec leur chapitre, leur progression, leur date et leur couleur.
+Depends: S-096
+Acceptance:
+- [unit] Base lue sur une copie, jamais modifiée ; signets et passages masqués écartés ; note seule reconnue ; identifiant stable (`kobo:<BookmarkID>`) ; modèles sans couleur tolérés ; autre fichier refusé.
+- [self] Le surlignage et la note de la Kobo simulée apparaissent dans les notes du livre.
+- [manual] Avec une vraie Kobo : colonnes et couleurs confirmées. *Pas encore essayé : aucune Kobo disponible.*
+Status: done
+
+### S-098 Ajouter une liseuse USB
+Réglages › Liseuses › « Ajouter une liseuse USB… » : un disque amovible qui lit l'EPUB (PocketBook, Tolino…) devient une liseuse, avec le dossier où vont ses livres ; elle est reconnue ensuite à chaque branchement.
+Depends: S-096
+Acceptance:
+- [unit] Livres listés dans le dossier choisi ; dossier proposé (`Books`, `Documents`, `Livres`…) ; un disque n'est jamais pris pour une liseuse sans accord.
+- [self] Liseuse enregistrée avec son dossier ; EPUB envoyé dans ce dossier.
+- [manual] Les disques système et les dossiers de livres de la bibliothèque ne sont pas proposés. *Pas encore essayé avec une vraie liseuse USB.*
+Status: done
+
+### S-099 Parler de liseuse plutôt que de Kindle
+La barre latérale, le menu, les réglages, les boutons d'envoi et l'action Raccourcis disent « Liseuse » ; l'appareil branché garde son nom et sa marque (« Kobo de Léa · Kobo · Disque USB »).
+Depends: S-096
+Acceptance:
+- [snap] « Liseuse » dans la barre latérale et l'onglet « Liseuses » des réglages.
+Status: done
+
 ## Later
 
+- Liseuses Android Boox (MTP) et reMarkable (page web locale) ; KEPUB pour la Kobo.
 - Catalogues OPDS avec compte (Calibre-Web, Kavita, Komga) et OPDS 2 (JSON).
 
 - Envoyer les surlignages faits dans l'app vers la Kindle.

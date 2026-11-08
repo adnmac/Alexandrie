@@ -19,20 +19,20 @@ struct BookCommands {
     /// Ouvre ou ferme Coup d'œil sur la sélection (fourni par la fenêtre).
     var toggleQuickLook: () -> Void = {}
 
-    // MARK: Envoyer à la Kindle
+    // MARK: Envoyer à la liseuse
 
     /// « Envoyer sur « Kindle de Léa » », « Envoyer à la connexion »… comme le bouton de la fiche.
     var sendTitle: String { KindleSendLabel.title(kindle) }
 
     var canSend: Bool {
         guard list != .trash, !kindle.isBusy else { return false }
-        let sendable = books.filter(\.canSendToKindle)
+        let sendable = books.filter(kindle.canSend)
         guard !sendable.isEmpty else { return false }
         // Kindle débranchée et tout déjà en attente : la commande n'aurait aucun effet.
         return kindle.isConnected || sendable.contains { !$0.isPendingSend }
     }
 
-    /// Envoie tout de suite si la Kindle est branchée, sinon met en attente (annulable avec ⌘Z).
+    /// Envoie tout de suite si la liseuse est branchée, sinon met en attente (annulable avec ⌘Z).
     func send() {
         guard canSend else { return }
         if kindle.isConnected {
@@ -123,7 +123,7 @@ final class MenuState: ObservableObject {
 
     /// Ce que les menus affichent : intitulé d'envoi et éléments actifs.
     struct Values: Equatable {
-        var sendTitle = "Envoyer à la Kindle"
+        var sendTitle = "Envoyer à la liseuse"
         var canSend = false, canTrash = false, canQuickLook = false
         var canOpen = false, canReveal = false, canExportEPUB = false, canRead = false
         var shareURLs: [URL] = []

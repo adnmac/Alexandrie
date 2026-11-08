@@ -95,7 +95,7 @@ struct ContentView: View {
                 OnboardingView()
             }
         }
-        // La Kindle vient d'être branchée : la file d'attente part.
+        // La liseuse vient d'être branchée : la file d'attente part.
         .onChange(of: kindle.isConnected) { _, connected in
             if connected { Task { await kindle.sendPending(library: library) } }
         }
@@ -128,7 +128,7 @@ struct ContentView: View {
     private var main: some View {
         let groups = BookGroups.make(filteredBooks, identities: library.identities)
         let index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-        // Un groupe sélectionné vaut pour son fichier principal (fiche, envoi à la Kindle).
+        // Un groupe sélectionné vaut pour son fichier principal (fiche, envoi à la liseuse).
         let resolve: (String) -> Book? = { id in
             BookGroups.isGroupID(id) ? index[id]?.primary : library.book(id: id)
         }
@@ -218,7 +218,7 @@ struct ContentView: View {
                         Color.clear
                     } else {
                         ContentUnavailableView("Aucun livre sélectionné", systemImage: "book.closed",
-                                               description: Text("Choisissez un livre de la Kindle pour voir sa fiche."))
+                                               description: Text("Choisissez un livre de la liseuse pour voir sa fiche."))
                     }
                 } else if selected.count > 1 {
                     MultiSelectionView(books: selected)
@@ -257,12 +257,12 @@ struct ContentView: View {
         switch sidebar {
         case .all, nil: "Tous les livres"
         case .recent: "Ajoutés récemment"
-        case .sent: "Envoyés à la Kindle"
+        case .sent: "Envoyés à la liseuse"
         case .toReview: "À vérifier"
         case .notes: "Notes et surlignages"
         case .thematic(let id): AppServices.shared.researches.research(id: id)?.name ?? "Thématique"
         case .trash: "Corbeille"
-        case .kindle: kindle.displayName ?? "Kindle"
+        case .kindle: kindle.displayName ?? "Liseuse"
         case .pending: "En attente d'envoi"
         case .shelf(let id): kindle.readers.first { $0.id == id }?.name ?? "Étagère"
         case .format(let f): f.label
@@ -397,9 +397,9 @@ struct ContentView: View {
             KindleSendButton(books: selected) {
                 Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
             }
-            .disabled(!selected.contains(where: \.canSendToKindle) || kindle.isBusy || sidebar == .trash)
-            .help(kindle.isConnected ? "Copier les livres sélectionnés sur la Kindle (⌘K)"
-                  : "Mettre les livres sélectionnés en attente : ils partiront dès que la Kindle sera branchée (⌘K)")
+            .disabled(!selected.contains(where: kindle.canSend) || kindle.isBusy || sidebar == .trash)
+            .help(kindle.isConnected ? "Copier les livres sélectionnés sur la liseuse (⌘K)"
+                  : "Mettre les livres sélectionnés en attente : ils partiront dès que la liseuse sera branchée (⌘K)")
         }
     }
 

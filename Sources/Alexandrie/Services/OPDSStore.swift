@@ -203,7 +203,7 @@ final class OPDSStore {
 
     func isDownloading(_ entry: OPDSEntry) -> Bool { entry.acquisitions.contains { downloading.contains($0.url) } }
 
-    /// Télécharge le fichier et l'ajoute à la bibliothèque, comme « Importer ». L'envoi à la Kindle reste à part.
+    /// Télécharge le fichier et l'ajoute à la bibliothèque, comme « Importer ». L'envoi à la liseuse reste à part.
     @discardableResult
     func download(_ acquisition: OPDSAcquisition, of entry: OPDSEntry) async -> Book? {
         guard !downloading.contains(acquisition.url) else { return nil }

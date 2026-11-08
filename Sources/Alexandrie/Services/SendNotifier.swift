@@ -2,7 +2,7 @@ import AlexandrieCore
 import Foundation
 import UserNotifications
 
-/// Notification quand la file d'attente est partie sur la Kindle branchée (S-052).
+/// Notification quand la file d'attente est partie sur la liseuse branchée (S-052).
 ///
 /// La permission est demandée quand un livre est mis en attente, jamais au lancement. Rien en mode test
 /// (`ALEXANDRIE_STORE`) ni hors d'un bundle d'app : `UNUserNotificationCenter` y plante.

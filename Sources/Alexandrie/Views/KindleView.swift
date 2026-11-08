@@ -2,7 +2,7 @@ import AlexandrieCore
 import AppKit
 import SwiftUI
 
-/// Livres présents sur la Kindle branchée, présentés comme la bibliothèque.
+/// Livres présents sur la liseuse branchée, présentés comme la bibliothèque.
 struct KindleView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
@@ -20,7 +20,7 @@ struct KindleView: View {
                 missingBanner
                 offShelfBanner
                 if documents.isEmpty {
-                    ContentUnavailableView(kindle.documents.isEmpty ? "La Kindle ne contient aucun livre" : "Aucun résultat",
+                    ContentUnavailableView(kindle.documents.isEmpty ? "La liseuse ne contient aucun livre" : "Aucun résultat",
                                            systemImage: "books.vertical")
                 } else if gridMode {
                     grid
@@ -28,7 +28,7 @@ struct KindleView: View {
                     table
                 }
             }
-            .confirmationDialog("Supprimer « \(pendingDelete.map(title) ?? "") » de la Kindle ?",
+            .confirmationDialog("Supprimer « \(pendingDelete.map(title) ?? "") » de la liseuse ?",
                                 isPresented: Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })) {
                 Button("Supprimer", role: .destructive) {
                     if let doc = pendingDelete { Task { await kindle.delete(doc) } }
@@ -41,17 +41,17 @@ struct KindleView: View {
                 if let name = kindle.ejectedName {
                     Label("« \(name) » a été éjectée", systemImage: "eject.circle")
                 } else {
-                    Label("Aucune Kindle détectée", systemImage: "cable.connector")
+                    Label("Aucune liseuse détectée", systemImage: "cable.connector")
                 }
             } description: {
-                Text(kindle.ejectedName != nil ? "Vous pouvez débrancher la Kindle en toute sécurité." : disconnectedHelp)
+                Text(kindle.ejectedName != nil ? "Vous pouvez débrancher la liseuse en toute sécurité." : disconnectedHelp)
             } actions: {
                 Button("Rechercher à nouveau") { Task { await kindle.refresh() } }
             }
         }
     }
 
-    /// Livres de la Kindle qui ne sont plus sur l'étagère : les y remettre, ou les retirer de l'appareil.
+    /// Livres de la liseuse qui ne sont plus sur l'étagère : les y remettre, ou les retirer de l'appareil.
     @ViewBuilder private var offShelfBanner: some View {
         let off = kindle.offShelfDocuments(in: library)
         if let reader = kindle.currentReader, !off.isEmpty {
@@ -59,8 +59,8 @@ struct KindleView: View {
                 Image(systemName: "tray.and.arrow.up.fill").font(.title2).foregroundStyle(Palette.warning)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(off.count == 1
-                         ? "1 livre de cette Kindle n'est plus sur l'étagère de « \(reader.name) »"
-                         : "\(off.count) livres de cette Kindle ne sont plus sur l'étagère de « \(reader.name) »")
+                         ? "1 livre de cette liseuse n'est plus sur l'étagère de « \(reader.name) »"
+                         : "\(off.count) livres de cette liseuse ne sont plus sur l'étagère de « \(reader.name) »")
                         .font(.callout.weight(.semibold))
                     Text(off.prefix(3).map(\.book.title).joined(separator: " · ") + (off.count > 3 ? " …" : ""))
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -70,24 +70,24 @@ struct KindleView: View {
                 Button("Remettre sur l'étagère") {
                     library.undoable("Ajouter à l'étagère") { library.addToShelf(off.map(\.book), reader: reader.id) }
                 }
-                Button("Retirer de la Kindle…") { pendingTidy = off.map(\.document) }
+                Button("Retirer de la liseuse…") { pendingTidy = off.map(\.document) }
                     .disabled(kindle.isBusy)
             }
             .banner(Palette.warning)
-            .confirmationDialog(pendingTidy.count == 1 ? "Retirer ce livre de la Kindle ?" : "Retirer ces \(pendingTidy.count) livres de la Kindle ?",
+            .confirmationDialog(pendingTidy.count == 1 ? "Retirer ce livre de la liseuse ?" : "Retirer ces \(pendingTidy.count) livres de la liseuse ?",
                                 isPresented: Binding(get: { !pendingTidy.isEmpty }, set: { if !$0 { pendingTidy = [] } })) {
-                Button("Retirer de la Kindle", role: .destructive) {
+                Button("Retirer de la liseuse", role: .destructive) {
                     let docs = pendingTidy
                     Task { await kindle.delete(docs) }
                 }
             } message: {
-                Text("Les fichiers et leurs données de lecture (position, notes sur l'appareil) seront effacés de la Kindle. Votre bibliothèque n'est pas modifiée, et les notes déjà importées restent dans Alexandrie.")
+                Text("Les fichiers et leurs données de lecture (position, notes sur l'appareil) seront effacés de la liseuse. Votre bibliothèque n'est pas modifiée, et les notes déjà importées restent dans Alexandrie.")
             }
             Divider()
         }
     }
 
-    /// Livres de l'étagère absents de la Kindle branchée : mise à jour proposée, jamais imposée.
+    /// Livres de l'étagère absents de la liseuse branchée : mise à jour proposée, jamais imposée.
     @ViewBuilder private var missingBanner: some View {
         let missing = kindle.missingFromShelf(in: library)
         if let reader = kindle.currentReader, !missing.isEmpty {
@@ -95,8 +95,8 @@ struct KindleView: View {
                 Image(systemName: "books.vertical.circle.fill").font(.title2).foregroundStyle(Palette.info)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(missing.count == 1
-                         ? "1 livre de l'étagère de « \(reader.name) » n'est pas sur cette Kindle"
-                         : "\(missing.count) livres de l'étagère de « \(reader.name) » ne sont pas sur cette Kindle")
+                         ? "1 livre de l'étagère de « \(reader.name) » n'est pas sur cette liseuse"
+                         : "\(missing.count) livres de l'étagère de « \(reader.name) » ne sont pas sur cette liseuse")
                         .font(.callout.weight(.semibold))
                     Text(missing.prefix(3).map(\.title).joined(separator: " · ") + (missing.count > 3 ? " …" : ""))
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -145,7 +145,7 @@ struct KindleView: View {
                 }
             }
             .disabled(!kindle.canEject || kindle.isBusy)
-            .help(kindle.canEject ? "Éjecter la Kindle avant de la débrancher (⌘E)"
+            .help(kindle.canEject ? "Éjecter la liseuse avant de la débrancher (⌘E)"
                   : "Kindle en MTP : vous pouvez la débrancher directement")
         }
         .padding()
@@ -206,7 +206,7 @@ struct KindleView: View {
         if let book = kindle.libraryBook(for: doc, in: library) {
             Button("Afficher dans le Finder (bibliothèque)") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         }
-        Button("Supprimer de la Kindle…", role: .destructive) { pendingDelete = doc }
+        Button("Supprimer de la liseuse…", role: .destructive) { pendingDelete = doc }
     }
 
     private var disconnectedHelp: String {
@@ -293,7 +293,7 @@ struct KindleBookDetailView: View {
                         Label("Corriger les informations…", systemImage: "pencil")
                     }
                     .disabled(!KindleEditor.canEdit(document, info: info) || kindle.isBusy)
-                    .help(KindleEditor.canEdit(document, info: info) ? "Réécrire titre, auteurs, date… dans le fichier sur la Kindle"
+                    .help(KindleEditor.canEdit(document, info: info) ? "Réécrire titre, auteurs, date… dans le fichier sur la liseuse"
                           : "Non modifiable : format \(info.format) ou livre protégé par DRM")
                     .sheet(isPresented: $isEditing) {
                         KindleEditSheet(document: document, info: info)
@@ -301,7 +301,7 @@ struct KindleBookDetailView: View {
                 }
 
                 if info?.isDRMProtected == true {
-                    Label("Protégé par DRM (livre acheté) : lisible sur la Kindle, non convertible.", systemImage: "lock.fill")
+                    Label("Protégé par DRM (livre acheté) : lisible sur la liseuse, non convertible.", systemImage: "lock.fill")
                         .font(.callout).foregroundStyle(Palette.warning)
                 }
                 if info?.isGuessed == true {

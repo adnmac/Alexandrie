@@ -1,7 +1,7 @@
 import AlexandrieCore
 import SwiftUI
 
-/// Bouton d'envoi : envoi immédiat si la Kindle est branchée ; sinon mise en attente, avec le choix
+/// Bouton d'envoi : envoi immédiat si la liseuse est branchée ; sinon mise en attente, avec le choix
 /// de la liseuse quand plusieurs sont connues.
 struct KindleSendButton<Content: View>: View {
     @Environment(LibraryStore.self) private var library
@@ -36,10 +36,10 @@ struct KindleSendButton<Content: View>: View {
     }
 }
 
-/// Libellé des boutons d'envoi : envoi immédiat, ou mise en attente si la Kindle est débranchée.
+/// Libellé des boutons d'envoi : envoi immédiat, ou mise en attente si la liseuse est débranchée.
 enum KindleSendLabel {
     @MainActor static func title(_ kindle: KindleMonitor) -> String {
-        if kindle.isConnected { return kindle.currentReader.map { "Envoyer sur « \($0.name) »" } ?? "Envoyer à la Kindle" }
+        if kindle.isConnected { return kindle.currentReader.map { "Envoyer sur « \($0.name) »" } ?? "Envoyer à la liseuse" }
         if kindle.readers.count == 1 { return "Envoyer à la connexion de « \(kindle.readers[0].name) »" }
         return "Envoyer à la connexion"
     }

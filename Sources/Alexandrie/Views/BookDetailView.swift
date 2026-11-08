@@ -56,7 +56,7 @@ struct BookDetailView: View {
                         .menuStyle(.button)
                         .buttonStyle(.borderedProminent)
                         .controlSize(.large)
-                        .disabled(kindle.isBusy || !draft.canSendToKindle)
+                        .disabled(kindle.isBusy || !kindle.canSend(draft))
                     }
                     Menu {
                         BookActions(book: draft)
@@ -73,13 +73,20 @@ struct BookDetailView: View {
                           systemImage: "trash")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if isPending && !kindle.isConnected {
-                    Label("En attente : sera envoyé dès que la Kindle sera branchée.", systemImage: "clock.arrow.circlepath")
+                    Label("En attente : sera envoyé dès que la liseuse sera branchée.", systemImage: "clock.arrow.circlepath")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if !kindle.isConnected {
-                    Text("Kindle non branchée : le livre peut être mis en attente et partira dès sa connexion.")
+                    Text("Liseuse non branchée : le livre peut être mis en attente et partira dès sa connexion.")
                         .font(.caption).foregroundStyle(.secondary)
-                } else if draft.format == .epub {
+                } else if let brand = kindle.brand, !draft.canSend(to: brand) {
+                    Text("Protégé par DRM : il ne peut pas être lu sur cette \(brand.label).")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if kindle.brand == .kindle && draft.format == .epub {
                     Text("Sera converti en AZW3 avant l'envoi (la Kindle ne lit pas l'EPUB par USB).")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if let brand = kindle.brand, brand.readsEPUB, !draft.isDRMProtected,
+                          draft.sentExtension(for: brand) != draft.format.rawValue {
+                    Text("Sera converti en EPUB avant l'envoi : la \(brand.label) le lit mieux.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 // Fenêtre de lecture (S-066, S-068) : lire, ou reprendre là où la lecture s'est arrêtée.
@@ -105,7 +112,7 @@ struct BookDetailView: View {
                     } header: {
                         Text("Informations")
                     } footer: {
-                        Text("Corrections enregistrées dans Alexandrie et appliquées aux copies envoyées sur la Kindle. Le fichier d'origine n'est jamais modifié.")
+                        Text("Corrections enregistrées dans Alexandrie et appliquées aux copies envoyées sur la liseuse. Le fichier d'origine n'est jamais modifié.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -203,7 +210,7 @@ struct BookDetailView: View {
         if cleanTitle { draft.title = hint.title }
     }
 
-    /// Fichiers du même livre : celui de la fiche (envoyé à la Kindle) est marqué.
+    /// Fichiers du même livre : celui de la fiche (envoyé à la liseuse) est marqué.
     private func filesSection(hiddenCopies: [Book]) -> some View {
         GroupBox {
             VStack(alignment: .leading, spacing: Space.sm) {
@@ -214,7 +221,7 @@ struct BookDetailView: View {
                             .help(f.path)
                         if f.id == draft.id {
                             Text("principal").font(.caption2).padding(.horizontal, Space.sm).background(.quaternary, in: Capsule())
-                                .help("Fichier affiché ici et envoyé à la Kindle")
+                                .help("Fichier affiché ici et envoyé à la liseuse")
                         }
                         Spacer()
                         Text(ByteCountFormatter.string(fromByteCount: f.fileSize, countStyle: .file))
@@ -251,8 +258,8 @@ struct BookDetailView: View {
         switch kindle.transfers[draft.id] {
         case .queued: Label("En attente…", systemImage: "hourglass").foregroundStyle(.secondary)
         case .converting: HStack { ProgressView().controlSize(.small); Text("Conversion en AZW3…") }
-        case .sending: HStack { ProgressView().controlSize(.small); Text("Copie sur la Kindle…") }
-        case .done: Label("Envoyé sur la Kindle", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.success)
+        case .sending: HStack { ProgressView().controlSize(.small); Text("Copie sur la liseuse…") }
+        case .done: Label("Envoyé sur la liseuse", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.success)
         case .failed(let message): Label(message, systemImage: "exclamationmark.triangle.fill").foregroundStyle(Palette.danger)
         case nil: EmptyView()
         }
@@ -288,9 +295,9 @@ struct MultiSelectionView: View {
                 .menuStyle(.button)
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(kindle.isBusy || !books.contains(where: \.canSendToKindle))
+                .disabled(kindle.isBusy || !books.contains(where: kindle.canSend))
             if !kindle.isConnected {
-                Text("La Kindle n'est pas branchée : ces livres partiront dès sa connexion.")
+                Text("La liseuse n'est pas branchée : ces livres partiront dès sa connexion.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             if !kindle.readers.isEmpty {
@@ -357,7 +364,7 @@ struct ClippingsSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(4)
         } label: {
-            Label(clippings.count == 1 ? "1 note ou surlignage Kindle" : "\(clippings.count) notes et surlignages Kindle",
+            Label(clippings.count == 1 ? "1 note ou surlignage de liseuse" : "\(clippings.count) notes et surlignages de liseuse",
                   systemImage: "highlighter")
         }
     }
@@ -540,7 +547,7 @@ struct CatalogSection: View {
     }
 }
 
-/// Fiche d'un PDF : ce que la Kindle reçoit (S-064, S-065). Sans texte, le choix redimensionnable est grisé.
+/// Fiche d'un PDF : ce que la liseuse reçoit (S-064, S-065). Sans texte, le choix redimensionnable est grisé.
 struct PDFKindlePicker: View {
     @Binding var mode: PDFKindleMode?
     let url: URL
@@ -551,7 +558,7 @@ struct PDFKindlePicker: View {
         let current = mode ?? .asIs
         let available = PDFKindleMode.available(hasText: hasText ?? true)
         VStack(alignment: .leading, spacing: Space.xs) {
-            Picker("Sur la Kindle", selection: Binding(get: { current }, set: { mode = $0 == .asIs ? nil : $0 })) {
+            Picker("Sur la liseuse", selection: Binding(get: { current }, set: { mode = $0 == .asIs ? nil : $0 })) {
                 ForEach(PDFKindleMode.allCases, id: \.self) { m in
                     Text(m.label).tag(m).disabled(!available.contains(m))
                 }

@@ -78,7 +78,7 @@ public final class KindleCatalog: @unchecked Sendable {
 
     // MARK: - Lecture
 
-    static let parsableExtensions: Set<String> = ["mobi", "azw", "azw3", "prc", "pdf"]
+    static let parsableExtensions: Set<String> = ["mobi", "azw", "azw3", "prc", "pdf", "epub"]
 
     static func digest(_ s: String) -> String {
         SHA256.hash(data: Data(s.utf8)).prefix(12).map { String(format: "%02x", $0) }.joined()
@@ -86,6 +86,16 @@ public final class KindleCatalog: @unchecked Sendable {
 
     /// Fiche + image de couverture d'un fichier local.
     static func read(_ url: URL, format: String) throws -> (KindleBookInfo, Data?) {
+        // Livre d'une Kobo ou d'une liseuse générique.
+        if format == "epub" {
+            let m = try EPUBReader(url: url).bookMetadata()
+            let info = KindleBookInfo(title: m.title.isEmpty ? url.deletingPathExtension().lastPathComponent : m.title,
+                                      authors: m.authors, format: "EPUB", language: m.language, publisher: m.publisher,
+                                      summary: m.summary.map(MetadataExtractor.stripHTML), publishedDate: m.publishedDate,
+                                      isbn: m.isbn, isDRMProtected: m.isDRMProtected, asin: nil, cdeType: nil,
+                                      coverKey: nil, isGuessed: false)
+            return (info, m.coverData)
+        }
         if format == "pdf" {
             let m = try PDFMetadata.extract(from: url)
             let info = KindleBookInfo(title: m.title.isEmpty ? url.deletingPathExtension().lastPathComponent : m.title,

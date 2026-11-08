@@ -29,7 +29,8 @@ final class ZoteroStore {
     @ObservationIgnored private var links: ZoteroLinks
     /// Clé gardée en mémoire avec `ALEXANDRIE_STORE` : jamais dans le Trousseau de l'utilisateur en test.
     @ObservationIgnored private var memoryKey: String?
-    @ObservationIgnored private let useKeychain = AppDirectories.testStore == nil
+    /// Faux en mode test : la clé reste en mémoire, le Trousseau n'est ni lu ni écrit.
+    @ObservationIgnored let useKeychain = AppDirectories.testStore == nil
     static let keychainService = "be.adnmac.alexandrie.zotero"
 
     init(directories: AppDirectories, library: LibraryStore, kindle: KindleMonitor,

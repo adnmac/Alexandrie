@@ -24,13 +24,13 @@ struct SidebarView: View {
                 let books = library.visibleBooks
                 row("Tous les livres", "books.vertical", .all, count: count(books))
                 row("Ajoutés récemment", "clock", .recent)
-                row("Envoyés à la Kindle", "checkmark.circle", .sent,
+                row("Envoyés à la liseuse", "checkmark.circle", .sent,
                     count: count(books.filter { $0.lastSentAt != nil }))
                 row("À vérifier", "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
                 let notes = kindle.clippings.filter { $0.kind != .bookmark }.count
                 if notes > 0 || selection == .notes {
                     row("Notes et surlignages", "highlighter", .notes, count: notes)
-                        .help("Notes et surlignages importés des Kindle")
+                        .help("Notes et surlignages importés des liseuses")
                 }
                 row("Corbeille", library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
                     count: count(library.trashedBooks))
@@ -53,13 +53,13 @@ struct SidebarView: View {
                 .sheet(isPresented: $managesThematics) { ResearchesSheet() }
             }
 
-            Section("Kindle") {
+            Section("Liseuse") {
                 Label {
                     HStack {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(kindle.displayName ?? (kindle.ejectedName != nil ? "Éjectée" : "Non connectée"))
                             if let device = kindle.device {
-                                Text(device.connection.rawValue)
+                                Text(device.brand.label + " · " + device.connection.rawValue)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -74,7 +74,7 @@ struct SidebarView: View {
                             }
                             .buttonStyle(.borderless)
                             .disabled(kindle.isBusy)
-                            .help("Éjecter la Kindle")
+                            .help("Éjecter la liseuse")
                         }
                     }
                 } icon: {
@@ -84,13 +84,13 @@ struct SidebarView: View {
                 .tag(SidebarItem.kindle)
                 .contextMenu {
                     Button("Actualiser") { Task { await kindle.refresh() } }
-                    Button("Éjecter la Kindle") { Task { await kindle.eject() } }
+                    Button("Éjecter la liseuse") { Task { await kindle.eject() } }
                         .disabled(!kindle.canEject || kindle.isBusy)
                 }
                 let pending = count(library.pendingSends)
                 if pending > 0 || selection == .pending {
                     row("En attente d'envoi", "clock.arrow.circlepath", .pending, count: pending)
-                        .help("Livres envoyés automatiquement dès que la Kindle sera branchée")
+                        .help("Livres envoyés automatiquement dès que la liseuse sera branchée")
                 }
             }
 

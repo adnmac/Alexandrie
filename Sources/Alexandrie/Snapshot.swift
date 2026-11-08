@@ -99,6 +99,28 @@ enum Snapshot {
                 capture(to: "\(dir)/\(page.name)-\(mode).png")
             }
         }
+        // Liseuse Kobo (S-096) : un dossier du dossier de test, avec deux livres d'exemple dans Books.
+        if only == nil || only?.contains("liseuse-kobo") == true {
+            let fm = FileManager.default
+            let root = library.directories.base.appendingPathComponent("Kobo de Léa", isDirectory: true)
+            try? fm.createDirectory(at: root.appendingPathComponent(".kobo"), withIntermediateDirectories: true)
+            try? fm.createDirectory(at: root.appendingPathComponent("Books"), withIntermediateDirectories: true)
+            fm.createFile(atPath: root.appendingPathComponent(".kobo/version").path, contents: Data("N306".utf8))
+            for book in library.visibleBooks.filter({ $0.format == .epub }).prefix(2) {
+                try? fm.copyItem(at: book.url, to: root.appendingPathComponent("Books/" + book.filename(for: .kobo)))
+            }
+            let kobo = VolumeKindle(root: root, brand: .kobo)
+            await kindle.simulate(kobo)
+            if kindle.currentReader == nil { kindle.nameCurrentReader("Kobo de Léa") }
+            sidebar.wrappedValue = .kindle
+            for mode in ["light", "dark"] {
+                NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+                try? await Task.sleep(for: .seconds(1.5))
+                capture(to: "\(dir)/liseuse-kobo-\(mode).png")
+            }
+            await kindle.simulate(nil)
+            if let reader = kindle.readers.first(where: { $0.id == kobo.identifier }) { kindle.forget(reader.id) }
+        }
         // Recherche dans le contenu (S-082) : un mot du texte des livres d'exemple, une fois l'index fait.
         if only == nil || only?.contains("recherche-contenu") == true {
             await AppServices.shared.contentIndexer.waitUntilIdle()

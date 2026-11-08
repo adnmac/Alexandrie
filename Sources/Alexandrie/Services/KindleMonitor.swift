@@ -3,7 +3,7 @@ import AppKit
 import Foundation
 import Observation
 
-/// Détection de la Kindle (disque monté ou MTP) et file d'envoi.
+/// Détection de la liseuse (Kindle en disque ou en MTP, Kobo, liseuse USB ajoutée) et file d'envoi.
 @MainActor @Observable
 final class KindleMonitor {
     enum TransferState: Equatable {
@@ -19,7 +19,7 @@ final class KindleMonitor {
     private(set) var transfers: [Book.ID: TransferState] = [:]
     private(set) var isBusy = false
     private(set) var isEjecting = false
-    /// Nom de la Kindle qui vient d'être éjectée : « vous pouvez la débrancher ».
+    /// Nom de la liseuse qui vient d'être éjectée : « vous pouvez la débrancher ».
     private(set) var ejectedName: String?
     /// Fiches des livres de l'appareil, remplies progressivement.
     private(set) var infos: [KindleDocument.ID: KindleBookInfo] = [:] {
@@ -35,13 +35,13 @@ final class KindleMonitor {
 
     // MARK: - Notes et surlignages (My Clippings.txt)
 
-    /// Tous les relevés importés des Kindle, conservés même après la suppression du livre de l'appareil.
+    /// Tous les relevés importés des liseuses, conservés même après la suppression du livre de l'appareil.
     private(set) var clippings: [Clipping] = [] {
         didSet { clippingIndex = Dictionary(grouping: clippings.filter { !$0.isHidden }) { ShelfSync.normalize($0.title) } }
     }
     @ObservationIgnored private var clippingIndex: [String: [Clipping]] = [:]
 
-    /// Notes et surlignages d'un livre (rapprochés par titre, comme les livres de la Kindle).
+    /// Notes et surlignages d'un livre (rapprochés par titre, comme les livres de la liseuse).
     func clippings(for books: [Book]) -> [Clipping] {
         var seen = Set<String>()
         return books.flatMap { clippingIndex[ShelfSync.normalize($0.title)] ?? [] }
@@ -68,7 +68,7 @@ final class KindleMonitor {
         }
     }
 
-    /// Note d'un surlignage (S-071) ; une note vide est retirée. Le relevé de la Kindle n'est pas touché.
+    /// Note d'un surlignage (S-071) ; une note vide est retirée. Le relevé de la liseuse n'est pas touché.
     func setNote(_ id: Clipping.ID, _ note: String) {
         updateClipping(id) { c in
             let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -116,7 +116,7 @@ final class KindleMonitor {
         }
     }
 
-    /// Surlignage fait dans la fenêtre de lecture (S-070) : rangé avec ceux de la Kindle.
+    /// Surlignage fait dans la fenêtre de lecture (S-070) : rangé avec ceux de la liseuse.
     func addHighlight(_ clipping: Clipping) {
         clippings.append(clipping)
         saveClippings()
@@ -141,13 +141,20 @@ final class KindleMonitor {
         }
     }
 
-    /// Lit My Clippings.txt sur une Kindle en disque USB et ajoute les nouveaux relevés.
+    /// Ajoute les nouveaux relevés de la liseuse : My Clippings.txt d'une Kindle en disque USB,
+    /// base KoboReader.sqlite d'une Kobo. Une liseuse générique n'en donne pas.
     private func importClippings(from device: any KindleDevice) async {
-        guard let volume = device as? VolumeKindle else { return }
-        let file = volume.root.appendingPathComponent("documents/My Clippings.txt")
+        guard let volume = device as? VolumeKindle, volume.brand != .generic else { return }
+        let root = volume.root
+        let brand = volume.brand
         let found = await Task.detached(priority: .utility) { () -> [Clipping] in
-            guard let data = try? Data(contentsOf: file) else { return [] }
-            return KindleClippings.parse(String(decoding: data, as: UTF8.self))
+            switch brand {
+            case .kobo:
+                return (try? KoboAnnotations.read(database: KoboAnnotations.database(onVolume: root))) ?? []
+            default:
+                guard let data = try? Data(contentsOf: root.appendingPathComponent("documents/My Clippings.txt")) else { return [] }
+                return KindleClippings.parse(String(decoding: data, as: UTF8.self))
+            }
         }.value
         let merged = KindleClippings.merge(clippings, found)
         guard merged.count != clippings.count else { return }
@@ -158,23 +165,58 @@ final class KindleMonitor {
     // MARK: - Liseuses connues
 
     private(set) var readers: [Reader] = []
-    /// Identifiant de la Kindle branchée.
+    /// Identifiant de la liseuse branchée.
     private(set) var deviceID: String?
     /// Kindle inconnue que l'utilisateur a choisi de ne pas nommer pour cette connexion.
     @ObservationIgnored private var namingPostponed: String?
 
-    /// Liseuse correspondant à la Kindle branchée, si elle est connue.
+    /// Liseuse correspondant à la liseuse branchée, si elle est connue.
     var currentReader: Reader? { deviceID.flatMap { id in readers.first { $0.id == id } } }
     /// Kindle branchée et pas encore nommée : la feuille de nom s'affiche.
     var needsNaming: Bool { deviceID != nil && currentReader == nil && namingPostponed != deviceID }
-    /// Nom affiché de la Kindle branchée : celui de la liseuse, sinon celui de l'appareil.
+    /// Nom affiché de la liseuse branchée : celui de la liseuse, sinon celui de l'appareil.
     var displayName: String? { currentReader?.name ?? device?.name }
 
     func nameCurrentReader(_ name: String) {
         guard let id = deviceID else { return }
         let trimmed = name.trimmingCharacters(in: .whitespaces)
-        readers.append(Reader(id: id, name: trimmed.isEmpty ? (device?.name ?? "Kindle") : trimmed))
+        let brand = device?.brand ?? .kindle
+        let folder = brand == .generic ? (device as? VolumeKindle)?.booksFolder : nil
+        readers.append(Reader(id: id, name: trimmed.isEmpty ? (device?.name ?? brand.label) : trimmed, brand: brand,
+                              booksFolder: folder))
         saveReaders()
+    }
+
+    /// Marque de la liseuse branchée.
+    var brand: ReaderBrand? { device?.brand }
+
+    /// Le livre peut partir sur la liseuse branchée ; sans liseuse, sur au moins une marque (file d'attente).
+    func canSend(_ book: Book) -> Bool {
+        guard let brand else { return book.canSendToAnyReader }
+        return book.canSend(to: brand)
+    }
+
+    // MARK: - Liseuses USB génériques (S-098)
+
+    /// Disques amovibles qui pourraient être une liseuse : ni Kindle ni Kobo, pas encore ajoutés, avec des livres.
+    func genericCandidates(excludingFolders folders: [URL]) async -> [VolumeKindle] {
+        let known = Set(readers.map(\.id))
+        return await Task.detached(priority: .userInitiated) { VolumeKindle.candidates(excluding: known, folders: folders) }.value
+    }
+
+    /// Ajoute un disque comme liseuse : reconnu ensuite à chaque branchement, livres envoyés dans `folder`.
+    func addGenericReader(_ volume: VolumeKindle, folder: String, name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        readers.removeAll { $0.id == volume.identifier }
+        readers.append(Reader(id: volume.identifier, name: trimmed.isEmpty ? volume.name : trimmed,
+                              brand: .generic, booksFolder: folder))
+        saveReaders()
+        await refresh()
+    }
+
+    /// Liseuses génériques connues : identifiant du volume → dossier des livres.
+    private var genericFolders: [String: String] {
+        Dictionary(readers.filter { $0.brand == .generic }.map { ($0.id, $0.booksFolder ?? "") }, uniquingKeysWith: { a, _ in a })
     }
 
     func postponeNaming() { namingPostponed = deviceID }
@@ -232,10 +274,27 @@ final class KindleMonitor {
 
     var isConnected: Bool { device != nil }
 
+    /// Self-test et captures : une liseuse simulée par un dossier, à la place des appareils branchés.
+    /// Sans effet hors du dossier de test (`ALEXANDRIE_STORE`).
+    @ObservationIgnored private var simulated: (any KindleDevice)?
+
+    func simulate(_ device: (any KindleDevice)?) async {
+        guard AppDirectories.testStore != nil else { return }
+        simulated = device
+        await refresh()
+    }
+
     func refresh() async {
+        if let simulated {
+            device = simulated
+            deviceID = simulated.identifier
+            await reloadDocuments()
+            return
+        }
         // L'identifiant MTP demande une session : il est lu hors du fil principal, avec la détection.
+        let generic = genericFolders
         let (found, id): ((any KindleDevice)?, String?) = await Task.detached {
-            let device: (any KindleDevice)? = VolumeKindle.detect().first ?? MTPKindle.detect()
+            let device: (any KindleDevice)? = VolumeKindle.detect(generic: generic).first ?? MTPKindle.detect()
             return (device, device?.identifier)
         }.value
         device = found
@@ -297,7 +356,7 @@ final class KindleMonitor {
         }
     }
 
-    /// Livre de la bibliothèque correspondant à un document de la Kindle (nom de fichier, ou titre + auteur).
+    /// Livre de la bibliothèque correspondant à un document de la liseuse (nom de fichier, ou titre + auteur).
     func libraryBook(for doc: KindleDocument, in library: LibraryStore) -> Book? {
         if let b = library.books.first(where: { $0.sentFilename == doc.name || $0.kindleFilename == doc.name }) { return b }
         guard let info = infos[doc.id], !info.isGuessed else { return nil }
@@ -313,7 +372,7 @@ final class KindleMonitor {
         ShelfSync.isOnDevice([book], documentNames: documentNames, deviceTitles: deviceTitles)
     }
 
-    /// Livres de l'étagère de la Kindle branchée qui n'y sont pas encore (attend la lecture des fiches).
+    /// Livres de l'étagère de la liseuse branchée qui n'y sont pas encore (attend la lecture des fiches).
     func missingFromShelf(in library: LibraryStore) -> [Book] {
         guard let reader = currentReader, catalogProgress == nil else { return [] }
         let groups = BookGroups.make(library.shelfBooks(reader.id), identities: library.identities)
@@ -334,21 +393,29 @@ final class KindleMonitor {
                 ? "« \(first.title) » est indisponible : son dossier de livres est introuvable (disque débranché ?)."
                 : "\(unavailable.count) livres sont indisponibles : leur dossier de livres est introuvable (disque débranché ?)."
         }
-        let sendable = books.filter { $0.canSendToKindle && $0.trashedAt == nil && !library.isUnavailable($0) }
+        let brand = device.brand
+        let refused = books.filter { !$0.canSend(to: brand) }
+        if let first = refused.first {
+            lastError = refused.count == 1
+                ? "« \(first.title) » est protégé par DRM : il ne peut pas être lu sur cette \(brand.label)."
+                : "\(refused.count) livres sont protégés par DRM : ils ne peuvent pas être lus sur cette \(brand.label)."
+        }
+        let sendable = books.filter { $0.canSend(to: brand) && $0.trashedAt == nil && !library.isUnavailable($0) }
         for b in sendable { transfers[b.id] = .queued }
         isBusy = true
         defer { isBusy = false }
         let directories = library.directories
         let covers = library.covers
         for book in sendable {
-            transfers[book.id] = book.needsConversion ? .converting : .sending
+            transfers[book.id] = book.needsConversion(for: brand) ? .converting : .sending
             do {
                 let file = try await Task.detached(priority: .userInitiated) {
-                    try KindleTransfer.prepare(book, directories: directories)
+                    try KindleTransfer.prepare(book, directories: directories, brand: brand)
                 }.value
                 transfers[book.id] = .sending
-                let filename = book.kindleFilename
-                let asin = book.becomesAZW3 ? book.asin : nil
+                let filename = book.filename(for: brand)
+                // Miniature de couverture : seulement pour un AZW3 produit pour une Kindle.
+                let asin = brand.sendsThumbnails && book.becomesAZW3 ? book.asin : nil
                 try await Task.detached(priority: .userInitiated) {
                     let thumbnail = asin.flatMap { a in covers.kindleThumbnail(key: book.fingerprint).map { (a, $0) } }
                     try device.send(file: file, filename: filename, thumbnail: thumbnail)
@@ -370,7 +437,7 @@ final class KindleMonitor {
         await reloadDocuments()
     }
 
-    /// Envoie tout de suite si la Kindle est branchée, sinon met les livres en attente de connexion
+    /// Envoie tout de suite si la liseuse est branchée, sinon met les livres en attente de connexion
     /// de la liseuse choisie (la seule connue, à défaut la prochaine Kindle branchée).
     func sendOrQueue(_ books: [Book], library: LibraryStore, reader: Reader.ID? = nil) async {
         if isConnected {
@@ -380,14 +447,14 @@ final class KindleMonitor {
         }
     }
 
-    /// Envoie la file d'attente ; appelé quand la Kindle vient d'être branchée.
+    /// Envoie la file d'attente ; appelé quand la liseuse vient d'être branchée.
     /// Un livre dont l'envoi échoue reste en attente pour la prochaine connexion.
     func sendPending(library: LibraryStore) async {
         guard isConnected, !isBusy else { return }
         let pending = library.pendingSends(for: deviceID)
         guard !pending.isEmpty else { return }
         await send(pending, library: library)
-        // Notification : l'app peut être en arrière-plan quand la Kindle est branchée.
+        // Notification : l'app peut être en arrière-plan quand la liseuse est branchée.
         let sent = pending.filter { transfers[$0.id] == .done }.map(\.title)
         let failed = pending.filter { if case .failed = transfers[$0.id] { true } else { false } }.count
         SendNotifier.post(sent: sent, failed: failed, reader: currentReader?.name)
@@ -415,11 +482,11 @@ final class KindleMonitor {
     func eject() async {
         guard let volume = device as? VolumeKindle else {
             lastError = isConnected ? "Cette Kindle (MTP) n'a pas besoin d'être éjectée : vous pouvez la débrancher."
-                                    : "Aucune Kindle à éjecter."
+                                    : "Aucune liseuse à éjecter."
             return
         }
         guard !isBusy else {
-            lastError = "Un transfert est en cours : attendez qu'il se termine avant d'éjecter la Kindle."
+            lastError = "Un transfert est en cours : attendez qu'il se termine avant d'éjecter la liseuse."
             return
         }
         isBusy = true
@@ -436,11 +503,11 @@ final class KindleMonitor {
             documents = []
             freeSpace = nil
         } catch {
-            lastError = "Impossible d'éjecter la Kindle : \(error.localizedDescription) Fermez les fichiers ouverts sur l'appareil, puis réessayez."
+            lastError = "Impossible d'éjecter la liseuse : \(error.localizedDescription) Fermez les fichiers ouverts sur l'appareil, puis réessayez."
         }
     }
 
-    /// Livres de la Kindle branchée qui sont dans la bibliothèque mais plus sur l'étagère de sa liseuse.
+    /// Livres de la liseuse branchée qui sont dans la bibliothèque mais plus sur l'étagère de sa liseuse.
     /// Les livres inconnus de la bibliothèque (achats Amazon…) ne sont jamais proposés.
     func offShelfDocuments(in library: LibraryStore) -> [(document: KindleDocument, book: Book)] {
         guard let reader = currentReader, catalogProgress == nil else { return [] }
@@ -459,7 +526,7 @@ final class KindleMonitor {
         for d in documents {
             do { try await Task.detached { try device.delete(d) }.value } catch { failures += 1 }
         }
-        if failures > 0 { lastError = "\(failures) livre(s) n'ont pas pu être retirés de la Kindle." }
+        if failures > 0 { lastError = "\(failures) livre(s) n'ont pas pu être retirés de la liseuse." }
         await reloadDocuments()
     }
 

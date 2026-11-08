@@ -4,7 +4,8 @@ import Foundation
 
 public struct KindleDocument: Identifiable, Hashable, Sendable {
     public let id: String
-    /// Chemin relatif au dossier `documents/` (ex. « Downloads/Items01/livre.kfx »).
+    /// Chemin relatif au dossier parcouru : `documents/` d'une Kindle (« Downloads/Items01/livre.kfx »),
+    /// racine d'une Kobo, dossier des livres d'une liseuse générique.
     public let path: String
     public let size: Int64
     let mtpID: UInt32?
@@ -34,25 +35,27 @@ public enum KindleError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .notConnected: "La Kindle n'est plus connectée."
+        case .notConnected: "La liseuse n'est plus connectée."
         case .transferFailed(let why): "Le transfert a échoué : \(why)."
-        case .insufficientSpace: "Espace insuffisant sur la Kindle."
+        case .insufficientSpace: "Espace insuffisant sur la liseuse."
         case .accessDenied:
-            "macOS ne laisse pas Alexandrie lire la Kindle. Autorisez-la dans Réglages Système › Confidentialité et sécurité › "
+            "macOS ne laisse pas Alexandrie lire la liseuse. Autorisez-la dans Réglages Système › Confidentialité et sécurité › "
                 + "Fichiers et dossiers › Alexandrie › Volumes amovibles, puis cliquez sur « Actualiser »."
         }
     }
 }
 
-/// Une Kindle branchée, quel que soit le protocole.
+/// Une liseuse branchée (Kindle, Kobo, liseuse USB), quel que soit le protocole.
 public protocol KindleDevice: AnyObject, Sendable {
     var name: String { get }
+    /// Marque : formats envoyés, dossier des livres, notes.
+    var brand: ReaderBrand { get }
     /// Identifiant stable de l'appareil (« vol:… », « mtp:… ») : reconnaît une liseuse d'une connexion à l'autre.
     var identifier: String { get }
     var connection: KindleConnection { get }
     func freeSpace() -> Int64?
     func listDocuments() throws -> [KindleDocument]
-    /// Copie `file` dans `documents/` et, si fourni, la miniature de couverture.
+    /// Copie `file` dans le dossier des livres et, si fourni (Kindle), la miniature de couverture.
     func send(file: URL, filename: String, thumbnail: (asin: String, jpeg: Data)?) throws
     func delete(_ document: KindleDocument) throws
     /// Donne accès au fichier sur le Mac : directement (disque) ou via une copie temporaire (MTP).
@@ -63,28 +66,28 @@ public protocol KindleDevice: AnyObject, Sendable {
     func replace(_ document: KindleDocument, with file: URL) throws
 }
 
-/// Extensions de livres affichées dans la liste de l'appareil.
-let kindleBookExtensions: Set<String> = ["azw3", "azw", "mobi", "pdf", "kfx", "txt", "prc", "azw8"]
-
 /// Fichier de la Kindle à présenter comme un livre (exclut le fichier de notes « My Clippings.txt »).
-func isKindleBook(_ path: String) -> Bool {
-    let name = (path as NSString).lastPathComponent
-    return kindleBookExtensions.contains((name as NSString).pathExtension.lowercased())
-        && name.caseInsensitiveCompare("My Clippings.txt") != .orderedSame
-}
+func isKindleBook(_ path: String) -> Bool { ReaderBrand.kindle.isBook(path) }
 
 private func thumbnailName(_ asin: String) -> String { "thumbnail_\(asin)_EBOK_portrait.jpg" }
 
-// MARK: - Disque monté (Kindle jusqu'aux modèles 2023)
+// MARK: - Disque monté (Kindle jusqu'aux modèles 2023, Kobo, liseuses USB)
 
 public final class VolumeKindle: KindleDevice, @unchecked Sendable {
     public let root: URL
     public let connection = KindleConnection.volume
+    public let brand: ReaderBrand
+    /// Dossier des livres, relatif à la racine (« documents », « Books », ou celui choisi ; vide : la racine).
+    public let booksFolder: String
     public var name: String {
         (try? root.resourceValues(forKeys: [.volumeNameKey]).volumeName) ?? root.lastPathComponent
     }
 
-    init(root: URL) { self.root = root }
+    public init(root: URL, brand: ReaderBrand = .kindle, booksFolder: String? = nil) {
+        self.root = root
+        self.brand = brand
+        self.booksFolder = booksFolder ?? brand.defaultBooksFolder
+    }
 
     /// UUID du volume (les disques FAT des Kindle en ont un, stable tant que l'appareil n'est pas réinitialisé) ;
     /// à défaut, nom et capacité.
@@ -94,18 +97,77 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
         return "vol:\(v?.volumeName ?? root.lastPathComponent)-\(v?.volumeTotalCapacity ?? 0)"
     }
 
-    var documents: URL { root.appendingPathComponent("documents", isDirectory: true) }
+    /// Dossier où vont les livres envoyés.
+    var documents: URL { booksFolder.isEmpty ? root : root.appendingPathComponent(booksFolder, isDirectory: true) }
+    /// Dossier parcouru pour la liste des livres présents.
+    var listRoot: URL {
+        let folder = brand.listFolder(booksFolder: booksFolder)
+        return folder.isEmpty ? root : root.appendingPathComponent(folder, isDirectory: true)
+    }
 
-    /// Un volume est une Kindle s'il contient `documents/` et `system/`.
-    public static func detect() -> [VolumeKindle] {
+    /// Marque reconnue d'après le contenu du disque : Kindle (`documents/` et `system/`), Kobo (`.kobo/`).
+    /// Un autre disque n'est jamais pris pour une liseuse : seule une liseuse générique déjà ajoutée l'est.
+    public static func brand(of root: URL) -> ReaderBrand? {
+        let fm = FileManager.default
+        func isDirectory(_ path: String) -> Bool {
+            var isDir: ObjCBool = false
+            return fm.fileExists(atPath: root.appendingPathComponent(path).path, isDirectory: &isDir) && isDir.boolValue
+        }
+        if isDirectory(".kobo") && (fm.fileExists(atPath: root.appendingPathComponent(".kobo/KoboReader.sqlite").path)
+                                    || fm.fileExists(atPath: root.appendingPathComponent(".kobo/version").path)) {
+            return .kobo
+        }
+        if isDirectory("documents") && fm.fileExists(atPath: root.appendingPathComponent("system").path) { return .kindle }
+        return nil
+    }
+
+    /// Liseuses branchées : Kindle et Kobo reconnues, plus les liseuses génériques déjà ajoutées
+    /// (identifiant du volume → dossier des livres).
+    public static func detect(generic: [String: String] = [:]) -> [VolumeKindle] {
         let volumes = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: [.volumeNameKey],
                                                             options: [.skipHiddenVolumes]) ?? []
-        return volumes.filter { v in
+        return volumes.compactMap { v in
+            if let brand = brand(of: v) { return VolumeKindle(root: v, brand: brand) }
+            let volume = VolumeKindle(root: v, brand: .generic)
+            return generic[volume.identifier].map { VolumeKindle(root: v, brand: .generic, booksFolder: $0) }
+        }
+    }
+
+    /// Disques amovibles qui pourraient être une liseuse générique : ni Kindle ni Kobo, pas encore ajoutés,
+    /// avec au moins un livre lisible. Les volumes du système et les dossiers exclus ne sont pas proposés.
+    public static func candidates(excluding known: Set<String>, folders: [URL] = []) -> [VolumeKindle] {
+        let keys: [URLResourceKey] = [.volumeIsRemovableKey, .volumeIsEjectableKey, .volumeIsInternalKey, .volumeIsRootFileSystemKey]
+        let volumes = FileManager.default.mountedVolumeURLs(includingResourceValuesForKeys: keys, options: [.skipHiddenVolumes]) ?? []
+        return volumes.compactMap { v -> VolumeKindle? in
+            let r = try? v.resourceValues(forKeys: Set(keys))
+            guard r?.volumeIsRootFileSystem != true, r?.volumeIsInternal != true,
+                  r?.volumeIsRemovable == true || r?.volumeIsEjectable == true, brand(of: v) == nil else { return nil }
+            let device = VolumeKindle(root: v, brand: .generic)
+            guard !known.contains(device.identifier),
+                  !folders.contains(where: { $0.standardizedFileURL.path.hasPrefix(v.standardizedFileURL.path) }) else { return nil }
+            return device.hasBooks ? device : nil
+        }
+    }
+
+    /// Au moins un livre lisible dans les premiers niveaux du disque.
+    var hasBooks: Bool {
+        guard let e = FileManager.default.enumerator(at: root, includingPropertiesForKeys: nil, options: [.skipsHiddenFiles]) else { return false }
+        for case let url as URL in e {
+            if e.level > 3 { e.skipDescendants(); continue }
+            if ReaderBrand.generic.isBook(url.path) { return true }
+        }
+        return false
+    }
+
+    /// Dossier des livres proposé pour une liseuse générique : `Books`, `Documents`, `eBooks` s'il existe, sinon la racine.
+    public var suggestedBooksFolder: String {
+        for name in ["Books", "books", "Documents", "documents", "eBooks", "Livres"] {
             var isDir: ObjCBool = false
-            let fm = FileManager.default
-            return fm.fileExists(atPath: v.appendingPathComponent("documents").path, isDirectory: &isDir) && isDir.boolValue
-                && fm.fileExists(atPath: v.appendingPathComponent("system").path)
-        }.map(VolumeKindle.init)
+            if FileManager.default.fileExists(atPath: root.appendingPathComponent(name).path, isDirectory: &isDir), isDir.boolValue {
+                return name
+            }
+        }
+        return ""
     }
 
     public func freeSpace() -> Int64? {
@@ -123,8 +185,10 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
         }
     }
 
-    /// Parcours récursif : les achats récents sont rangés dans `documents/Downloads/Items01/…`.
+    /// Parcours récursif : les achats récents d'une Kindle sont rangés dans `documents/Downloads/Items01/…`,
+    /// les livres d'une Kobo n'importe où sur le disque.
     public func listDocuments() throws -> [KindleDocument] {
+        let documents = listRoot
         // Le parcours ignore les erreurs : sans autorisation, il ne trouverait simplement rien.
         do {
             _ = try FileManager.default.contentsOfDirectory(atPath: documents.path)
@@ -140,11 +204,11 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
         let base = documents.standardizedFileURL.path + "/"
         var docs: [KindleDocument] = []
         for case let url as URL in e {
-            if url.pathExtension.lowercased() == "sdr" {
+            if url.pathExtension.lowercased() == "sdr" || brand.hiddenFolders.contains(url.lastPathComponent) {
                 e.skipDescendants()
                 continue
             }
-            guard isKindleBook(url.path) else { continue }
+            guard brand.isBook(url.path) else { continue }
             let full = url.standardizedFileURL.path
             docs.append(KindleDocument(id: full, path: String(full.dropFirst(base.count)),
                                        size: Int64((try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0),
@@ -189,7 +253,12 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
     }
 
     public func send(file: URL, filename: String, thumbnail: (asin: String, jpeg: Data)?) throws {
-        guard FileManager.default.fileExists(atPath: documents.path) else { throw KindleError.notConnected }
+        guard FileManager.default.fileExists(atPath: root.path) else { throw KindleError.notConnected }
+        // Dossier des livres d'une Kobo (« Books ») ou d'une liseuse générique : créé s'il manque.
+        if !FileManager.default.fileExists(atPath: documents.path) {
+            guard brand != .kindle else { throw KindleError.notConnected }
+            try? FileManager.default.createDirectory(at: documents, withIntermediateDirectories: true)
+        }
         let size = Int64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
         if let free = freeSpace(), free < size { throw KindleError.insufficientSpace }
         let target = documents.appendingPathComponent(filename)
@@ -199,7 +268,7 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
         } catch {
             throw KindleError.transferFailed(error.localizedDescription)
         }
-        if let thumbnail {
+        if let thumbnail, brand.sendsThumbnails {
             let dir = root.appendingPathComponent("system/thumbnails", isDirectory: true)
             if FileManager.default.fileExists(atPath: dir.path) {
                 try? thumbnail.jpeg.write(to: dir.appendingPathComponent(thumbnailName(thumbnail.asin)))
@@ -219,6 +288,7 @@ public final class VolumeKindle: KindleDevice, @unchecked Sendable {
 
 public final class MTPKindle: KindleDevice, @unchecked Sendable {
     public let connection = KindleConnection.mtp
+    public let brand = ReaderBrand.kindle
     public private(set) var name = "Kindle"
     private var serial = ""
 
@@ -343,23 +413,35 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
 // MARK: - Préparation de l'envoi
 
 public enum KindleTransfer {
-    /// Fichier à copier sur la Kindle, avec les corrections de l'app :
-    /// AZW3 converti pour un EPUB, copie aux métadonnées réécrites pour un MOBI/AZW3, PDF tel quel, rogné
-    /// ou en texte redimensionnable (AZW3), original pour un livre sous DRM. Les fichiers produits sont mis en cache.
-    public static func prepare(_ book: Book, directories: AppDirectories) throws -> URL {
-        if book.isDRMProtected && book.format != .epub { return book.url }
+    /// Fichier à copier sur la liseuse, avec les corrections de l'app. Les fichiers produits sont mis en cache.
+    /// - Kindle : AZW3 converti pour un EPUB, copie aux métadonnées réécrites pour un MOBI/AZW3, PDF tel quel,
+    ///   rogné ou en texte redimensionnable (AZW3), original pour un livre sous DRM.
+    /// - Kobo et liseuse générique : EPUB aux métadonnées réécrites, EPUB converti pour un MOBI/AZW3,
+    ///   PDF tel quel, rogné ou en texte redimensionnable (EPUB), original pour un livre sous DRM.
+    public static func prepare(_ book: Book, directories: AppDirectories, brand: ReaderBrand = .kindle) throws -> URL {
+        if book.isDRMProtected { return book.url }
         if book.format == .pdf && (book.pdfMode ?? .asIs) == .asIs { return book.url }
-        let out = cachedCopy(of: book, directories: directories)
+        let out = cachedCopy(of: book, directories: directories, brand: brand)
         if !FileManager.default.fileExists(atPath: out.path) {
             if book.format == .pdf, book.pdfMode == .cropped {
                 try PDFCrop.write(book.url, to: out, edits: book.edits)
             } else if book.format == .pdf {
-                let epub = directories.conversions.appendingPathComponent("\(book.fingerprint)-texte.epub")
-                defer { try? FileManager.default.removeItem(at: epub) }
-                try PDFReflow.writeEPUB(book.url, to: epub, edits: book.edits)
-                try EPUBToAZW3.convert(input: epub, output: out, edits: book.edits, asin: book.asin)
+                if brand.readsEPUB {
+                    try PDFReflow.writeEPUB(book.url, to: out, edits: book.edits)
+                } else {
+                    let epub = directories.conversions.appendingPathComponent("\(book.fingerprint)-texte.epub")
+                    defer { try? FileManager.default.removeItem(at: epub) }
+                    try PDFReflow.writeEPUB(book.url, to: epub, edits: book.edits)
+                    try EPUBToAZW3.convert(input: epub, output: out, edits: book.edits, asin: book.asin)
+                }
             } else if book.format == .epub {
-                try EPUBToAZW3.convert(input: book.url, output: out, edits: book.edits, asin: book.asin)
+                if brand.readsEPUB {
+                    try EPUBMetadataWriter.rewrite(book.url, with: book.edits, to: out)
+                } else {
+                    try EPUBToAZW3.convert(input: book.url, output: out, edits: book.edits, asin: book.asin)
+                }
+            } else if brand.readsEPUB {
+                try MobiToEPUB.convert(input: book.url, output: out, edits: book.edits)
             } else {
                 try MobiMetadataWriter.rewrite(book.url, with: book.edits, to: out)
             }
@@ -367,8 +449,9 @@ public enum KindleTransfer {
         return out
     }
 
-    /// Copie en cache pour la Kindle. Clé stable : toute correction des informations force une nouvelle copie.
-    public static func cachedCopy(of book: Book, directories: AppDirectories) -> URL {
+    /// Copie en cache pour la liseuse. Clé stable : toute correction des informations force une nouvelle copie.
+    /// La Kobo et les liseuses génériques reçoivent la même copie (EPUB).
+    public static func cachedCopy(of book: Book, directories: AppDirectories, brand: ReaderBrand = .kindle) -> URL {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         var key = (try? encoder.encode(book.edits)) ?? Data(book.title.utf8)
@@ -376,9 +459,10 @@ public enum KindleTransfer {
         if book.format == .pdf, let mode = book.pdfMode, mode != .asIs {
             key += Data("\(mode.rawValue)-\(mode == .cropped ? PDFCrop.version : PDFReflow.version)".utf8)
         }
+        // Copie pour une liseuse EPUB : distincte de celle de la Kindle (la clé de la Kindle ne change pas).
+        if brand.readsEPUB { key += Data("liseuse-epub".utf8) }
         let variant = SHA256.hash(data: key).prefix(4).map { String(format: "%02x", $0) }.joined()
-        let ext = book.becomesAZW3 ? "azw3" : book.format.rawValue
-        return directories.conversions.appendingPathComponent("\(book.fingerprint)-\(variant).\(ext)")
+        return directories.conversions.appendingPathComponent("\(book.fingerprint)-\(variant).\(book.sentExtension(for: brand))")
     }
 
     public static func exportedEPUB(of book: Book, directories: AppDirectories) -> URL {

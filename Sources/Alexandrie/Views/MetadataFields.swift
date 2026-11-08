@@ -4,7 +4,7 @@ import SwiftUI
 /// Champs de correction des informations d'un livre (à placer dans un `Form`).
 struct MetadataFields: View {
     @Binding var edits: MetadataEdits
-    /// Le genre n'existe que dans Alexandrie : masqué pour les livres corrigés sur la Kindle.
+    /// Le genre n'existe que dans Alexandrie : masqué pour les livres corrigés sur la liseuse.
     var showsGenre = true
     /// Texte brut des auteurs : analysé à chaque frappe sans effacer la virgule en cours de saisie.
     @State private var authorsText: String
@@ -63,7 +63,7 @@ struct MetadataFields: View {
     }
 }
 
-/// Correction d'un livre directement sur la Kindle (réécriture du fichier sur l'appareil).
+/// Correction d'un livre directement sur la liseuse (réécriture du fichier sur l'appareil).
 struct KindleEditSheet: View {
     @Environment(KindleMonitor.self) private var kindle
     @Environment(\.dismiss) private var dismiss
@@ -89,7 +89,7 @@ struct KindleEditSheet: View {
                 } header: {
                     Text("Corriger « \(document.name) »")
                 } footer: {
-                    Text("Les informations sont réécrites dans le fichier sur la Kindle ; le texte du livre, sa couverture et votre position de lecture ne changent pas. La Kindle peut mettre à jour l'affichage après déconnexion.")
+                    Text("Les informations sont réécrites dans le fichier sur la liseuse ; le texte du livre, sa couverture et votre position de lecture ne changent pas. La liseuse peut mettre à jour l'affichage après déconnexion.")
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 if let error {
@@ -100,12 +100,12 @@ struct KindleEditSheet: View {
             HStack {
                 if isSaving {
                     ProgressView().controlSize(.small)
-                    Text("Enregistrement sur la Kindle…").foregroundStyle(.secondary)
+                    Text("Enregistrement sur la liseuse…").foregroundStyle(.secondary)
                 }
                 Spacer()
                 Button("Annuler", role: .cancel) { dismiss() }
                     .keyboardShortcut(.cancelAction)
-                Button("Enregistrer sur la Kindle") { save() }
+                Button("Enregistrer sur la liseuse") { save() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(isSaving || edits.normalized.title.isEmpty)
             }

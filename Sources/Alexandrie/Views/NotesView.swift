@@ -22,7 +22,7 @@ struct NotesBookList: View {
             ContentUnavailableView(search.isEmpty ? "Aucune note pour l'instant" : "Aucun résultat",
                                    systemImage: "highlighter",
                                    description: Text(search.isEmpty
-                                        ? "Les surlignages et notes faits sur une Kindle sont importés à chacune de ses connexions ; ceux faits dans la fenêtre de lecture s'y ajoutent."
+                                        ? "Les surlignages et notes faits sur une Kindle ou une Kobo sont importés à chacune de ses connexions ; ceux faits dans la fenêtre de lecture s'y ajoutent."
                                         : "Aucun livre ni aucune note ne contient « \(search) »."))
         } else {
             List(books, selection: $selection) { b in
@@ -253,7 +253,7 @@ struct NotesEditor: View {
             Text(title(available.filter { colors.contains($0.key) }.map(\.label), none: "Couleurs", many: "couleurs"))
         }
         .fixedSize()
-        .help("Couleurs gardées dans la liste, la copie et l'export ; les notes seules de la Kindle n'ont pas de couleur")
+        .help("Couleurs gardées dans la liste, la copie et l'export ; les notes seules de la liseuse n'ont pas de couleur")
     }
 
     /// Thématiques gardées (S-079) : une seule nomme aussi les couleurs selon sa légende.
@@ -324,7 +324,7 @@ struct NotesEditor: View {
         list = KindleClippings.withMarks(list, keys, mark: \.colorHex)
         let query = filter.trimmingCharacters(in: .whitespaces)
         if !query.isEmpty { list = list.filter { $0.matches(query) } }
-        // Les relevés arrivent dans l'ordre du fichier de la Kindle, donc par date d'ajout.
+        // Les relevés arrivent dans l'ordre du fichier de la liseuse, donc par date d'ajout.
         if order == .reading { list = KindleClippings.readingOrder(list) }
         return list
     }
@@ -425,7 +425,7 @@ struct NoteRow: View {
                         // Fait dans la fenêtre de lecture (S-070) : marqué « Alexandrie », pas « Kindle ».
                         if clipping.isFromApp {
                             Text("\(Text("Alexandrie").fontWeight(.semibold)) · \(meta)")
-                                .help("Surligné dans la fenêtre de lecture d'Alexandrie, pas sur la Kindle")
+                                .help("Surligné dans la fenêtre de lecture d'Alexandrie, pas sur la liseuse")
                         } else {
                             Text(meta)
                         }
@@ -454,7 +454,7 @@ struct NoteRow: View {
                             .buttonStyle(.hover)
                             .fixedSize()
                             .help(clipping.isFromApp ? "Note visible aussi dans la fenêtre de lecture"
-                                  : "Note gardée dans Alexandrie ; la Kindle n'est pas modifiée")
+                                  : "Note gardée dans Alexandrie ; la liseuse n'est pas modifiée")
                     }
                     Menu {
                         if clipping.isFromApp {
@@ -509,7 +509,7 @@ struct NoteRow: View {
         } message: {
             Text(clipping.isFromApp
                  ? "Il disparaît aussi de la fenêtre de lecture. Le fichier du livre n'est pas modifié."
-                 : "Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La Kindle n'est pas modifiée.")
+                 : "Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La liseuse n'est pas modifiée.")
         }
     }
 }

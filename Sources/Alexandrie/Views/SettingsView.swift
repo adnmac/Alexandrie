@@ -88,7 +88,7 @@ struct ReaderRow: View {
                     Label("Branchée", systemImage: "circle.fill").labelStyle(.iconOnly).foregroundStyle(Palette.success)
                         .help("Branchée en ce moment")
                 }
-                Text("vue le \(reader.lastSeenAt.formatted(date: .abbreviated, time: .omitted))")
+                Text("\(reader.brand.label) · vue le \(reader.lastSeenAt.formatted(date: .abbreviated, time: .omitted))")
                     .font(.caption).foregroundStyle(.secondary)
                 Button("Oublier", role: .destructive) {
                     library.clearShelf(reader.id)
@@ -115,7 +115,7 @@ enum SettingsTab: String, CaseIterable {
         case .general: "Général"
         case .library: "Bibliothèque"
         case .backup: "Sauvegarde"
-        case .kindle: "Kindle"
+        case .kindle: "Liseuses"
         }
     }
 
@@ -136,6 +136,7 @@ struct SettingsView: View {
 
     /// Onglet affiché, rouvert au même endroit (et choisi par le mode capture).
     @AppStorage(SettingsTab.storageKey) private var tab = SettingsTab.general
+    @State private var addsReader = false
 
     var body: some View {
         TabView(selection: $tab) {
@@ -213,7 +214,7 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    LabeledContent("Conversions pour la Kindle") {
+                    LabeledContent("Conversions pour les liseuses") {
                         HStack {
                             Text(library.cacheSize.map { size($0.conversions) } ?? "…")
                             Button("Vider") { Task { await library.clearConversions() } }
@@ -244,15 +245,20 @@ struct SettingsView: View {
             Form {
                 Section("Liseuses") {
                     if kindle.readers.isEmpty {
-                        Text("Aucune liseuse pour l'instant : branchez une Kindle pour lui donner un nom.")
+                        Text("Aucune liseuse pour l'instant : branchez une Kindle ou une Kobo pour lui donner un nom.")
                             .foregroundStyle(.secondary)
                     }
                     ForEach(kindle.readers) { reader in
                         ReaderRow(reader: reader)
                     }
-                    Text("Chaque Kindle est reconnue par son numéro de série et garde son nom d'une connexion à l'autre.")
-                        .font(.caption).foregroundStyle(.secondary)
+                    LabeledContent {
+                        Button("Ajouter une liseuse USB…") { addsReader = true }
+                    } label: {
+                        Text("Kindle et Kobo sont reconnues d'elles-mêmes et gardent leur nom d'une connexion à l'autre. Une autre liseuse qui lit l'EPUB (PocketBook, Tolino…) s'ajoute ici.")
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
                 }
+                .sheet(isPresented: $addsReader) { AddReaderSheet() }
                 Section("Kindle") {
                     LabeledContent("Disque USB", value: "Pris en charge")
                     LabeledContent("MTP (modèles récents)") {

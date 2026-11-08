@@ -40,8 +40,8 @@ struct ResearchesSheet: View {
             }
         } message: { research in
             let count = researches.highlightCount(research: research.id)
-            Text(count == 0 ? "Aucun surlignage n'y est rangé."
-                 : "Ses \(count) surlignages restent, avec leur couleur et leurs autres thématiques.")
+            Text(count == 0 ? String(localized: "Aucun surlignage n'y est rangé.")
+                 : String(localized: "Ses \(count) surlignages restent, avec leur couleur et leurs autres thématiques."))
         }
     }
 
@@ -51,7 +51,7 @@ struct ResearchesSheet: View {
         VStack(spacing: 0) {
             List(selection: $selected) {
                 ForEach(researches.researches) { research in
-                    Text(research.name.isEmpty ? "Sans titre" : research.name)
+                    Text(research.name.isEmpty ? String(localized: "Sans titre") : research.name)
                         .lineLimit(1)
                         .tag(Optional(research.id))
                 }
@@ -125,8 +125,8 @@ struct ResearchesSheet: View {
         let passages = researches.highlightCount(research: research.id)
         let books = researches.bookCount(research: research.id)
         return HStack {
-            Text(passages == 0 ? "Aucun passage rangé dans cette thématique."
-                 : "\(passages) passage\(passages > 1 ? "s" : "") dans \(books) livre\(books > 1 ? "s" : "")")
+            Text(passages == 0 ? String(localized: "Aucun passage rangé dans cette thématique.")
+                 : String(localized: "\(passages) passages") + " · " + String(localized: "\(books) livres"))
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -139,7 +139,7 @@ struct ResearchesSheet: View {
     private func export(_ research: Research) {
         guard let md = researches.exportMarkdown(research: research.id) else { return }
         let panel = NSSavePanel()
-        panel.title = "Exporter la thématique"
+        panel.title = String(localized: "Exporter la thématique")
         panel.nameFieldStringValue = research.name.safeFilename + ".md"
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -147,7 +147,7 @@ struct ResearchesSheet: View {
             try md.write(to: url, atomically: true, encoding: .utf8)
         } catch {
             let alert = NSAlert()
-            alert.messageText = "Export impossible"
+            alert.messageText = String(localized: "Export impossible")
             alert.informativeText = error.localizedDescription
             alert.runModal()
         }
@@ -164,7 +164,7 @@ struct ResearchesSheet: View {
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
                 .frame(minWidth: Layout.countColumn, alignment: .trailing)
-                .help("\(count) surlignage(s) de cette couleur dans la thématique")
+                .help(String(localized: "\(count) surlignages de cette couleur dans la thématique"))
             Button {
                 var copy = research
                 copy.themes.removeAll { $0.id == theme.id }
@@ -172,8 +172,8 @@ struct ResearchesSheet: View {
             } label: { Image(systemName: "minus.circle") }
                 .buttonStyle(.borderless)
                 .disabled(research.themes.count <= 1)
-                .help(count == 0 ? "Retirer cette couleur de la légende"
-                      : "Retirer cette couleur de la légende : ses \(count) surlignages la gardent, sans nom")
+                .help(count == 0 ? String(localized: "Retirer cette couleur de la légende")
+                      : String(localized: "Retirer cette couleur de la légende : ses \(count) surlignages la gardent, sans nom"))
                 .accessibilityLabel("Retirer la couleur \(theme.displayName)")
         }
     }

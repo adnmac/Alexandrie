@@ -40,7 +40,7 @@ struct BookCommands {
             Task { await kindle.send(books, library: library) }
         } else {
             let reader = kindle.readers.count == 1 ? kindle.readers[0].id : nil
-            library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader) }
+            library.undoable(String(localized: "Envoyer à la connexion")) { library.queueForKindle(books, reader: reader) }
             SendNotifier.prepare()
         }
     }
@@ -56,7 +56,7 @@ extension BookCommands {
     /// Met les livres sélectionnés à la corbeille d'Alexandrie, en une action annulable (⌘Z).
     func trash() {
         guard canTrash else { return }
-        library.undoable("Mettre à la corbeille") { books.forEach(library.moveToTrash) }
+        library.undoable(String(localized: "Mettre à la corbeille")) { books.forEach(library.moveToTrash) }
         afterTrash()
     }
 }
@@ -123,7 +123,7 @@ final class MenuState: ObservableObject {
 
     /// Ce que les menus affichent : intitulé d'envoi et éléments actifs.
     struct Values: Equatable {
-        var sendTitle = "Envoyer à la liseuse"
+        var sendTitle = String(localized: "Envoyer à la liseuse")
         var canSend = false, canTrash = false, canQuickLook = false
         var canOpen = false, canReveal = false, canExportEPUB = false, canRead = false
         var shareURLs: [URL] = []

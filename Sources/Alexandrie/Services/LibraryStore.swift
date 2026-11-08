@@ -44,8 +44,8 @@ final class LibraryStore {
         } catch {
             // Index illisible : mis de côté plutôt qu'écrasé, la bibliothèque est réindexée.
             let moved = try? LibraryIndex.quarantine(directories.index)
-            lastError = "Index de la bibliothèque illisible (\(error.localizedDescription)). "
-                + (moved.map { "Il a été mis de côté sous « \($0.lastPathComponent) »." } ?? "")
+            lastError = String(localized: "Index de la bibliothèque illisible (\(error.localizedDescription)). ")
+                + (moved.map { String(localized: "Il a été mis de côté sous « \($0.lastPathComponent) ».") } ?? "")
         }
         // Séries enregistrées avec leur numéro (« Brunetti 8 ») : nom et numéro séparés une fois pour toutes.
         var changed = false
@@ -183,8 +183,9 @@ final class LibraryStore {
         books.removeAll { removed.contains($0.id) }
         save()
         if let first = result.failures.first {
-            lastError = "\(result.failures.count) fichier(s) n'ont pas pu être placés dans la Corbeille de macOS "
-                + "et restent dans celle d'Alexandrie. Premier : « \((first.path as NSString).lastPathComponent) » — \(first.reason)"
+            let name = (first.path as NSString).lastPathComponent
+            lastError = String(localized: "\(result.failures.count) fichiers n'ont pas pu être placés dans la Corbeille de macOS et restent dans celle d'Alexandrie.")
+                + " " + String(localized: "Premier : « \(name) » — \(first.reason)")
         }
     }
 
@@ -231,7 +232,7 @@ final class LibraryStore {
         do {
             try LibraryFolders.save(folders, to: directories.folders)
         } catch {
-            lastError = "Impossible d'enregistrer les dossiers de livres : \(error.localizedDescription)"
+            lastError = String(localized: "Impossible d'enregistrer les dossiers de livres : \(error.localizedDescription)")
         }
     }
 
@@ -523,7 +524,7 @@ final class LibraryStore {
             do {
                 try LibraryIndex.save(books, to: url)
             } catch {
-                let message = "Impossible d'enregistrer l'index : \(error.localizedDescription)"
+                let message = String(localized: "Impossible d'enregistrer l'index : \(error.localizedDescription)")
                 Task { @MainActor in self?.lastError = message }
             }
         }
@@ -633,7 +634,7 @@ final class LibraryStore {
             write(sync: true)
             await rescan()
         } catch {
-            lastError = "Impossible de restaurer la sauvegarde : \(error.localizedDescription)"
+            lastError = String(localized: "Impossible de restaurer la sauvegarde : \(error.localizedDescription)")
         }
     }
 
@@ -839,11 +840,11 @@ final class LibraryStore {
                 try FileManager.default.copyItem(at: url, to: target)
                 imported.append(target)
             } catch {
-                lastError = "Import impossible de « \(url.lastPathComponent) » : \(error.localizedDescription)"
+                lastError = String(localized: "Import impossible de « \(url.lastPathComponent) » : \(error.localizedDescription)")
             }
         }
         if imported.isEmpty && lastError == nil {
-            lastError = "Aucun fichier pris en charge (EPUB, MOBI, AZW3, AZW, PDF)."
+            lastError = String(localized: "Aucun fichier pris en charge (EPUB, MOBI, AZW3, AZW, PDF).")
         }
         return imported
     }

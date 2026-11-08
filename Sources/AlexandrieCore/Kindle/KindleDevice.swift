@@ -24,6 +24,9 @@ extension KindleDocument {
 public enum KindleConnection: String, Sendable {
     case volume = "Disque USB"
     case mtp = "MTP"
+
+    /// Libellé affiché (« Disque USB », « MTP »).
+    public var label: String { self == .volume ? String(localized: "Disque USB") : "MTP" }
 }
 
 public enum KindleError: LocalizedError {
@@ -35,12 +38,12 @@ public enum KindleError: LocalizedError {
 
     public var errorDescription: String? {
         switch self {
-        case .notConnected: "La liseuse n'est plus connectée."
-        case .transferFailed(let why): "Le transfert a échoué : \(why)."
-        case .insufficientSpace: "Espace insuffisant sur la liseuse."
+        case .notConnected: String(localized: "La liseuse n'est plus connectée.")
+        case .transferFailed(let why): String(localized: "Le transfert a échoué : \(why).")
+        case .insufficientSpace: String(localized: "Espace insuffisant sur la liseuse.")
         case .accessDenied:
-            "macOS ne laisse pas Alexandrie lire la liseuse. Autorisez-la dans Réglages Système › Confidentialité et sécurité › "
-                + "Fichiers et dossiers › Alexandrie › Volumes amovibles, puis cliquez sur « Actualiser »."
+            String(localized: "macOS ne laisse pas Alexandrie lire la liseuse. Autorisez-la dans Réglages Système › Confidentialité et sécurité › ")
+                + String(localized: "Fichiers et dossiers › Alexandrie › Volumes amovibles, puis cliquez sur « Actualiser ».")
         }
     }
 }
@@ -316,7 +319,7 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
         try Self.queue.sync {
             guard let session = alx_mtp_open() else {
                 throw KindleError.transferFailed(
-                    "impossible d'ouvrir la Kindle en MTP (fermez Android File Transfer ou tout autre outil MTP)")
+                    String(localized: "impossible d'ouvrir la Kindle en MTP (fermez Android File Transfer ou tout autre outil MTP)"))
             }
             defer { alx_mtp_close(session) }
             var buffer = [CChar](repeating: 0, count: 256)
@@ -363,7 +366,7 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
             existing = box.id
             if let existing { _ = alx_mtp_delete(session, existing) }
             guard alx_mtp_send(session, file.path, filename, size) == 0 else {
-                throw KindleError.transferFailed("l'appareil a refusé le fichier")
+                throw KindleError.transferFailed(String(localized: "l'appareil a refusé le fichier"))
             }
             if let thumbnail {
                 let tmp = FileManager.default.temporaryDirectory.appendingPathComponent(thumbnailName(thumbnail.asin))
@@ -383,7 +386,7 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
         defer { try? FileManager.default.removeItem(at: tmp) }
         try withSession { session in
             guard alx_mtp_download(session, id, tmp.path) == 0 else {
-                throw KindleError.transferFailed("lecture impossible de « \(document.name) »")
+                throw KindleError.transferFailed(String(localized: "lecture impossible de « \(document.name) »"))
             }
         }
         return try body(tmp)
@@ -397,7 +400,7 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
         let size = UInt64((try? file.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
         try withSession { session in
             guard alx_mtp_replace(session, id, file.path, size) == 0 else {
-                throw KindleError.transferFailed("l'appareil a refusé la nouvelle version")
+                throw KindleError.transferFailed(String(localized: "l'appareil a refusé la nouvelle version"))
             }
         }
     }
@@ -405,7 +408,7 @@ public final class MTPKindle: KindleDevice, @unchecked Sendable {
     public func delete(_ document: KindleDocument) throws {
         guard let id = document.mtpID else { return }
         try withSession { session in
-            guard alx_mtp_delete(session, id) == 0 else { throw KindleError.transferFailed("suppression refusée") }
+            guard alx_mtp_delete(session, id) == 0 else { throw KindleError.transferFailed(String(localized: "suppression refusée")) }
         }
     }
 }

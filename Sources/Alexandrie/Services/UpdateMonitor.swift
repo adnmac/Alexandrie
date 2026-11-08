@@ -66,7 +66,7 @@ final class UpdateMonitor {
             releasesReached = true
         } catch {}
         guard let currentCommit else {
-            status = releasesReached ? .upToDate : .failed("versions publiées inaccessibles")
+            status = releasesReached ? .upToDate : .failed(String(localized: "versions publiées inaccessibles"))
             return
         }
         do {
@@ -90,11 +90,11 @@ final class UpdateMonitor {
             return  // le bandeau s'affiche dans la fenêtre principale
         case .failed(let why):
             alert.alertStyle = .warning
-            alert.messageText = "Vérification impossible"
-            alert.informativeText = "GitHub n'a pas pu être interrogé (\(why)). Vérifiez la connexion Internet et réessayez."
+            alert.messageText = String(localized: "Vérification impossible")
+            alert.informativeText = String(localized: "GitHub n'a pas pu être interrogé (\(why)). Vérifiez la connexion Internet et réessayez.")
         default:
-            alert.messageText = "Alexandrie est à jour"
-            alert.informativeText = "Vous avez la version \(currentVersion), la plus récente publiée."
+            alert.messageText = String(localized: "Alexandrie est à jour")
+            alert.informativeText = String(localized: "Vous avez la version \(currentVersion), la plus récente publiée.")
         }
         alert.runModal()
     }

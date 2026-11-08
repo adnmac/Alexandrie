@@ -14,7 +14,7 @@ public enum ReaderBrand: String, Codable, CaseIterable, Sendable {
         switch self {
         case .kindle: "Kindle"
         case .kobo: "Kobo"
-        case .generic: "Liseuse USB"
+        case .generic: String(localized: "Liseuse USB")
         }
     }
 

@@ -5,7 +5,7 @@ struct SendSummaryTests {
     @Test("Texte de la notification d'envoi", arguments: [
         ([], 0, "Kindle de Léa", nil),
         (["Le Port des brumes"], 0, "Kindle de Léa", "« Le Port des brumes » envoyé sur « Kindle de Léa »"),
-        (["Le Port des brumes"], 0, nil, "« Le Port des brumes » envoyé sur la Kindle"),
+        (["Le Port des brumes"], 0, nil, "« Le Port des brumes » envoyé sur la liseuse"),
         (["A", "B", "C"], 0, "Kindle de Léa", "3 livres envoyés sur « Kindle de Léa »"),
         (["A", "B"], 1, "Kindle de Léa", "2 livres envoyés, 1 échec"),
         (["A"], 2, nil, "1 livre envoyé, 2 échecs"),

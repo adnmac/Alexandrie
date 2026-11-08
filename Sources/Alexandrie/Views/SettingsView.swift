@@ -13,13 +13,13 @@ struct FolderRow: View {
         let count = library.books(inFolder: folder.path).count
         LabeledContent {
             HStack {
-                Text(unavailable ? "Indisponible" : count == 1 ? "1 livre" : "\(count) livres")
+                Text(unavailable ? String(localized: "Indisponible") : String(localized: "\(count) livres"))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
                 Button("Retirer…") { confirming = true }
                     .disabled(library.folders.count < 2)
-                    .help(library.folders.count < 2 ? "La bibliothèque garde au moins un dossier de livres"
-                          : "Retirer ce dossier de la bibliothèque ; ses fichiers restent sur le disque")
+                    .help(library.folders.count < 2 ? String(localized: "La bibliothèque garde au moins un dossier de livres")
+                          : String(localized: "Retirer ce dossier de la bibliothèque ; ses fichiers restent sur le disque"))
             }
         } label: {
             Label {
@@ -31,13 +31,13 @@ struct FolderRow: View {
             } icon: {
                 Image(systemName: unavailable ? "externaldrive.badge.xmark" : "folder")
             }
-            .help(unavailable ? "Disque débranché ou dossier introuvable : ses livres reviendront quand il sera rebranché" : folder.path)
+            .help(unavailable ? String(localized: "Disque débranché ou dossier introuvable : ses livres reviendront quand il sera rebranché") : folder.path)
         }
         .confirmationDialog("Retirer « \(LibraryFolders.name(of: folder.path)) » de la bibliothèque ?", isPresented: $confirming) {
             Button("Retirer le dossier", role: .destructive) { library.removeFolder(folder.path) }
         } message: {
-            Text(count == 1 ? "1 livre quitte la bibliothèque, avec sa place sur les étagères et dans l'attente d'envoi. Le fichier reste sur le disque."
-                 : "\(count) livres quittent la bibliothèque, avec leur place sur les étagères et dans l'attente d'envoi. Les fichiers restent sur le disque.")
+            Text(count == 1 ? String(localized: "1 livre quitte la bibliothèque, avec sa place sur les étagères et dans l'attente d'envoi. Le fichier reste sur le disque.")
+                 : String(localized: "\(count) livres quittent la bibliothèque, avec leur place sur les étagères et dans l'attente d'envoi. Les fichiers restent sur le disque."))
         }
     }
 }
@@ -112,10 +112,10 @@ enum SettingsTab: String, CaseIterable {
 
     var title: String {
         switch self {
-        case .general: "Général"
-        case .library: "Bibliothèque"
-        case .backup: "Sauvegarde"
-        case .kindle: "Liseuses"
+        case .general: String(localized: "Général")
+        case .library: String(localized: "Bibliothèque")
+        case .backup: String(localized: "Sauvegarde")
+        case .kindle: String(localized: "Liseuses")
         }
     }
 
@@ -152,6 +152,7 @@ struct SettingsView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 ZoteroSection()
+                LanguageSection()
                 Section("Mises à jour") {
                     Toggle("Vérifier au démarrage s'il existe une version plus récente", isOn: Binding(
                         get: { updates.autoCheck }, set: { updates.autoCheck = $0 }))
@@ -260,7 +261,7 @@ struct SettingsView: View {
                 }
                 .sheet(isPresented: $addsReader) { AddReaderSheet() }
                 Section("Kindle") {
-                    LabeledContent("Disque USB", value: "Pris en charge")
+                    LabeledContent("Disque USB", value: String(localized: "Pris en charge"))
                     LabeledContent("MTP (modèles récents)") {
                         if kindle.mtpAvailable {
                             Label("libmtp chargée", systemImage: "checkmark.circle.fill").foregroundStyle(Palette.success)
@@ -286,12 +287,12 @@ struct SettingsView: View {
 
     private var updateStatus: String {
         switch updates.status {
-        case .idle: "Pas encore vérifié"
-        case .checking: "Vérification…"
-        case .upToDate: "À jour"
-        case .available(let info): info.newCommits == 1 ? "1 modification disponible" : "\(info.newCommits) modifications disponibles"
-        case .release(let r): "Version \(r.version) disponible"
-        case .failed: "Vérification impossible"
+        case .idle: String(localized: "Pas encore vérifié")
+        case .checking: String(localized: "Vérification…")
+        case .upToDate: String(localized: "À jour")
+        case .available(let info): info.newCommits == 1 ? String(localized: "1 modification disponible") : String(localized: "\(info.newCommits) modifications disponibles")
+        case .release(let r): String(localized: "Version \(r.version) disponible")
+        case .failed: String(localized: "Vérification impossible")
         }
     }
 

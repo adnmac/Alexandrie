@@ -9,7 +9,7 @@ final class ZipReader {
         do {
             archive = try Archive(url: url, accessMode: .read)
         } catch {
-            throw BookError.unreadable("archive ZIP invalide")
+            throw BookError.unreadable(String(localized: "archive ZIP invalide"))
         }
     }
 
@@ -23,7 +23,7 @@ final class ZipReader {
 
     func data(_ path: String) throws -> Data {
         guard let entry = archive[path] ?? caseInsensitiveEntry(path) else {
-            throw BookError.unreadable("fichier absent de l'archive : \(path)")
+            throw BookError.unreadable(String(localized: "fichier absent de l'archive : \(path)"))
         }
         var data = Data()
         _ = try archive.extract(entry, skipCRC32: true) { data.append($0) }

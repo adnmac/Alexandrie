@@ -38,7 +38,7 @@ struct ZoteroSection: View {
                 .foregroundStyle(Palette.warning)
                 .help(ZoteroError.localAPIDisabled.errorDescription ?? "")
         case .ready(let authorized):
-            Label(authorized ? "Relié" : "Prêt (autorisation au premier envoi)", systemImage: "checkmark.circle.fill")
+            Label(authorized ? String(localized: "Relié") : String(localized: "Prêt (autorisation au premier envoi)"), systemImage: "checkmark.circle.fill")
                 .foregroundStyle(Palette.success)
         case .failed(let message):
             Label("Injoignable", systemImage: "exclamationmark.triangle")

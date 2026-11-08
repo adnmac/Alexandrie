@@ -62,7 +62,7 @@ final class PDFPageController {
                 if let page = child.destination?.page {
                     let index = document.index(for: page)
                     if index != NSNotFound {
-                        entries.append(ReaderBook.Entry(title: child.label ?? "Page \(index + 1)", chapter: index,
+                        entries.append(ReaderBook.Entry(title: child.label ?? String(localized: "Page \(index + 1)"), chapter: index,
                                                         fragment: nil, depth: depth))
                     }
                 }

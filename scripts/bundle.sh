@@ -37,10 +37,14 @@ if [[ -x "$INTENTS_TOOL" && -f "$CONSTS" ]]; then
   rm -rf "$WORK"
 fi
 if [[ -f "$APP/Contents/Resources/Metadata.appintents/extract.actionsdata" ]]; then
-  echo "🧩 action Raccourcis « Envoyer à la Kindle »"
+  echo "🧩 action Raccourcis « Envoyer à la liseuse »"
 else
   echo "⚠️  pas de Metadata.appintents (Xcode absent ?) : l'action Raccourcis ne sera pas proposée"
 fi
+# Traductions de l'interface (Resources/Localizable.xcstrings) et des autorisations (InfoPlist.xcstrings).
+scripts/l10n.sh compile "$APP/Contents/Resources"
+LOCALIZATIONS=""
+for l in $(scripts/l10n.sh languages); do LOCALIZATIONS+="<string>$l</string>"; done
 # Commit compilé : l'app le compare à GitHub pour signaler les mises à jour.
 COMMIT="$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || true)"
 VERSION="$(cat "$ROOT/VERSION" 2>/dev/null || echo 0.0.0)"
@@ -60,6 +64,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundleDevelopmentRegion</key><string>fr</string>
+  <key>CFBundleLocalizations</key><array>${LOCALIZATIONS}</array>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.books</string>
   <key>NSHighResolutionCapable</key><true/>
@@ -67,7 +72,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <!-- Adresse qui reçoit les rapports de plantage que l'utilisateur choisit d'envoyer (vide : Finder seulement). -->
   <key>AlexandrieSupportEmail</key><string>${ALEXANDRIE_SUPPORT_EMAIL:-}</string>
   <!-- Explications des autorisations demandées par macOS (audit, § 3). -->
-  <key>NSRemovableVolumesUsageDescription</key><string>Alexandrie envoie vos livres à votre Kindle et lit ses notes et surlignages quand elle est branchée.</string>
+  <key>NSRemovableVolumesUsageDescription</key><string>Alexandrie envoie vos livres à votre liseuse et lit ses notes et surlignages quand elle est branchée.</string>
   <key>NSDocumentsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Documents, sans les modifier.</string>
   <key>NSDesktopFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés sur le Bureau, sans les modifier.</string>
   <key>NSDownloadsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Téléchargements, sans les modifier.</string>

@@ -97,15 +97,16 @@ final class ZoteroStore {
         let clippings = entry.clippings.filter { !$0.isHidden && $0.kind != .bookmark }
         await run(title: book?.title ?? entry.title) { sender in
             let ref = Self.reference(book, entry: entry)
-            let html = ZoteroNote.html(heading: "Notes d'Alexandrie", title: ref.title, author: ref.authors.joined(separator: ", "),
+            let html = ZoteroNote.html(heading: String(localized: "Notes d'Alexandrie"), title: ref.title, author: ref.authors.joined(separator: ", "),
                                        passages: clippings.map { self.passage($0, in: nil) })
             let outcome = try await sender.send(html: html, book: ref, previous: self.links.books[bookKey])
             self.links.books[bookKey] = outcome.link
             return [outcome]
         } summary: { outcomes in
             let o = outcomes[0]
-            return "Envoyé à Zotero : \(clippings.count) passage\(clippings.count > 1 ? "s" : ""), référence "
-                + (o.createdItem ? "créée" : "retrouvée") + ", note " + (o.createdNote ? "ajoutée." : "mise à jour.")
+            return [String(localized: "Envoyé à Zotero : \(clippings.count) passages."),
+                    o.createdItem ? String(localized: "Référence créée.") : String(localized: "Référence retrouvée."),
+                    o.createdNote ? String(localized: "Note ajoutée.") : String(localized: "Note mise à jour.")].joined(separator: " ")
         }
     }
 
@@ -114,13 +115,13 @@ final class ZoteroStore {
         guard let research = researches().research(id: thematicID) else { return }
         let all = kindle.clippings.filter { !$0.isHidden && $0.kind != .bookmark && $0.thematicIDs.contains(thematicID) }
         let byBook = Dictionary(grouping: all) { ShelfSync.normalize($0.title) }
-        guard !byBook.isEmpty else { message = "Cette thématique n'a encore aucun passage."; return }
+        guard !byBook.isEmpty else { message = String(localized: "Cette thématique n'a encore aucun passage."); return }
         await run(title: research.name) { sender in
             var outcomes: [ZoteroSender.Outcome] = []
             for (bookKey, clippings) in byBook.sorted(by: { $0.key < $1.key }) {
                 let book = self.library.books(titleKey: bookKey).first { $0.trashedAt == nil }
                 let ref = Self.reference(book, title: clippings[0].title, author: clippings[0].author)
-                let html = ZoteroNote.html(heading: research.name.isEmpty ? "Thématique" : research.name, title: ref.title,
+                let html = ZoteroNote.html(heading: research.name.isEmpty ? String(localized: "Thématique") : research.name, title: ref.title,
                                            author: ref.authors.joined(separator: ", "),
                                            passages: clippings.map { self.passage($0, in: thematicID) })
                 let key = ZoteroLinks.thematicKey(thematicID, book: bookKey)
@@ -135,8 +136,8 @@ final class ZoteroStore {
             return outcomes
         } summary: { outcomes in
             let created = outcomes.filter(\.createdItem).count
-            return "Envoyé à Zotero : \(all.count) passage\(all.count > 1 ? "s" : ""), \(outcomes.count) livre\(outcomes.count > 1 ? "s" : "")"
-                + (created > 0 ? " (\(created) référence\(created > 1 ? "s" : "") créée\(created > 1 ? "s" : ""))." : ".")
+            return [String(localized: "Envoyé à Zotero : \(all.count) passages."), String(localized: "\(outcomes.count) livres.")]
+                .joined(separator: " ") + (created > 0 ? " " + String(localized: "\(created) références créées.") : "")
         }
     }
 
@@ -168,7 +169,7 @@ final class ZoteroStore {
             try? links.save(to: linksURL)
             if case ZoteroError.localAPIDisabled = error { status = .disabled }
             if case ZoteroError.notRunning = error { status = .notRunning }
-            message = "Envoi à Zotero impossible : " + ((error as? ZoteroStoreError)?.errorDescription ?? ZoteroLocalClient.describe(error))
+            message = String(localized: "Envoi à Zotero impossible : ") + ((error as? ZoteroStoreError)?.errorDescription ?? ZoteroLocalClient.describe(error))
         }
     }
 
@@ -198,6 +199,6 @@ final class ZoteroStore {
 enum ZoteroStoreError: LocalizedError {
     case needsAlwaysAllow
     var errorDescription: String? {
-        "dans la fenêtre de Zotero, choisissez « Toujours autoriser » : chaque envoi écrit plusieurs éléments (référence et note)."
+        String(localized: "dans la fenêtre de Zotero, choisissez « Toujours autoriser » : chaque envoi écrit plusieurs éléments (référence et note).")
     }
 }

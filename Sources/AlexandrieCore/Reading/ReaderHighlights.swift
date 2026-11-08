@@ -42,11 +42,11 @@ public enum HighlightColor: String, Codable, CaseIterable, Identifiable, Sendabl
 
     public var label: String {
         switch self {
-        case .yellow: "Jaune"
-        case .green: "Vert"
-        case .blue: "Bleu"
-        case .pink: "Rose"
-        case .purple: "Violet"
+        case .yellow: String(localized: "Jaune")
+        case .green: String(localized: "Vert")
+        case .blue: String(localized: "Bleu")
+        case .pink: String(localized: "Rose")
+        case .purple: String(localized: "Violet")
         }
     }
 }

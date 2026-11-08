@@ -6,9 +6,9 @@ public enum OPDSLanguage {
     /// Langues proposées (codes ISO 639-1), dans l'ordre du menu.
     public static let choices = ["fr", "en", "de", "es", "it", "nl", "pt", "la"]
 
-    /// Nom en français (« Français »), d'après le système.
+    /// Nom de la langue dans la langue de l'interface (« Français », « French »…), d'après le système.
     public static func name(_ code: String) -> String {
-        Locale(identifier: "fr").localizedString(forLanguageCode: code)?.capitalized(with: Locale(identifier: "fr")) ?? code
+        Locale.current.localizedString(forLanguageCode: code)?.capitalized(with: .current) ?? code
     }
 
     /// Code ISO 639-1 d'une langue de flux : `fre`, `fra`, `fr-FR`, `FR` → `fr`.

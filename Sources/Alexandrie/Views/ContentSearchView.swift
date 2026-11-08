@@ -69,14 +69,15 @@ struct ContentSearchView: View {
                 } else {
                     ContentUnavailableView("Aucun livre ne contient « \(query) »", systemImage: "text.magnifyingglass",
                                            description: Text(indexer.isIndexing
-                                               ? "Les livres pas encore indexés seront cherchés dès qu'ils le seront."
-                                               : exact ? "En écriture exacte, majuscules et accents comptent ; décochez-la pour trouver toutes les écritures."
-                                               : "La recherche ignore les accents et les majuscules ; le dernier mot peut être un début de mot."))
+                                               ? String(localized: "Les livres pas encore indexés seront cherchés dès qu'ils le seront.")
+                                               : exact ? String(localized: "En écriture exacte, majuscules et accents comptent ; décochez-la pour trouver toutes les écritures.")
+                                               : String(localized: "La recherche ignore les accents et les majuscules ; le dernier mot peut être un début de mot.")))
                 }
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        Text("\(results.count) livre\(results.count > 1 ? "s" : "") · \(results.reduce(0) { $0 + $1.count }) passages")
+                        Text(verbatim: String(localized: "\(results.count) livres") + " · "
+                             + String(localized: "\(results.reduce(0) { $0 + $1.count }) passages"))
                             .font(.caption.monospacedDigit())
                             .foregroundStyle(.secondary)
                             .padding(.vertical, Space.sm)
@@ -142,7 +143,7 @@ struct ContentSearchView: View {
                 } label: {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(result.book.title).font(.headline).lineLimit(2)
-                        Text(result.book.authorLine + " · \(result.count) passage\(result.count > 1 ? "s" : "")")
+                        Text(verbatim: result.book.authorLine + " · " + String(localized: "\(result.count) passages"))
                             .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -163,11 +164,11 @@ struct ContentSearchView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help(result.book.format == .pdf ? "Ouvrir la page \(snippet.section + 1) à ce passage"
-                          : "Ouvrir la fenêtre de lecture à ce passage")
+                    .help(result.book.format == .pdf ? String(localized: "Ouvrir la page \(snippet.section + 1) à ce passage")
+                          : String(localized: "Ouvrir la fenêtre de lecture à ce passage"))
                 }
                 if result.count > result.snippets.count {
-                    Text("et \(result.count - result.snippets.count) autre\(result.count - result.snippets.count > 1 ? "s" : "") passage\(result.count - result.snippets.count > 1 ? "s" : "")")
+                    Text(String(localized: "et \(result.count - result.snippets.count) autres passages"))
                         .font(.caption).foregroundStyle(.tertiary)
                 }
             }

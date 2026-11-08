@@ -61,8 +61,9 @@ final class CrashReports {
     func email() {
         guard let address = supportEmail, let service = NSSharingService(named: .composeEmail) else { return reveal() }
         service.recipients = [address]
-        service.subject = "Alexandrie \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "") : rapport de plantage"
-        let body = "Bonjour,\n\nAlexandrie s'est arrêtée. Voici le rapport que macOS a remis à l'app.\n\nCe que je faisais à ce moment-là :\n\n"
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? ""
+        service.subject = String(localized: "Alexandrie \(version) : rapport de plantage")
+        let body = String(localized: "Bonjour,\n\nAlexandrie s'est arrêtée. Voici le rapport que macOS a remis à l'app.\n\nCe que je faisais à ce moment-là :\n\n")
         service.perform(withItems: [body] + pending)
         // Envoyés (ou confiés à Mail) : ils ne sont plus proposés.
         for url in pending { try? FileManager.default.removeItem(at: url) }
@@ -90,7 +91,9 @@ struct CrashReportSheet: View {
         VStack(alignment: .leading, spacing: Space.lg) {
             Label("Alexandrie s'est arrêtée", systemImage: "exclamationmark.triangle")
                 .font(.title3.weight(.semibold))
-            Text("macOS a remis à Alexandrie \(reports.pending.count == 1 ? "un rapport" : "\(reports.pending.count) rapports") de plantage. L'envoyer aide à corriger le problème.")
+            Text(reports.pending.count == 1
+                 ? String(localized: "macOS a remis à Alexandrie un rapport de plantage. L'envoyer aide à corriger le problème.")
+                 : String(localized: "macOS a remis à Alexandrie \(reports.pending.count) rapports de plantage. L'envoyer aide à corriger le problème."))
                 .fixedSize(horizontal: false, vertical: true)
             Text("Un rapport contient les fonctions en cours au moment de l'arrêt, la version d'Alexandrie et de macOS, et le modèle du Mac. Ni vos livres, ni vos notes, ni votre nom.")
                 .font(.caption)

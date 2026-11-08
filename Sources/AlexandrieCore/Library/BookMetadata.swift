@@ -21,10 +21,10 @@ public enum BookError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .unreadable(let why): "Fichier illisible : \(why)."
-        case .drmProtected: "Ce livre est protégé par DRM : il ne peut pas être converti."
-        case .unsupported(let why): "Non pris en charge : \(why)."
-        case .conversionFailed(let why): "La conversion a échoué : \(why)."
+        case .unreadable(let why): String(localized: "Fichier illisible : \(why).")
+        case .drmProtected: String(localized: "Ce livre est protégé par DRM : il ne peut pas être converti.")
+        case .unsupported(let why): String(localized: "Non pris en charge : \(why).")
+        case .conversionFailed(let why): String(localized: "La conversion a échoué : \(why).")
         }
     }
 }
@@ -80,7 +80,7 @@ public struct BookMetadata: Sendable, Equatable {
 public enum MetadataExtractor {
     public static func extract(from url: URL) throws -> BookMetadata {
         guard let format = BookFormat(url: url) else {
-            throw BookError.unsupported("extension .\(url.pathExtension)")
+            throw BookError.unsupported(String(localized: "extension .\(url.pathExtension)"))
         }
         var meta: BookMetadata
         switch format {

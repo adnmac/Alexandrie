@@ -59,7 +59,7 @@ public enum MobiMetadataWriter {
         // Sous DRM, l'enregistrement 0 contient les clés : le modifier rendrait le livre illisible.
         guard !book.isDRMProtected else { throw BookError.drmProtected }
         let e = edits.normalized
-        guard !e.title.isEmpty else { throw BookError.conversionFailed("le titre ne peut pas être vide") }
+        guard !e.title.isEmpty else { throw BookError.conversionFailed(String(localized: "le titre ne peut pas être vide")) }
 
         var records = book.records
         var headers = [book.kf7]

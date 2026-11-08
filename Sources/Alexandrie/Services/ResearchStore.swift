@@ -78,7 +78,7 @@ final class ResearchStore {
     // MARK: Gestion des thématiques (S-075, S-079)
 
     @discardableResult
-    func addResearch(name: String = "Nouvelle thématique") -> Research {
+    func addResearch(name: String = String(localized: "Nouvelle thématique")) -> Research {
         let research = Research.new(name: name)
         list.researches.append(research)
         save()
@@ -127,7 +127,7 @@ final class ResearchStore {
         do {
             try ResearchList.save(list, to: url)
         } catch {
-            kindle.lastError = "Impossible d'enregistrer les thématiques : \(error.localizedDescription)"
+            kindle.lastError = String(localized: "Impossible d'enregistrer les thématiques : \(error.localizedDescription)")
         }
     }
 }

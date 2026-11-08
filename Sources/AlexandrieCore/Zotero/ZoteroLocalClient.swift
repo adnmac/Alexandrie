@@ -54,15 +54,15 @@ public enum ZoteroError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .notRunning: "Zotero n'est pas ouvert : lancez-le, puis réessayez."
-        case .localAPIDisabled: "Dans Zotero, cochez Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero »."
-        case .tooOld: "Cette version de Zotero ne permet pas aux autres applications d'écrire : il faut Zotero 10 ou plus récent."
-        case .denied: "Zotero a refusé l'accès. Réessayez et choisissez « Toujours autoriser »."
-        case .tooManyRequests: "Trop de demandes d'autorisation : attendez une minute."
-        case .unauthorized: "L'autorisation donnée par Zotero n'est plus valable : réessayez pour la redonner."
-        case .conflict: "La note a été modifiée dans Zotero en même temps : réessayez."
-        case .notFound: "Élément introuvable dans Zotero."
-        case .failed(let status, let message): "Zotero a répondu \(status)" + (message.isEmpty ? "." : " : \(message)")
+        case .notRunning: String(localized: "Zotero n'est pas ouvert : lancez-le, puis réessayez.")
+        case .localAPIDisabled: String(localized: "Dans Zotero, cochez Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero ».")
+        case .tooOld: String(localized: "Cette version de Zotero ne permet pas aux autres applications d'écrire : il faut Zotero 10 ou plus récent.")
+        case .denied: String(localized: "Zotero a refusé l'accès. Réessayez et choisissez « Toujours autoriser ».")
+        case .tooManyRequests: String(localized: "Trop de demandes d'autorisation : attendez une minute.")
+        case .unauthorized: String(localized: "L'autorisation donnée par Zotero n'est plus valable : réessayez pour la redonner.")
+        case .conflict: String(localized: "La note a été modifiée dans Zotero en même temps : réessayez.")
+        case .notFound: String(localized: "Élément introuvable dans Zotero.")
+        case .failed(let status, let message): String(localized: "Zotero a répondu \(status)") + (message.isEmpty ? "." : " : \(message)")
         }
     }
 }
@@ -164,7 +164,7 @@ public struct ZoteroLocalClient: Sendable {
         if r.status == 404 || r.status == 405 { throw ZoteroError.tooOld }
         try check(r)
         guard let json = try JSONSerialization.jsonObject(with: r.data) as? [String: Any],
-              let key = json["key"] as? String, !key.isEmpty else { throw ZoteroError.failed(r.status, "réponse illisible") }
+              let key = json["key"] as? String, !key.isEmpty else { throw ZoteroError.failed(r.status, String(localized: "réponse illisible")) }
         return (key, json["remember"] as? Bool ?? false)
     }
 
@@ -185,7 +185,7 @@ public struct ZoteroLocalClient: Sendable {
         let r = try await send(ZoteroRequest("GET", "/users/0/items/\(key)", query: [URLQueryItem(name: "format", value: "json")]))
         try check(r)
         guard let json = try JSONSerialization.jsonObject(with: r.data) as? [String: Any],
-              let item = ZoteroItem(json: json) else { throw ZoteroError.failed(r.status, "réponse illisible") }
+              let item = ZoteroItem(json: json) else { throw ZoteroError.failed(r.status, String(localized: "réponse illisible")) }
         if item.deleted { throw ZoteroError.notFound }
         return item
     }
@@ -240,7 +240,7 @@ public struct ZoteroLocalClient: Sendable {
         }
         if let key = (json["success"] as? [String: Any])?["0"] as? String { return (key, version ?? 0) }
         let failure = ((json["failed"] as? [String: Any])?["0"] as? [String: Any])?["message"] as? String
-        throw ZoteroError.failed(r.status, failure ?? "élément non créé")
+        throw ZoteroError.failed(r.status, failure ?? String(localized: "élément non créé"))
     }
 
     /// Message compréhensible pour une erreur Zotero ou réseau.

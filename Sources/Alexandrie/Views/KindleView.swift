@@ -20,7 +20,7 @@ struct KindleView: View {
                 missingBanner
                 offShelfBanner
                 if documents.isEmpty {
-                    ContentUnavailableView(kindle.documents.isEmpty ? "La liseuse ne contient aucun livre" : "Aucun résultat",
+                    ContentUnavailableView(kindle.documents.isEmpty ? String(localized: "La liseuse ne contient aucun livre") : String(localized: "Aucun résultat"),
                                            systemImage: "books.vertical")
                 } else if gridMode {
                     grid
@@ -44,7 +44,7 @@ struct KindleView: View {
                     Label("Aucune liseuse détectée", systemImage: "cable.connector")
                 }
             } description: {
-                Text(kindle.ejectedName != nil ? "Vous pouvez débrancher la liseuse en toute sécurité." : disconnectedHelp)
+                Text(kindle.ejectedName != nil ? String(localized: "Vous pouvez débrancher la liseuse en toute sécurité.") : disconnectedHelp)
             } actions: {
                 Button("Rechercher à nouveau") { Task { await kindle.refresh() } }
             }
@@ -59,8 +59,8 @@ struct KindleView: View {
                 Image(systemName: "tray.and.arrow.up.fill").font(.title2).foregroundStyle(Palette.warning)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(off.count == 1
-                         ? "1 livre de cette liseuse n'est plus sur l'étagère de « \(reader.name) »"
-                         : "\(off.count) livres de cette liseuse ne sont plus sur l'étagère de « \(reader.name) »")
+                         ? String(localized: "1 livre de cette liseuse n'est plus sur l'étagère de « \(reader.name) »")
+                         : String(localized: "\(off.count) livres de cette liseuse ne sont plus sur l'étagère de « \(reader.name) »"))
                         .font(.callout.weight(.semibold))
                     Text(off.prefix(3).map(\.book.title).joined(separator: " · ") + (off.count > 3 ? " …" : ""))
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
@@ -68,13 +68,13 @@ struct KindleView: View {
                 .help(off.map(\.book.title).joined(separator: "\n"))
                 Spacer(minLength: 8)
                 Button("Remettre sur l'étagère") {
-                    library.undoable("Ajouter à l'étagère") { library.addToShelf(off.map(\.book), reader: reader.id) }
+                    library.undoable(String(localized: "Ajouter à l'étagère")) { library.addToShelf(off.map(\.book), reader: reader.id) }
                 }
                 Button("Retirer de la liseuse…") { pendingTidy = off.map(\.document) }
                     .disabled(kindle.isBusy)
             }
             .banner(Palette.warning)
-            .confirmationDialog(pendingTidy.count == 1 ? "Retirer ce livre de la liseuse ?" : "Retirer ces \(pendingTidy.count) livres de la liseuse ?",
+            .confirmationDialog(pendingTidy.count == 1 ? String(localized: "Retirer ce livre de la liseuse ?") : String(localized: "Retirer ces \(pendingTidy.count) livres de la liseuse ?"),
                                 isPresented: Binding(get: { !pendingTidy.isEmpty }, set: { if !$0 { pendingTidy = [] } })) {
                 Button("Retirer de la liseuse", role: .destructive) {
                     let docs = pendingTidy
@@ -95,15 +95,15 @@ struct KindleView: View {
                 Image(systemName: "books.vertical.circle.fill").font(.title2).foregroundStyle(Palette.info)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(missing.count == 1
-                         ? "1 livre de l'étagère de « \(reader.name) » n'est pas sur cette liseuse"
-                         : "\(missing.count) livres de l'étagère de « \(reader.name) » ne sont pas sur cette liseuse")
+                         ? String(localized: "1 livre de l'étagère de « \(reader.name) » n'est pas sur cette liseuse")
+                         : String(localized: "\(missing.count) livres de l'étagère de « \(reader.name) » ne sont pas sur cette liseuse"))
                         .font(.callout.weight(.semibold))
                     Text(missing.prefix(3).map(\.title).joined(separator: " · ") + (missing.count > 3 ? " …" : ""))
                         .font(.caption).foregroundStyle(.secondary).lineLimit(1)
                 }
                 .help(missing.map(\.title).joined(separator: "\n"))
                 Spacer(minLength: 8)
-                Button(missing.count == 1 ? "Envoyer" : "Envoyer les \(missing.count)") {
+                Button(missing.count == 1 ? String(localized: "Envoyer") : String(localized: "Envoyer les \(missing.count)")) {
                     Task { await kindle.send(missing, library: library) }
                 }
                 .buttonStyle(.borderedProminent)
@@ -118,8 +118,8 @@ struct KindleView: View {
         HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(kindle.displayName ?? device.name).font(.title2.weight(.semibold))
-                Text("\(device.connection.rawValue) · \(kindle.documents.count) livres"
-                     + (kindle.freeSpace.map { " · \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)) libres" } ?? ""))
+                Text(device.connection.label + " · " + String(localized: "\(kindle.documents.count) livres")
+                     + (kindle.freeSpace.map { String(localized: " · \(ByteCountFormatter.string(fromByteCount: $0, countStyle: .file)) libres") } ?? ""))
                     .foregroundStyle(.secondary)
             }
             Spacer()
@@ -145,8 +145,8 @@ struct KindleView: View {
                 }
             }
             .disabled(!kindle.canEject || kindle.isBusy)
-            .help(kindle.canEject ? "Éjecter la liseuse avant de la débrancher (⌘E)"
-                  : "Kindle en MTP : vous pouvez la débrancher directement")
+            .help(kindle.canEject ? String(localized: "Éjecter la liseuse avant de la débrancher (⌘E)")
+                  : String(localized: "Kindle en MTP : vous pouvez la débrancher directement"))
         }
         .padding()
     }
@@ -212,9 +212,9 @@ struct KindleView: View {
     private var disconnectedHelp: String {
         // Texte court : il s'affiche dans la colonne étroite de la liste.
         if kindle.mtpAvailable {
-            return "Branchez-la en USB et déverrouillez\u{2011}la. Fermez Android File Transfer s'il est ouvert."
+            return String(localized: "Branchez-la en USB et déverrouillez\u{2011}la. Fermez Android File Transfer s'il est ouvert.")
         }
-        return "Branchez-la en USB et déverrouillez\u{2011}la. Les Kindle récentes demandent libmtp : « brew install libmtp », puis relancez Alexandrie."
+        return String(localized: "Branchez-la en USB et déverrouillez\u{2011}la. Les Kindle récentes demandent libmtp : « brew install libmtp », puis relancez Alexandrie.")
     }
 }
 
@@ -293,8 +293,8 @@ struct KindleBookDetailView: View {
                         Label("Corriger les informations…", systemImage: "pencil")
                     }
                     .disabled(!KindleEditor.canEdit(document, info: info) || kindle.isBusy)
-                    .help(KindleEditor.canEdit(document, info: info) ? "Réécrire titre, auteurs, date… dans le fichier sur la liseuse"
-                          : "Non modifiable : format \(info.format) ou livre protégé par DRM")
+                    .help(KindleEditor.canEdit(document, info: info) ? String(localized: "Réécrire titre, auteurs, date… dans le fichier sur la liseuse")
+                          : String(localized: "Non modifiable : format \(info.format) ou livre protégé par DRM"))
                     .sheet(isPresented: $isEditing) {
                         KindleEditSheet(document: document, info: info)
                     }
@@ -315,14 +315,14 @@ struct KindleBookDetailView: View {
                 }
 
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.md, verticalSpacing: Space.sm) {
-                    row("Format", info?.format ?? document.fileExtension.uppercased())
-                    row("Taille", ByteCountFormatter.string(fromByteCount: document.size, countStyle: .file))
-                    if let l = info?.language { row("Langue", l) }
-                    if let p = info?.publisher { row("Éditeur", p) }
-                    if let d = info?.publishedDate { row("Publication", d) }
-                    if let t = info?.cdeType { row("Type", Self.typeLabel(t)) }
+                    row(String(localized: "Format"), info?.format ?? document.fileExtension.uppercased())
+                    row(String(localized: "Taille"), ByteCountFormatter.string(fromByteCount: document.size, countStyle: .file))
+                    if let l = info?.language { row(String(localized: "Langue"), l) }
+                    if let p = info?.publisher { row(String(localized: "Éditeur"), p) }
+                    if let d = info?.publishedDate { row(String(localized: "Publication"), d) }
+                    if let t = info?.cdeType { row(String(localized: "Type"), Self.typeLabel(t)) }
                     if let a = info?.asin { row("ASIN", a) }
-                    row("Emplacement", "documents/" + document.path)
+                    row(String(localized: "Emplacement"), "documents/" + document.path)
                 }
                 .font(.callout)
 
@@ -343,9 +343,9 @@ struct KindleBookDetailView: View {
 
     static func typeLabel(_ cde: String) -> String {
         switch cde {
-        case "EBOK": "Livre (EBOK)"
-        case "PDOC": "Document personnel (PDOC)"
-        case "EBSP": "Extrait (EBSP)"
+        case "EBOK": String(localized: "Livre (EBOK)")
+        case "PDOC": String(localized: "Document personnel (PDOC)")
+        case "EBSP": String(localized: "Extrait (EBSP)")
         default: cde
         }
     }

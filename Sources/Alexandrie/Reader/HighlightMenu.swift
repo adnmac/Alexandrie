@@ -30,20 +30,20 @@ enum HighlightMenu {
     static func items(selection: Bool, highlight id: Clipping.ID?, actions: ReaderHighlightActions) -> [NSMenuItem] {
         var items: [NSMenuItem] = []
         if selection {
-            items.append(ClosureMenuItem("Surligner") { actions.highlight(false) })
-            items.append(ClosureMenuItem("Surligner et ajouter une note…") { actions.highlight(true) })
-            let title = actions.researchName().map { "Couleur des surlignages (\($0))" } ?? "Couleur des surlignages"
+            items.append(ClosureMenuItem(String(localized: "Surligner")) { actions.highlight(false) })
+            items.append(ClosureMenuItem(String(localized: "Surligner et ajouter une note…")) { actions.highlight(true) })
+            let title = actions.researchName().map { String(localized: "Couleur des surlignages (\($0))") } ?? String(localized: "Couleur des surlignages")
             items.append(markMenu(title, marks: actions.marks(nil), current: actions.mark(nil)) { actions.setMark(nil, $0) })
         }
         if let id, let clipping = actions.lookup(id) {
             if !items.isEmpty { items.append(.separator()) }
-            items.append(ClosureMenuItem(clipping.hasNote ? "Modifier la note…" : "Ajouter une note…") { actions.editNote(id) })
+            items.append(ClosureMenuItem(clipping.hasNote ? String(localized: "Modifier la note…") : String(localized: "Ajouter une note…")) { actions.editNote(id) })
             items.append(markMenu("Couleur", marks: actions.marks(id), current: actions.mark(id)) { actions.setMark(id, $0) })
             let thematics = actions.thematics()
             if !thematics.isEmpty {
                 // Thématiques à cocher : un passage peut en avoir plusieurs (S-079).
-                let item = NSMenuItem(title: "Thématiques", action: nil, keyEquivalent: "")
-                let submenu = NSMenu(title: "Thématiques")
+                let item = NSMenuItem(title: String(localized: "Thématiques"), action: nil, keyEquivalent: "")
+                let submenu = NSMenu(title: String(localized: "Thématiques"))
                 for thematic in thematics {
                     let on = clipping.thematicIDs.contains(thematic.id)
                     let entry = ClosureMenuItem(thematic.name) { actions.setThematic(id, thematic.id, !on) }
@@ -53,7 +53,7 @@ enum HighlightMenu {
                 item.submenu = submenu
                 items.append(item)
             }
-            items.append(ClosureMenuItem("Supprimer le surlignage") { actions.delete(id) })
+            items.append(ClosureMenuItem(String(localized: "Supprimer le surlignage")) { actions.delete(id) })
         }
         return items
     }

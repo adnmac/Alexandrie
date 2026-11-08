@@ -34,6 +34,13 @@ extension EnvironmentValues {
 enum SortOrder: String, CaseIterable, Identifiable {
     case title = "Titre", author = "Auteur", added = "Date d'ajout"
     var id: Self { self }
+    var label: String {
+        switch self {
+        case .title: String(localized: "Titre")
+        case .author: String(localized: "Auteur")
+        case .added: String(localized: "Date d'ajout")
+        }
+    }
 }
 
 extension SidebarItem {

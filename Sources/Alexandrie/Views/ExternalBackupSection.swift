@@ -79,7 +79,7 @@ struct ExternalBackupSection: View {
                     .foregroundStyle(Palette.warning)
                     .help("\(folder.path) : disque débranché ou dossier déplacé. La sauvegarde reprendra quand il sera de retour.")
             } else {
-                Text(backups.isInICloud ? "iCloud Drive" + Self.relative(folder) : (folder.path as NSString).abbreviatingWithTildeInPath)
+                Text(backups.isInICloud ? String(localized: "iCloud Drive") + Self.relative(folder) : (folder.path as NSString).abbreviatingWithTildeInPath)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .truncationMode(.middle)
@@ -116,8 +116,8 @@ struct ExternalBackupSection: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
-        panel.prompt = "Choisir"
-        panel.message = "Dossier de sauvegarde : iCloud Drive, un disque externe… Alexandrie y crée « Sauvegarde Alexandrie »."
+        panel.prompt = String(localized: "Choisir")
+        panel.message = String(localized: "Dossier de sauvegarde : iCloud Drive, un disque externe… Alexandrie y crée « Sauvegarde Alexandrie ».")
         panel.directoryURL = backups.folder ?? BackupMonitor.iCloudDrive
         if panel.runModal() == .OK, let url = panel.url {
             backups.folder = url

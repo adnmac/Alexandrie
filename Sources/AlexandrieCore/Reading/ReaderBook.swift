@@ -138,7 +138,8 @@ public struct ReadingPosition: Codable, Equatable, Sendable {
     /// « 42 % lu », arrondi vers le bas, sauf un livre terminé.
     public var label: String {
         let value = Int((percent * 100).rounded(.down))
-        return percent >= 0.995 ? "Terminé" : "\(max(value, percent > 0 ? 1 : 0)) % lu"
+        let shown = max(value, percent > 0 ? 1 : 0)
+        return percent >= 0.995 ? String(localized: "Terminé") : String(localized: "\(shown) % lu")
     }
 }
 

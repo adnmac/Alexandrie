@@ -741,6 +741,32 @@ Acceptance:
 - [snap] « Liseuse » dans la barre latérale et l'onglet « Liseuses » des réglages.
 Status: done
 
+### S-100 Interface en anglais
+Toute l'interface, les messages, les exports, les notifications et l'action Raccourcis existent en anglais ; Alexandrie suit la langue de macOS.
+Depends: S-001
+Acceptance:
+- [unit] Les tests du cœur gardent le français (pas de catalogue chargé) ; singulier et pluriel distincts dans le cœur.
+- [self] Le self-test passe en français.
+- [snap] Pages, réglages et feuilles en anglais (`ALEXANDRIE_SNAPSHOT_LANG=en`) : aucun texte d'interface resté en français, pluriels justes.
+- [manual] `scripts/l10n.sh check` : aucune traduction manquante.
+Status: done
+
+### S-101 Néerlandais, allemand, espagnol
+Les mêmes textes en néerlandais, allemand et espagnol, avec un glossaire commun (`docs/l10n-glossaire.md`), y compris les textes des autorisations macOS.
+Depends: S-100
+Acceptance:
+- [snap] Pages et réglages en allemand (la langue la plus longue) sans texte coupé.
+- [manual] Relecture par une personne dont c'est la langue. *Pas encore faite.*
+Status: done
+
+### S-102 Choisir la langue dans l'app
+Réglages › Général › Langue : « Langue du système » ou une des cinq langues, chacune écrite dans sa langue ; l'app propose de se relancer.
+Depends: S-100
+Acceptance:
+- [snap] La section « Langue » des réglages.
+- [manual] Choisir English, relancer : l'app, un export Markdown et une note Zotero sont en anglais ; revenir à « Langue du système ».
+Status: done
+
 ## Later
 
 - Liseuses Android Boox (MTP) et reMarkable (page web locale) ; KEPUB pour la Kobo.

@@ -128,7 +128,7 @@ struct ReaderView: View {
             VStack(spacing: 0) {
                 EPUBPageView(controller: controller)
                 footer(previous: controller.previous, next: controller.next,
-                       text: "Page \(controller.page + 1) sur \(controller.pageCount) du chapitre",
+                       text: String(localized: "Page \(controller.page + 1) sur \(controller.pageCount) du chapitre"),
                        percent: controller.percent)
             }
             .background(reading.theme.paperColor)
@@ -136,7 +136,7 @@ struct ReaderView: View {
             VStack(spacing: 0) {
                 PDFPageView(controller: controller)
                 footer(previous: controller.previous, next: controller.next,
-                       text: "Page \(controller.page + 1) sur \(controller.pageCount)", percent: controller.percent)
+                       text: String(localized: "Page \(controller.page + 1) sur \(controller.pageCount)"), percent: controller.percent)
             }
         case nil:
             if let failure {
@@ -201,7 +201,7 @@ struct ReaderView: View {
                 case nil: break
                 }
             })) { entry in
-                Text(entry.title.isEmpty ? "Sans titre" : entry.title)
+                Text(entry.title.isEmpty ? String(localized: "Sans titre") : entry.title)
                     .lineLimit(2)
                     .padding(.leading, CGFloat(entry.depth) * Space.md)
                     .tag(entry.id)
@@ -247,9 +247,9 @@ struct ReaderView: View {
 
     /// Où se trouve un renvoi : la page d'un PDF, ou le titre du chapitre.
     private func hitPlace(_ hit: ContentSearch.Snippet) -> String {
-        if book.format == .pdf { return "Page \(hit.section + 1)" }
+        if book.format == .pdf { return String(localized: "Page \(hit.section + 1)") }
         let entry = entries.last { $0.chapter <= hit.section }
-        return entry.map { $0.title.isEmpty ? "Chapitre \(hit.section + 1)" : $0.title } ?? "Chapitre \(hit.section + 1)"
+        return entry.map { $0.title.isEmpty ? String(localized: "Chapitre \(hit.section + 1)") : $0.title } ?? "Chapitre \(hit.section + 1)"
     }
 
     /// Barre au-dessus de la page : le mot cherché, le renvoi affiché, précédent et suivant (⇧⌘G, ⌘G).
@@ -357,8 +357,8 @@ struct ReaderView: View {
         }
         .menuIndicator(.hidden)
         .disabled(book.format == .pdf)
-        .help(book.format == .pdf ? "Un PDF garde ses polices et ses couleurs"
-              : "Police et fond : \(reading.font.label), \(reading.theme.label.lowercased())")
+        .help(book.format == .pdf ? String(localized: "Un PDF garde ses polices et ses couleurs")
+              : String(localized: "Police et fond : \(reading.font.label), \(reading.theme.label.lowercased())"))
     }
 
     // MARK: Thématique (S-076, S-079)
@@ -376,7 +376,7 @@ struct ReaderView: View {
             Divider()
             Button("Gérer les thématiques…") { managesResearches = true }
         } label: {
-            Label(researches.activeResearch(for: book)?.name ?? "Aucune thématique", systemImage: "tag")
+            Label(researches.activeResearch(for: book)?.name ?? String(localized: "Aucune thématique"), systemImage: "tag")
                 .labelStyle(.titleAndIcon)
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -476,10 +476,10 @@ struct ReaderView: View {
     private func deleteHighlight(_ id: Clipping.ID) {
         if kindle.clipping(id: id)?.hasNote == true {
             let alert = NSAlert()
-            alert.messageText = "Supprimer ce surlignage et sa note ?"
-            alert.informativeText = "Il disparaît aussi de « Notes et surlignages ». Le fichier du livre n'est pas modifié."
-            alert.addButton(withTitle: "Supprimer").hasDestructiveAction = true
-            alert.addButton(withTitle: "Annuler")
+            alert.messageText = String(localized: "Supprimer ce surlignage et sa note ?")
+            alert.informativeText = String(localized: "Il disparaît aussi de « Notes et surlignages ». Le fichier du livre n'est pas modifié.")
+            alert.addButton(withTitle: String(localized: "Supprimer")).hasDestructiveAction = true
+            alert.addButton(withTitle: String(localized: "Annuler"))
             guard alert.runModal() == .alertFirstButtonReturn else { return }
         }
         kindle.deleteClipping(id)
@@ -515,7 +515,7 @@ struct ReaderView: View {
         if book.format == .pdf {
             let controller = PDFPageController(url: book.url)
             guard controller.document != nil else {
-                failure = "Ce PDF est illisible."
+                failure = String(localized: "Ce PDF est illisible.")
                 return
             }
             controller.actions = highlightActions

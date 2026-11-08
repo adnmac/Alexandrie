@@ -10,11 +10,11 @@ public enum EPUBMetadataWriter {
         let zip = try ZipReader(url: source)
         let container = try XMLLoader.document(zip.data("META-INF/container.xml"))
         guard let opfPath = container.rootElement()?.descendants(named: "rootfile").first?.attr("full-path") else {
-            throw BookError.unreadable("container.xml sans rootfile")
+            throw BookError.unreadable(String(localized: "container.xml sans rootfile"))
         }
         let opf = try XMLDocument(data: zip.data(opfPath), options: [.nodePreserveWhitespace])
         guard let package = opf.rootElement(), let metadata = package.firstChild(named: "metadata") else {
-            throw BookError.unreadable("OPF sans métadonnées")
+            throw BookError.unreadable(String(localized: "OPF sans métadonnées"))
         }
         apply(edits, to: metadata, package: package)
 

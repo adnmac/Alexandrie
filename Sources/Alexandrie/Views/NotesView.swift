@@ -12,18 +12,18 @@ struct NotesBookList: View {
 
     /// « 2 surl. · 1 note » : chaque partie seulement si elle n'est pas vide, au singulier pour 1.
     static func countLine(highlights: Int, notes: Int) -> String {
-        [highlights > 0 ? "\(highlights) surl." : nil, notes > 0 ? (notes == 1 ? "1 note" : "\(notes) notes") : nil]
+        [highlights > 0 ? String(localized: "\(highlights) surl.") : nil, notes > 0 ? String(localized: "\(notes) notes") : nil]
             .compactMap { $0 }.joined(separator: " · ")
     }
 
     var body: some View {
         let books = filtered
         if books.isEmpty {
-            ContentUnavailableView(search.isEmpty ? "Aucune note pour l'instant" : "Aucun résultat",
+            ContentUnavailableView(search.isEmpty ? String(localized: "Aucune note pour l'instant") : String(localized: "Aucun résultat"),
                                    systemImage: "highlighter",
                                    description: Text(search.isEmpty
-                                        ? "Les surlignages et notes faits sur une Kindle ou une Kobo sont importés à chacune de ses connexions ; ceux faits dans la fenêtre de lecture s'y ajoutent."
-                                        : "Aucun livre ni aucune note ne contient « \(search) »."))
+                                        ? String(localized: "Les surlignages et notes faits sur une Kindle ou une Kobo sont importés à chacune de ses connexions ; ceux faits dans la fenêtre de lecture s'y ajoutent.")
+                                        : String(localized: "Aucun livre ni aucune note ne contient « \(search) ».")))
         } else {
             List(books, selection: $selection) { b in
                 let book = library.books(titleKey: b.id).first { $0.trashedAt == nil }
@@ -64,13 +64,26 @@ struct NotesEditor: View {
     let bookKey: String
 
     enum KindFilter: String, CaseIterable, Identifiable {
-        case all = "Tout", highlights = "Surlignages", notes = "Notes"
+        case all, highlights, notes
         var id: Self { self }
+        var label: String {
+            switch self {
+            case .all: String(localized: "Tout")
+            case .highlights: String(localized: "Surlignages")
+            case .notes: String(localized: "Notes")
+            }
+        }
     }
 
     enum Order: String, CaseIterable, Identifiable {
-        case reading = "Ordre de lecture", added = "Date d'ajout"
+        case reading, added
         var id: Self { self }
+        var label: String {
+            switch self {
+            case .reading: String(localized: "Ordre de lecture")
+            case .added: String(localized: "Date d'ajout")
+            }
+        }
     }
 
     @State private var kind: KindFilter = .all
@@ -124,7 +137,7 @@ struct NotesEditor: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(book?.title ?? entry.title).font(.title3.weight(.semibold)).lineLimit(2)
-                    Text((book?.authorLine ?? entry.author) + " · \(entry.clippings.count) relevés")
+                    Text((book?.authorLine ?? entry.author) + String(localized: " · \(entry.clippings.count) relevés"))
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -185,7 +198,7 @@ struct NotesEditor: View {
             let hidden = entry.clippings.count - shown.count
             if hidden > 0 {
                 HStack(spacing: Space.sm) {
-                    Label("\(hidden) relevé\(hidden > 1 ? "s" : "") masqué\(hidden > 1 ? "s" : "") par les filtres",
+                    Label(String(localized: "\(hidden) relevés masqués par les filtres"),
                           systemImage: "line.3.horizontal.decrease.circle")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -205,7 +218,7 @@ struct NotesEditor: View {
     }
 
     private var kindPicker: some View {
-        Picker("Afficher", selection: $kind) { ForEach(KindFilter.allCases) { Text($0.rawValue).tag($0) } }
+        Picker("Afficher", selection: $kind) { ForEach(KindFilter.allCases) { Text($0.label).tag($0) } }
             .pickerStyle(.segmented).labelsHidden().fixedSize()
     }
 
@@ -250,7 +263,7 @@ struct NotesEditor: View {
                 }
             }
         } label: {
-            Text(title(available.filter { colors.contains($0.key) }.map(\.label), none: "Couleurs", many: "couleurs"))
+            Text(title(available.filter { colors.contains($0.key) }.map(\.label), none: String(localized: "Couleurs"), many: "couleurs"))
         }
         .fixedSize()
         .help("Couleurs gardées dans la liste, la copie et l'export ; les notes seules de la liseuse n'ont pas de couleur")
@@ -281,8 +294,8 @@ struct NotesEditor: View {
             Button("Gérer les thématiques…") { managesResearches = true }
         } label: {
             let names = available.filter { thematics.contains($0.id) }.map(\.name)
-                + (thematics.contains(KindleClippings.noThematic) ? ["Sans thématique"] : [])
-            Text(title(names, none: "Thématiques", many: "thématiques"))
+                + (thematics.contains(KindleClippings.noThematic) ? [String(localized: "Sans thématique")] : [])
+            Text(title(names, none: String(localized: "Thématiques"), many: String(localized: "thématiques")))
         }
         .fixedSize()
         .help("Thématiques gardées dans la liste, la copie et l'export ; une seule nomme les couleurs selon sa légende")
@@ -293,17 +306,17 @@ struct NotesEditor: View {
         switch chosen.count {
         case 0: none
         case 1: chosen[0]
-        default: "\(chosen.count) \(many)"
+        default: String(localized: "\(chosen.count) \(many)")
         }
     }
 
     private var orderPicker: some View {
-        Picker("Ordre", selection: $order) { ForEach(Order.allCases) { Text($0.rawValue).tag($0) } }
+        Picker("Ordre", selection: $order) { ForEach(Order.allCases) { Text($0.label).tag($0) } }
             .labelsHidden().fixedSize()
     }
 
     private func count(_ entry: ClippingBook, shown: [Clipping]) -> some View {
-        Text(shown.count == entry.clippings.count ? "\(shown.count) relevés" : "\(shown.count) sur \(entry.clippings.count)")
+        Text(shown.count == entry.clippings.count ? String(localized: "\(shown.count) relevés") : String(localized: "\(shown.count) sur \(entry.clippings.count)"))
             .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             .lineLimit(1).fixedSize()
     }
@@ -332,8 +345,8 @@ struct NotesEditor: View {
     private func export(_ entry: ClippingBook, book: Book?, clippings: [Clipping]) {
         let title = book?.title ?? entry.title
         let panel = NSSavePanel()
-        panel.title = "Exporter les notes"
-        panel.nameFieldStringValue = "Notes - \(title)".safeFilename + ".md"
+        panel.title = String(localized: "Exporter les notes")
+        panel.nameFieldStringValue = String(localized: "Notes - \(title)").safeFilename + ".md"
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
         // Chaque surlignage nommé par sa couleur (catégorie de sa thématique), sauf le jaune sans thématique.
@@ -345,7 +358,7 @@ struct NotesEditor: View {
         do {
             try md.write(to: url, atomically: true, encoding: .utf8)
         } catch {
-            kindle.lastError = "Export impossible : \(error.localizedDescription)"
+            kindle.lastError = String(localized: "Export impossible : \(error.localizedDescription)")
         }
     }
 }
@@ -446,15 +459,15 @@ struct NoteRow: View {
                             .labelStyle(.iconOnly)
                             .buttonStyle(.hover)
                             .disabled(readerBook == nil)
-                            .help(readerBook == nil ? "Le livre n'est plus dans la bibliothèque"
-                                  : "Ouvrir la fenêtre de lecture à ce passage")
+                            .help(readerBook == nil ? String(localized: "Le livre n'est plus dans la bibliothèque")
+                                  : String(localized: "Ouvrir la fenêtre de lecture à ce passage"))
                     }
                     if clipping.kind == .highlight && !editingNote {
-                        Button(clipping.hasNote ? "Modifier la note" : "Ajouter une note") { editingNote = true }
+                        Button(clipping.hasNote ? String(localized: "Modifier la note") : String(localized: "Ajouter une note")) { editingNote = true }
                             .buttonStyle(.hover)
                             .fixedSize()
-                            .help(clipping.isFromApp ? "Note visible aussi dans la fenêtre de lecture"
-                                  : "Note gardée dans Alexandrie ; la liseuse n'est pas modifiée")
+                            .help(clipping.isFromApp ? String(localized: "Note visible aussi dans la fenêtre de lecture")
+                                  : String(localized: "Note gardée dans Alexandrie ; la liseuse n'est pas modifiée"))
                     }
                     Menu {
                         if clipping.isFromApp {
@@ -503,13 +516,13 @@ struct NoteRow: View {
             }
         }
         .padding(.vertical, Space.md)
-        .confirmationDialog(clipping.isFromApp ? "Supprimer ce surlignage ?" : "Supprimer ce relevé d'Alexandrie ?",
+        .confirmationDialog(clipping.isFromApp ? String(localized: "Supprimer ce surlignage ?") : String(localized: "Supprimer ce relevé d'Alexandrie ?"),
                             isPresented: $confirmDelete) {
             Button("Supprimer", role: .destructive) { kindle.deleteClipping(clipping.id) }
         } message: {
             Text(clipping.isFromApp
-                 ? "Il disparaît aussi de la fenêtre de lecture. Le fichier du livre n'est pas modifié."
-                 : "Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La liseuse n'est pas modifiée.")
+                 ? String(localized: "Il disparaît aussi de la fenêtre de lecture. Le fichier du livre n'est pas modifié.")
+                 : String(localized: "Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La liseuse n'est pas modifiée."))
         }
     }
 }

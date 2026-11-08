@@ -104,13 +104,13 @@ public struct OPDSClient: Sendable {
 
     /// Message compréhensible pour un catalogue ou un téléchargement en échec.
     public static func describe(_ error: any Error) -> String {
-        if let e = error as? OPDSError { return e.errorDescription ?? "Catalogue illisible." }
+        if let e = error as? OPDSError { return e.errorDescription ?? String(localized: "Catalogue illisible.") }
         if let e = error as? URLError {
             switch e.code {
-            case .notConnectedToInternet: return "Pas de connexion Internet."
-            case .cannotFindHost, .dnsLookupFailed: return "Adresse introuvable : vérifiez-la."
+            case .notConnectedToInternet: return String(localized: "Pas de connexion Internet.")
+            case .cannotFindHost, .dnsLookupFailed: return String(localized: "Adresse introuvable : vérifiez-la.")
             case .timedOut, .cannotConnectToHost, .networkConnectionLost, .badServerResponse, .secureConnectionFailed:
-                return "Le catalogue ne répond pas pour le moment. Réessayez plus tard."
+                return String(localized: "Le catalogue ne répond pas pour le moment. Réessayez plus tard.")
             default: break
             }
         }

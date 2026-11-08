@@ -3,7 +3,8 @@
 #   scripts/snap.sh                                   toutes les pages et les réglages
 #   ALEXANDRIE_SNAPSHOT_PAGES=tous,reglages scripts/snap.sh
 #   scripts/snap.sh -gridMode NO                      en liste (arguments passés à l'app)
-# Le binaire debug est emballé dans un bundle de test (be.adnmac.alexandrie.snapshot, langue fr) :
+#   ALEXANDRIE_SNAPSHOT_LANG=en scripts/snap.sh       interface en anglais (fr, en, nl, de, es)
+# Le binaire debug est emballé dans un bundle de test (be.adnmac.alexandrie.snapshot, français par défaut) :
 # ses réglages (UserDefaults) ne sont pas ceux de l'app installée.
 # Il faut l'autorisation Enregistrement de l'écran pour le terminal (ou Claude) qui lance ce script.
 set -e
@@ -19,6 +20,11 @@ rm -rf "$STORE" "$SHOTS" "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Alexandrie"
 for f in Assets.car AppIcon.icns; do [[ -f Resources/$f ]] && cp Resources/$f "$APP/Contents/Resources/"; done
+# Traductions (en, nl, de, es) : la langue capturée vient de ALEXANDRIE_SNAPSHOT_LANG.
+scripts/l10n.sh compile "$APP/Contents/Resources" >/dev/null
+SNAP_LANG="${ALEXANDRIE_SNAPSHOT_LANG:-fr}"
+LOCALIZATIONS=""
+for l in $(scripts/l10n.sh languages); do LOCALIZATIONS+="<string>$l</string>"; done
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -31,11 +37,11 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIconName</key><string>AppIcon</string>
   <key>CFBundleDevelopmentRegion</key><string>fr</string>
-  <key>CFBundleLocalizations</key><array><string>fr</string></array>
+  <key>CFBundleLocalizations</key><array>${LOCALIZATIONS}</array>
   <key>NSHighResolutionCapable</key><true/>
 </dict>
 </plist>
 PLIST
 # Après un plantage, macOS proposerait de rouvrir les fenêtres et bloquerait le lancement suivant.
 rm -rf ~/Library/Saved\ Application\ State/$BUNDLE_ID.savedState
-ALEXANDRIE_STORE="$STORE" ALEXANDRIE_SEED=1 ALEXANDRIE_SNAPSHOT="$SHOTS" "$APP/Contents/MacOS/Alexandrie" -gridMode YES "$@"
+ALEXANDRIE_STORE="$STORE" ALEXANDRIE_SEED=1 ALEXANDRIE_SNAPSHOT="$SHOTS" "$APP/Contents/MacOS/Alexandrie" -gridMode YES -AppleLanguages "($SNAP_LANG)" "$@"

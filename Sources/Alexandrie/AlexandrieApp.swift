@@ -158,22 +158,22 @@ enum Panels {
     /// Accueil (premier dossier) et Réglages > Bibliothèque > Ajouter un dossier….
     static func addLibraryFolder(_ library: LibraryStore) {
         let panel = NSOpenPanel()
-        panel.title = library.folders.isEmpty ? "Choisir le dossier de livres" : "Ajouter un dossier de livres"
-        panel.message = "Alexandrie indexe ce dossier sans jamais le modifier."
-        panel.prompt = library.folders.isEmpty ? "Choisir" : "Ajouter"
+        panel.title = library.folders.isEmpty ? String(localized: "Choisir le dossier de livres") : String(localized: "Ajouter un dossier de livres")
+        panel.message = String(localized: "Alexandrie indexe ce dossier sans jamais le modifier.")
+        panel.prompt = library.folders.isEmpty ? String(localized: "Choisir") : String(localized: "Ajouter")
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let url = panel.url, let refusal = library.addFolder(url) else { return }
         let alert = NSAlert()
-        alert.messageText = "Dossier non ajouté"
+        alert.messageText = String(localized: "Dossier non ajouté")
         alert.informativeText = refusal
         alert.runModal()
     }
 
     static func importBooks(into library: LibraryStore) {
         let panel = NSOpenPanel()
-        panel.title = "Importer des livres"
+        panel.title = String(localized: "Importer des livres")
         panel.allowedContentTypes = BookFormat.allCases.compactMap { .init(filenameExtension: $0.rawValue) }
         panel.allowsMultipleSelection = true
         if panel.runModal() == .OK { library.importFiles(panel.urls) }
@@ -181,19 +181,19 @@ enum Panels {
 
     /// Confirmation avant de placer les fichiers d'un livre de la corbeille dans la Corbeille de macOS.
     static func confirmDeletePermanently(_ book: Book, fileCount: Int) -> Bool {
-        confirm(title: "Supprimer définitivement « \(book.title) » ?",
-                message: (fileCount == 1 ? "Son fichier sera placé" : "Ses \(fileCount) fichiers seront placés")
-                    + " dans la Corbeille de macOS et le livre quittera Alexandrie. Les fichiers resteront récupérables "
-                    + "dans la Corbeille de macOS tant que vous ne la videz pas.",
-                action: "Supprimer")
+        confirm(title: String(localized: "Supprimer définitivement « \(book.title) » ?"),
+                message: (fileCount == 1 ? String(localized: "Son fichier sera placé") : String(localized: "Ses \(fileCount) fichiers seront placés"))
+                    + String(localized: " dans la Corbeille de macOS et le livre quittera Alexandrie. Les fichiers resteront récupérables ")
+                    + String(localized: "dans la Corbeille de macOS tant que vous ne la videz pas."),
+                action: String(localized: "Supprimer"))
     }
 
     static func confirmEmptyTrash(fileCount: Int) -> Bool {
-        confirm(title: "Vider la corbeille d'Alexandrie ?",
-                message: (fileCount == 1 ? "Le fichier sera placé" : "Les \(fileCount) fichiers seront placés")
-                    + " dans la Corbeille de macOS et ces livres quitteront Alexandrie. Ils resteront récupérables "
-                    + "dans la Corbeille de macOS tant que vous ne la videz pas.",
-                action: "Vider la corbeille")
+        confirm(title: String(localized: "Vider la corbeille d'Alexandrie ?"),
+                message: (fileCount == 1 ? String(localized: "Le fichier sera placé") : String(localized: "Les \(fileCount) fichiers seront placés"))
+                    + String(localized: " dans la Corbeille de macOS et ces livres quitteront Alexandrie. Ils resteront récupérables ")
+                    + String(localized: "dans la Corbeille de macOS tant que vous ne la videz pas."),
+                action: String(localized: "Vider la corbeille"))
     }
 
     private static func confirm(title: String, message: String, action: String) -> Bool {
@@ -202,7 +202,7 @@ enum Panels {
         alert.messageText = title
         alert.informativeText = message
         alert.addButton(withTitle: action).hasDestructiveAction = true
-        alert.addButton(withTitle: "Annuler")
+        alert.addButton(withTitle: String(localized: "Annuler"))
         return alert.runModal() == .alertFirstButtonReturn
     }
 
@@ -214,7 +214,7 @@ enum Panels {
                 try KindleTransfer.exportEPUB(book, directories: directories)
             }.value
             let panel = NSSavePanel()
-            panel.title = "Exporter en EPUB"
+            panel.title = String(localized: "Exporter en EPUB")
             panel.nameFieldStringValue = "\(book.title)".safeFilename + ".epub"
             panel.allowedContentTypes = [.init(filenameExtension: "epub")!]
             if panel.runModal() == .OK, let dest = panel.url {

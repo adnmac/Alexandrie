@@ -27,11 +27,11 @@ struct ThematicNotesView: View {
                 header(research, sections: sections, total: total)
                 Divider()
                 if sections.isEmpty {
-                    ContentUnavailableView(total == 0 ? "Aucun passage" : "Aucun passage ne correspond",
+                    ContentUnavailableView(total == 0 ? String(localized: "Aucun passage") : String(localized: "Aucun passage ne correspond"),
                                            systemImage: total == 0 ? "tag" : "line.3.horizontal.decrease.circle",
                                            description: Text(total == 0
-                                               ? "Choisissez « \(research.name) » dans la fenêtre de lecture, ou cochez-la sur un passage, pour l'y ranger."
-                                               : "Changez les couleurs gardées ou la recherche."))
+                                               ? String(localized: "Choisissez « \(research.name) » dans la fenêtre de lecture, ou cochez-la sur un passage, pour l'y ranger.")
+                                               : String(localized: "Changez les couleurs gardées ou la recherche.")))
                 } else {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
@@ -66,8 +66,9 @@ struct ThematicNotesView: View {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(research.name).font(.title3.weight(.semibold)).lineLimit(2)
-                    Text(shown == total ? "\(total) passage\(total > 1 ? "s" : "") · \(books) livre\(books > 1 ? "s" : "")"
-                         : "\(shown) sur \(total) passages · \(books) livre\(books > 1 ? "s" : "")")
+                    Text(verbatim: (shown == total ? String(localized: "\(total) passages")
+                                    : String(localized: "\(shown) sur \(total) passages"))
+                         + " · " + String(localized: "\(books) livres"))
                         .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 }
                 Spacer()
@@ -141,7 +142,7 @@ struct ThematicNotesView: View {
             }
         } label: {
             let chosen = all.filter { colors.contains($0.id) }.map(\.title)
-            Text(chosen.isEmpty ? "Couleurs" : chosen.count == 1 ? chosen[0] : "\(chosen.count) couleurs")
+            Text(chosen.isEmpty ? String(localized: "Couleurs") : chosen.count == 1 ? chosen[0] : String(localized: "\(chosen.count) couleurs"))
         }
         .fixedSize()
         .help("Couleurs gardées dans la liste, la copie et l'export")
@@ -201,7 +202,7 @@ struct ThematicNotesView: View {
 
     private func export(_ research: Research) {
         let panel = NSSavePanel()
-        panel.title = "Exporter la thématique"
+        panel.title = String(localized: "Exporter la thématique")
         panel.nameFieldStringValue = research.name.safeFilename + ".md"
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
         guard panel.runModal() == .OK, let url = panel.url else { return }
@@ -209,7 +210,7 @@ struct ThematicNotesView: View {
             try ResearchExport.markdown(research, clippings: shownClippings(research), order: order)
                 .write(to: url, atomically: true, encoding: .utf8)
         } catch {
-            kindle.lastError = "Export impossible : \(error.localizedDescription)"
+            kindle.lastError = String(localized: "Export impossible : \(error.localizedDescription)")
         }
     }
 }

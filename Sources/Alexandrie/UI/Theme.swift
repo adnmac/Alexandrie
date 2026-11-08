@@ -32,9 +32,9 @@ enum ReaderTheme: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .light: "Clair"
-        case .sepia: "Sépia"
-        case .dark: "Sombre"
+        case .light: String(localized: "Clair")
+        case .sepia: String(localized: "Sépia")
+        case .dark: String(localized: "Sombre")
         }
     }
 
@@ -87,7 +87,7 @@ enum ReaderFont: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .book: "Police du livre"
+        case .book: String(localized: "Police du livre")
         case .newYork: "New York"
         case .charter: "Charter"
         case .iowan: "Iowan Old Style"

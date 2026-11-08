@@ -255,33 +255,34 @@ struct ContentView: View {
     /// Titre de la fenêtre : la page affichée, comme dans la barre latérale.
     private var pageTitle: String {
         switch sidebar {
-        case .all, nil: "Tous les livres"
-        case .recent: "Ajoutés récemment"
-        case .sent: "Envoyés à la liseuse"
-        case .toReview: "À vérifier"
-        case .notes: "Notes et surlignages"
-        case .thematic(let id): AppServices.shared.researches.research(id: id)?.name ?? "Thématique"
-        case .trash: "Corbeille"
-        case .kindle: kindle.displayName ?? "Liseuse"
-        case .pending: "En attente d'envoi"
-        case .shelf(let id): kindle.readers.first { $0.id == id }?.name ?? "Étagère"
+        case .all, nil: String(localized: "Tous les livres")
+        case .recent: String(localized: "Ajoutés récemment")
+        case .sent: String(localized: "Envoyés à la liseuse")
+        case .toReview: String(localized: "À vérifier")
+        case .notes: String(localized: "Notes et surlignages")
+        case .thematic(let id): AppServices.shared.researches.research(id: id)?.name ?? String(localized: "Thématique")
+        case .trash: String(localized: "Corbeille")
+        case .kindle: kindle.displayName ?? String(localized: "Liseuse")
+        case .pending: String(localized: "En attente d'envoi")
+        case .shelf(let id): kindle.readers.first { $0.id == id }?.name ?? String(localized: "Étagère")
         case .format(let f): f.label
-        case .author(let key): AuthorNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? "Auteur"
-        case .series(let key): SeriesNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? "Série"
+        case .author(let key): AuthorNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? String(localized: "Auteur")
+        case .series(let key): SeriesNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? String(localized: "Série")
         case .genre(let key):
-            GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? "Genre"
+            GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? String(localized: "Genre")
         case .folder(let path): LibraryFolders.name(of: path)
-        case .catalog(let id): opds.catalog(id: id)?.name ?? "Catalogue"
+        case .catalog(let id): opds.catalog(id: id)?.name ?? String(localized: "Catalogue")
         }
     }
 
     /// Invite du champ de recherche : la page de catalogue cherche dans le catalogue (S-087).
     private var searchPrompt: String {
         if let id = sidebar?.catalogID {
-            return opds.canSearch(id) ? "Rechercher dans \(opds.catalog(id: id)?.name ?? "le catalogue")"
-                : "Ce catalogue n'a pas de recherche"
+            guard opds.canSearch(id) else { return String(localized: "Ce catalogue n'a pas de recherche") }
+            if let name = opds.catalog(id: id)?.name { return String(localized: "Rechercher dans \(name)") }
+            return String(localized: "Rechercher dans le catalogue")
         }
-        return searchScope == .content ? "Mot ou expression dans les livres" : "Titre, auteur, série, genre…"
+        return searchScope == .content ? String(localized: "Mot ou expression dans les livres") : String(localized: "Titre, auteur, série, genre…")
     }
 
     /// Grille ou liste des livres, avec Coup d'œil (Espace) et la touche Supprimer.
@@ -337,7 +338,7 @@ struct ContentView: View {
                              total: Double(max(1, library.progress?.total ?? 1)))
                     .progressViewStyle(.circular)
                     .controlSize(.small)
-                    .help(library.progress.map { "Indexation : \($0.done)/\($0.total)" } ?? "Indexation…")
+                    .help(library.progress.map { String(localized: "Indexation : \($0.done)/\($0.total)") } ?? String(localized: "Indexation…"))
             }
         }
         ToolbarItemGroup(placement: .primaryAction) {
@@ -357,15 +358,15 @@ struct ContentView: View {
 
             Menu {
                 Picker("Trier par", selection: $sort) {
-                    ForEach(SortOrder.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(SortOrder.allCases) { Text($0.label).tag($0) }
                 }
                 .pickerStyle(.inline)
             } label: {
                 Label("Trier", systemImage: "arrow.up.arrow.down")
             }
             .disabled(sidebar == .recent || isSeriesSelected || sidebar?.catalogID != nil)
-            .help(sidebar == .recent ? "Les ajouts récents sont toujours classés du plus récent au plus ancien"
-                  : isSeriesSelected ? "Les livres d'une série sont classés par numéro" : "Trier")
+            .help(sidebar == .recent ? String(localized: "Les ajouts récents sont toujours classés du plus récent au plus ancien")
+                  : isSeriesSelected ? String(localized: "Les livres d'une série sont classés par numéro") : String(localized: "Trier"))
 
             if let id = sidebar?.catalogID {
                 Button {
@@ -398,8 +399,8 @@ struct ContentView: View {
                 Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))
             }
             .disabled(!selected.contains(where: kindle.canSend) || kindle.isBusy || sidebar == .trash)
-            .help(kindle.isConnected ? "Copier les livres sélectionnés sur la liseuse (⌘K)"
-                  : "Mettre les livres sélectionnés en attente : ils partiront dès que la liseuse sera branchée (⌘K)")
+            .help(kindle.isConnected ? String(localized: "Copier les livres sélectionnés sur la liseuse (⌘K)")
+                  : String(localized: "Mettre les livres sélectionnés en attente : ils partiront dès que la liseuse sera branchée (⌘K)"))
         }
     }
 

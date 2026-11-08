@@ -183,7 +183,7 @@ public enum KindleClippings {
         var out = "# \(title)\n"
         if !author.isEmpty { out += "\n*\(author)*\n" }
         for c in clippings {
-            let meta = [c.kind == .note ? "Note" : "Surlignement", c.kind == .note ? "" : label(c) ?? "", c.location, c.added]
+            let meta = [c.kind == .note ? String(localized: "Note") : String(localized: "Surlignement"), c.kind == .note ? "" : label(c) ?? "", c.location, c.added]
                 .filter { !$0.isEmpty }
             out += "\n---\n\n" + (c.kind == .note ? "📝 " : "> ")
                 + c.displayText.replacingOccurrences(of: "\n", with: c.kind == .note ? "\n" : "\n> ")

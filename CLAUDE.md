@@ -5,6 +5,13 @@ et les charge sur une Kindle par USB. Voir `README.md` pour les fonctions et l'a
 
 Répondre, commenter et écrire les commits en français (Conventional Commits).
 
+Interface en cinq langues (fr, en, nl, de, es) : catalogue `Resources/Localizable.xcstrings`, français en langue source.
+Tout texte affiché passe par une API qui traduit (`Text("…")`, `Button("…")`…) ou par `String(localized: "…")` ;
+après un changement de texte : `scripts/l10n.sh sync`, traduire les nouvelles clés (glossaire `docs/l10n-glossaire.md`),
+puis `scripts/l10n.sh check` (appelé par `scripts/test.sh` et donc par la CI). Singulier et pluriel : clés distinctes
+dans le cœur (`count == 1 ? … : …`), variantes de pluriel du catalogue dans l'app. Captures dans une autre langue :
+`ALEXANDRIE_SNAPSHOT_LANG=en scripts/snap.sh`.
+
 Règles de design : `design/DESIGN-SYSTEM.md`. Utiliser ses jetons (`Palette`, `Radius`, `Motion`, `Surface`, `Layout`, `Space`) ; jamais de couleur, de rayon ou de durée brute.
 
 ## Skills BAMA

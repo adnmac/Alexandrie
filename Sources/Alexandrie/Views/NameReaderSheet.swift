@@ -42,7 +42,7 @@ struct NameReaderSheet: View {
         .padding(Space.margin)
         .frame(width: Layout.sheet)
         .noInitialFocus()
-        .onAppear { name = kindle.device?.name ?? kindle.brand?.label ?? "Liseuse" }
+        .onAppear { name = kindle.device?.name ?? kindle.brand?.label ?? String(localized: "Liseuse") }
     }
 
     private func save() {

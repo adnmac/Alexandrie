@@ -215,7 +215,7 @@ final class OPDSStore {
         do {
             let file = try await client.download(acquisition, of: entry, into: temp)
             guard let book = await library.importDownloaded(file) else {
-                downloadError = (entry.id, library.lastError ?? "Le livre n'a pas pu être ajouté à la bibliothèque.")
+                downloadError = (entry.id, library.lastError ?? String(localized: "Le livre n'a pas pu être ajouté à la bibliothèque."))
                 library.lastError = nil
                 return nil
             }
@@ -244,7 +244,7 @@ final class OPDSStore {
 
     /// Vérifie l'adresse en chargeant le flux, puis ajoute le catalogue ; rend un message d'erreur sinon.
     func add(name: String, address: String) async -> Result<OPDSCatalog, OPDSAddError> {
-        guard let url = OPDSURL.parse(address) else { return .failure(.init(message: "Adresse invalide : saisissez une adresse https://…")) }
+        guard let url = OPDSURL.parse(address) else { return .failure(.init(message: String(localized: "Adresse invalide : saisissez une adresse https://…"))) }
         do {
             let feed = try await client.feed(at: url)
             let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -276,7 +276,7 @@ final class OPDSStore {
 
     private func save() {
         do { try list.save(to: url) } catch {
-            library.lastError = "Catalogues non enregistrés : \(error.localizedDescription)"
+            library.lastError = String(localized: "Catalogues non enregistrés : \(error.localizedDescription)")
         }
     }
 }

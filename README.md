@@ -20,6 +20,15 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une liseuse (Kindle
 - **Kobo** (disque USB, reconnue d'elle-même) : les EPUB partent tels quels, avec vos corrections dans le fichier ; MOBI et AZW3 sont convertis en EPUB, le PDF suit son mode. Ses surlignages et notes (base `KoboReader.sqlite`, lue sur une copie) rejoignent « Notes et surlignages ».
 - **Autre liseuse USB** qui lit l'EPUB (PocketBook, Tolino…) : Réglages › Liseuses › « Ajouter une liseuse USB… », avec le dossier où vont les livres ; elle est ensuite reconnue à chaque branchement. Ses notes ne sont pas lues.
 
+## Langues
+
+L'interface existe en français, anglais, néerlandais, allemand et espagnol. Elle suit la langue de macOS
+(ou celle choisie pour Alexandrie dans Réglages Système › Langue et région › Applications), et Réglages › Général ›
+Langue la choisit dans l'app (appliquée au redémarrage). Les exports Markdown, les notes envoyées à Zotero, les
+notifications et l'action Raccourcis suivent cette langue ; les titres, notes et dates déjà enregistrés restent tels
+quels. Les traductions sont dans `Resources/Localizable.xcstrings` (voir `scripts/l10n.sh` et `docs/l10n-glossaire.md`) ;
+le néerlandais, l'allemand et l'espagnol gagneraient à être relus par une personne dont c'est la langue.
+
 ## Compiler et lancer
 
 ```bash

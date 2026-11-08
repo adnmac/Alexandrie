@@ -40,7 +40,7 @@ final class ReadingStore {
             try ReadingLog.save(positions, to: url)
         } catch {
             // Signalé dans la fenêtre principale ; la position reste en mémoire et sera réessayée.
-            AppServices.shared.library.lastError = "Impossible d'enregistrer la position de lecture : \(error.localizedDescription)"
+            AppServices.shared.library.lastError = String(localized: "Impossible d'enregistrer la position de lecture : \(error.localizedDescription)")
         }
     }
 

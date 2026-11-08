@@ -18,10 +18,12 @@ public enum ZoteroNote {
 
     /// `heading` : « Notes d'Alexandrie » ou le nom d'une thématique.
     public static func html(heading: String, title: String, author: String, passages: [Passage], sentAt: Date = Date()) -> String {
-        let date = sentAt.formatted(Date.FormatStyle(date: .long, time: .shortened).locale(Locale(identifier: "fr_FR")))
+        let date = sentAt.formatted(date: .long, time: .shortened)
         var out = "<h1>\(escape(heading)) — \(escape(title))</h1>\n"
         let count = passages.count
-        out += "<p><em>\(author.isEmpty ? "" : escape(author) + " · ")\(count) passage\(count > 1 ? "s" : ""), envoyé\(count > 1 ? "s" : "") depuis Alexandrie le \(escape(date))</em></p>\n"
+        let sent = count == 1 ? String(localized: "1 passage, envoyé depuis Alexandrie le \(date)")
+            : String(localized: "\(count) passages, envoyés depuis Alexandrie le \(date)")
+        out += "<p><em>\(author.isEmpty ? "" : escape(author) + " · ")\(escape(sent))</em></p>\n"
         let ordered = KindleClippings.readingOrder(passages.map(\.clipping))
         let byID = Dictionary(passages.map { ($0.clipping.id, $0) }, uniquingKeysWith: { a, _ in a })
         for c in ordered {

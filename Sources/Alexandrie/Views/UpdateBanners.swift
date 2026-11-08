@@ -25,7 +25,7 @@ struct ReleaseBanner: View {
             switch updates.installState {
             case .downloading, .installing:
                 ProgressView().controlSize(.small)
-                Text(updates.installState == .downloading ? "Téléchargement…" : "Installation…").font(.caption)
+                Text(updates.installState == .downloading ? String(localized: "Téléchargement…") : String(localized: "Installation…")).font(.caption)
             case .idle, .failed:
                 if let page = release.pageURL { Button("Détails") { openURL(page) } }
                 Button("Installer et relancer") { Task { await updates.install(release) } }
@@ -49,8 +49,8 @@ struct UpdateBanner: View {
             Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(Palette.info)
             VStack(alignment: .leading, spacing: Space.xs) {
                 Text("Une mise à jour d'Alexandrie est disponible sur GitHub").font(.callout.weight(.semibold))
-                Text(info.newCommits == 1 ? "1 modification" : "\(info.newCommits) modifications")
-                    + Text(info.latestMessage.isEmpty ? "" : " · dernière : \(info.latestMessage)")
+                Text(String(localized: "\(info.newCommits) modifications"))
+                    + Text(info.latestMessage.isEmpty ? "" : String(localized: " · dernière : \(info.latestMessage)"))
                 Text("Pour l'installer : git pull, puis scripts/bundle.sh.")
                     .foregroundStyle(.secondary)
             }

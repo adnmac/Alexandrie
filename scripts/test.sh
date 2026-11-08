@@ -4,4 +4,6 @@
 set -e
 source "${0:A:h}/env.sh"
 cd "$ROOT"
+# Traductions complètes dans toutes les langues (catalogue Resources/Localizable.xcstrings).
+scripts/l10n.sh check
 swift test "${SWIFT_FLAGS[@]}" "$@"

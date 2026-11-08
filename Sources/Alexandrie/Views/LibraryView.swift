@@ -129,7 +129,7 @@ struct LibraryView: View {
             TableColumn("Auteur") { r in Text(r.isFile ? "" : r.book.authorLine).lineLimit(1) }
             TableColumn("Série") { r in
                 if !r.isFile, let s = r.book.series {
-                    Text(s + (r.book.seriesIndex.map { " · \(SeriesNames.format($0))" } ?? "")).lineLimit(1)
+                    Text(s + (r.book.seriesIndex.map { String(localized: " · \(SeriesNames.format($0))") } ?? "")).lineLimit(1)
                 }
             }
             .width(min: 60, ideal: 120)
@@ -378,13 +378,13 @@ struct ShelfActions: View {
         let available = kindle.readers.filter { r in !current.allSatisfy { $0.shelfIDs.contains(r.id) } }
         if available.count == 1, let reader = available.first {
             Button("Ajouter à l'étagère « \(reader.name) »") {
-                library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
+                library.undoable(String(localized: "Ajouter à l'étagère")) { library.addToShelf(books, reader: reader.id) }
             }
         } else if available.count > 1 {
             Menu("Ajouter à l'étagère") {
                 ForEach(available) { reader in
                     Button(reader.name) {
-                        library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
+                        library.undoable(String(localized: "Ajouter à l'étagère")) { library.addToShelf(books, reader: reader.id) }
                     }
                 }
             }
@@ -392,7 +392,7 @@ struct ShelfActions: View {
         if case .shelf(let id) = list, let reader = kindle.readers.first(where: { $0.id == id }),
            current.contains(where: { $0.shelfIDs.contains(id) }) {
             Button("Retirer de l'étagère « \(reader.name) »") {
-                library.undoable("Retirer de l'étagère") { library.removeFromShelf(books, reader: id) }
+                library.undoable(String(localized: "Retirer de l'étagère")) { library.removeFromShelf(books, reader: id) }
             }
         }
     }
@@ -415,7 +415,7 @@ struct BookActions: View {
 
     /// Livre dans la corbeille : le restaurer, ou placer ses fichiers dans la Corbeille de macOS.
     @ViewBuilder private var trashActions: some View {
-        Button("Restaurer") { library.undoable("Restaurer") { library.restoreFromTrash(book) } }
+        Button("Restaurer") { library.undoable(String(localized: "Restaurer")) { library.restoreFromTrash(book) } }
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }
         Divider()
         Button("Supprimer définitivement…", role: .destructive) {
@@ -440,12 +440,12 @@ struct BookActions: View {
         // Retirer d'une liste ne supprime rien : le livre reste dans la bibliothèque.
         if isPending {
             Button("Retirer de la liste « En attente d'envoi »") {
-                library.undoable("Retirer de la file d'envoi") { library.removeFromKindleQueue([book.id]) }
+                library.undoable(String(localized: "Retirer de la file d'envoi")) { library.removeFromKindleQueue([book.id]) }
             }
         }
         if list == .sent, library.book(id: book.id)?.lastSentAt != nil {
             Button("Retirer de la liste « Envoyés à la liseuse »") {
-                library.undoable("Retirer des envoyés") { library.forgetSent(book) }
+                library.undoable(String(localized: "Retirer des envoyés")) { library.forgetSent(book) }
             }
         }
         if [.mobi, .azw3, .azw].contains(book.format) {
@@ -461,7 +461,7 @@ struct BookActions: View {
         // d'y retirer le livre de la liste (règle partagée avec Livre > Mettre à la corbeille).
         if list?.allowsTrash == true {
             Divider()
-            Button("Mettre à la corbeille") { library.undoable("Mettre à la corbeille") { library.moveToTrash(book) } }
+            Button(String(localized: "Mettre à la corbeille")) { library.undoable("Mettre à la corbeille") { library.moveToTrash(book) } }
         }
     }
 }

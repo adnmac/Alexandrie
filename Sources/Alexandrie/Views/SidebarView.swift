@@ -22,17 +22,17 @@ struct SidebarView: View {
         List(selection: $selection) {
             Section("Bibliothèque") {
                 let books = library.visibleBooks
-                row("Tous les livres", "books.vertical", .all, count: count(books))
-                row("Ajoutés récemment", "clock", .recent)
-                row("Envoyés à la liseuse", "checkmark.circle", .sent,
+                row(String(localized: "Tous les livres"), "books.vertical", .all, count: count(books))
+                row(String(localized: "Ajoutés récemment"), "clock", .recent)
+                row(String(localized: "Envoyés à la liseuse"), "checkmark.circle", .sent,
                     count: count(books.filter { $0.lastSentAt != nil }))
-                row("À vérifier", "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
+                row(String(localized: "À vérifier"), "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
                 let notes = kindle.clippings.filter { $0.kind != .bookmark }.count
                 if notes > 0 || selection == .notes {
-                    row("Notes et surlignages", "highlighter", .notes, count: notes)
+                    row(String(localized: "Notes et surlignages"), "highlighter", .notes, count: notes)
                         .help("Notes et surlignages importés des liseuses")
                 }
-                row("Corbeille", library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
+                row(String(localized: "Corbeille"), library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
                     count: count(library.trashedBooks))
                     .help("Livres supprimés, restaurables tant que la corbeille n'est pas vidée")
             }
@@ -40,10 +40,10 @@ struct SidebarView: View {
             // Thématiques (S-080) : chacune ouvre toutes ses notes, de tous les livres.
             if !researches.researches.isEmpty {
                 Section {
-                    CollapsibleHeader(title: "Thématiques", count: researches.researches.count, isExpanded: $thematicsExpanded)
+                    CollapsibleHeader(title: String(localized: "Thématiques"), count: researches.researches.count, isExpanded: $thematicsExpanded)
                     if thematicsExpanded {
                         ForEach(researches.researches) { thematic in
-                            row(thematic.name.isEmpty ? "Sans titre" : thematic.name, "tag", .thematic(thematic.id),
+                            row(thematic.name.isEmpty ? String(localized: "Sans titre") : thematic.name, "tag", .thematic(thematic.id),
                                 count: researches.highlightCount(research: thematic.id))
                                 .help("Toutes les notes et surlignages de « \(thematic.name) », de tous les livres")
                                 .contextMenu { Button("Gérer les thématiques…") { managesThematics = true } }
@@ -57,9 +57,9 @@ struct SidebarView: View {
                 Label {
                     HStack {
                         VStack(alignment: .leading, spacing: 1) {
-                            Text(kindle.displayName ?? (kindle.ejectedName != nil ? "Éjectée" : "Non connectée"))
+                            Text(kindle.displayName ?? (kindle.ejectedName != nil ? String(localized: "Éjectée") : String(localized: "Non connectée")))
                             if let device = kindle.device {
-                                Text(device.brand.label + " · " + device.connection.rawValue)
+                                Text(device.brand.label + " · " + device.connection.label)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -89,7 +89,7 @@ struct SidebarView: View {
                 }
                 let pending = count(library.pendingSends)
                 if pending > 0 || selection == .pending {
-                    row("En attente d'envoi", "clock.arrow.circlepath", .pending, count: pending)
+                    row(String(localized: "En attente d'envoi"), "clock.arrow.circlepath", .pending, count: pending)
                         .help("Livres envoyés automatiquement dès que la liseuse sera branchée")
                 }
             }
@@ -101,12 +101,12 @@ struct SidebarView: View {
                         Label(reader.name, systemImage: connected ? "books.vertical.circle.fill" : "books.vertical.circle")
                             .badge(library.shelfCount(reader.id))
                             .tag(SidebarItem.shelf(reader.id))
-                            .help(connected ? "Étagère de \(reader.name) — branchée" : "Étagère de \(reader.name)")
+                            .help(connected ? String(localized: "Étagère de \(reader.name) — branchée") : String(localized: "Étagère de \(reader.name)"))
                             // Livres glissés depuis la grille : ajoutés à cette étagère.
                             .dropDestination(for: String.self) { items, _ in
                                 let books = items.compactMap(BookDrag.ids).flatMap { $0 }.compactMap(library.book(id:))
                                 guard !books.isEmpty else { return false }
-                                library.undoable("Ajouter à l'étagère") { library.addToShelf(books, reader: reader.id) }
+                                library.undoable(String(localized: "Ajouter à l'étagère")) { library.addToShelf(books, reader: reader.id) }
                                 return true
                             }
                     }
@@ -115,7 +115,7 @@ struct SidebarView: View {
 
             // Catalogues OPDS publics (S-086) : rien n'est demandé en ligne avant d'en ouvrir un.
             Section {
-                CollapsibleHeader(title: "Catalogues en ligne", count: opds.catalogs.count, isExpanded: $catalogsExpanded)
+                CollapsibleHeader(title: String(localized: "Catalogues en ligne"), count: opds.catalogs.count, isExpanded: $catalogsExpanded)
                 if catalogsExpanded {
                     ForEach(opds.catalogs) { catalog in
                         row(catalog.name, "globe", .catalog(catalog.id))
@@ -133,14 +133,14 @@ struct SidebarView: View {
             // Dossiers de livres : une page par dossier dès qu'il y en a deux (S-061, S-062).
             if library.folders.count > 1 {
                 Section {
-                    CollapsibleHeader(title: "Dossiers", count: library.folders.count, isExpanded: $foldersExpanded)
+                    CollapsibleHeader(title: String(localized: "Dossiers"), count: library.folders.count, isExpanded: $foldersExpanded)
                     if foldersExpanded {
                         ForEach(library.folders, id: \.path) { folder in
                             let unavailable = library.unavailableFolders.contains(folder.path)
                             row(LibraryFolders.name(of: folder.path), unavailable ? "externaldrive.badge.xmark" : "folder",
                                 .folder(folder.path), count: count(library.books(inFolder: folder.path)))
                                 .foregroundStyle(unavailable ? .secondary : .primary)
-                                .help(unavailable ? "Indisponible : disque débranché ou dossier introuvable. Ses livres restent dans la bibliothèque et reviendront au rebranchement."
+                                .help(unavailable ? String(localized: "Indisponible : disque débranché ou dossier introuvable. Ses livres restent dans la bibliothèque et reviendront au rebranchement.")
                                       : folder.path)
                         }
                     }
@@ -152,7 +152,7 @@ struct SidebarView: View {
             // Titres en lignes ordinaires plutôt qu'en en-têtes de section : macOS ajoute aux en-têtes
             // son propre chevron (visible au survol seulement), qui masquerait celui-ci.
             Section {
-                CollapsibleHeader(title: "Formats", count: formats.count, isExpanded: $formatsExpanded)
+                CollapsibleHeader(title: String(localized: "Formats"), count: formats.count, isExpanded: $formatsExpanded)
                 if formatsExpanded {
                     ForEach(formats, id: \.0) { f, n in row(f.label, "doc", .format(f), count: n) }
                 }
@@ -160,11 +160,11 @@ struct SidebarView: View {
 
             let series = SeriesNames.groups(library.visibleBooks)
             Section {
-                CollapsibleHeader(title: "Séries", count: series.count, isExpanded: $seriesExpanded)
+                CollapsibleHeader(title: String(localized: "Séries"), count: series.count, isExpanded: $seriesExpanded)
                 if seriesExpanded {
                     ForEach(series) { s in
                         row(s.name, "books.vertical", .series(s.key), count: s.bookCount)
-                            .help(s.variants.count > 1 ? "Noms regroupés : " + s.variants.joined(separator: " · ") : s.name)
+                            .help(s.variants.count > 1 ? String(localized: "Noms regroupés : ") + s.variants.joined(separator: " · ") : s.name)
                     }
                 }
             }
@@ -172,7 +172,7 @@ struct SidebarView: View {
             let genres = GenreNames.groups(library.visibleBooks, identities: library.identities)
             if !genres.isEmpty {
                 Section {
-                    CollapsibleHeader(title: "Genres", count: genres.count, isExpanded: $genresExpanded)
+                    CollapsibleHeader(title: String(localized: "Genres"), count: genres.count, isExpanded: $genresExpanded)
                     if genresExpanded {
                         ForEach(genres) { g in row(g.name, "theatermasks", .genre(g.key), count: g.bookCount) }
                     }
@@ -181,12 +181,12 @@ struct SidebarView: View {
 
             let authors = AuthorNames.groups(library.visibleBooks)
             Section {
-                CollapsibleHeader(title: "Auteurs", count: authors.count, isExpanded: $authorsExpanded)
+                CollapsibleHeader(title: String(localized: "Auteurs"), count: authors.count, isExpanded: $authorsExpanded)
                 if authorsExpanded {
                     let perAuthor = authorCounts(library.visibleBooks)
                     ForEach(authors) { a in
                         row(a.name, "person", .author(a.key), count: perAuthor[a.key] ?? a.bookCount)
-                            .help(a.variants.count > 1 ? "Graphies regroupées : " + a.variants.joined(separator: " · ") : a.name)
+                            .help(a.variants.count > 1 ? String(localized: "Graphies regroupées : ") + a.variants.joined(separator: " · ") : a.name)
                     }
                 }
             }
@@ -239,7 +239,7 @@ struct CollapsibleHeader: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .help(isExpanded ? "Replier \(title.lowercased())" : "Déplier \(title.lowercased())")
+        .help(isExpanded ? String(localized: "Replier \(title.lowercased())") : String(localized: "Déplier \(title.lowercased())"))
         .accessibilityLabel("\(title), \(isExpanded ? "déplié" : "replié")")
     }
 }

@@ -261,7 +261,7 @@ let gutenbergOSD = Data("""
     @Test func normalizesAndFilters() {
         #expect(["fr", "fre", "fra", "fr-FR", "FR", "fr_BE"].allSatisfy { OPDSLanguage.normalized($0) == "fr" })
         #expect(OPDSLanguage.normalized("eng") == "en")
-        #expect(OPDSLanguage.name("fr") == "Français")
+        #expect(OPDSLanguage.name("fr") == Locale.current.localizedString(forLanguageCode: "fr")?.capitalized(with: .current))
         let acq = [OPDSAcquisition(url: URL(string: "https://x.org/a.epub")!, format: .epub)]
         let english = OPDSEntry(id: "1", title: "Treasure Island", language: "eng", acquisitions: acq)
         let unknown = OPDSEntry(id: "2", title: "Sans langue", acquisitions: acq)

@@ -17,7 +17,7 @@ public struct ResearchTheme: Codable, Hashable, Identifiable, Sendable {
     public var displayName: String {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         if !trimmed.isEmpty { return trimmed }
-        return HighlightColor.allCases.first { $0.hex == color.uppercased() }?.label ?? "Sans nom"
+        return HighlightColor.allCases.first { $0.hex == color.uppercased() }?.label ?? String(localized: "Sans nom")
     }
 }
 
@@ -45,7 +45,7 @@ public struct Research: Codable, Hashable, Identifiable, Sendable {
 
     /// Ajoute un thème, de la première teinte pas encore prise.
     @discardableResult
-    public mutating func addTheme(name: String = "Nouvelle catégorie") -> ResearchTheme {
+    public mutating func addTheme(name: String = String(localized: "Nouvelle catégorie")) -> ResearchTheme {
         let taken = Set(themes.map { $0.color.uppercased() })
         let color = (HighlightColor.allCases.map(\.hex) + Self.extraColors).first { !taken.contains($0) } ?? "#8E8E93"
         let theme = ResearchTheme(name: name, color: color)
@@ -81,7 +81,7 @@ public struct HighlightMark: Hashable, Identifiable, Sendable {
 
     /// Nom d'une teinte sans légende : celui de la couleur de base, ou « Couleur personnalisée ».
     public static func plainLabel(_ hex: String) -> String {
-        HighlightColor.allCases.first { $0.hex == hex.uppercased() }?.label ?? "Couleur personnalisée"
+        HighlightColor.allCases.first { $0.hex == hex.uppercased() }?.label ?? String(localized: "Couleur personnalisée")
     }
 }
 
@@ -228,9 +228,9 @@ public enum ThematicOrder: String, CaseIterable, Identifiable, Sendable {
 
     public var label: String {
         switch self {
-        case .color: "Par couleur"
-        case .book: "Par livre"
-        case .added: "Par date d'ajout"
+        case .color: String(localized: "Par couleur")
+        case .book: String(localized: "Par livre")
+        case .added: String(localized: "Par date d'ajout")
         }
     }
 }
@@ -286,8 +286,9 @@ public enum ResearchExport {
         let count = all.reduce(0) { $0 + $1.clippings.count }
         let books = Set(all.flatMap(\.clippings).map { ShelfSync.normalize($0.title) }).count
         let list = ResearchList(researches: [research])
-        var out = "# \(research.name)\n\n*\(count) passage\(count > 1 ? "s" : ""), "
-            + "\(books) livre\(books > 1 ? "s" : "")*\n"
+        let passages = count == 1 ? String(localized: "1 passage") : String(localized: "\(count) passages")
+        let bookCount = books == 1 ? String(localized: "1 livre") : String(localized: "\(books) livres")
+        var out = "# \(research.name)\n\n*\(passages), \(bookCount)*\n"
         for section in all {
             if !section.title.isEmpty { out += "\n## \(section.title)\n" }
             var currentBook = ""

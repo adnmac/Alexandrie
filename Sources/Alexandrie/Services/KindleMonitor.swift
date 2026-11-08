@@ -137,7 +137,7 @@ final class KindleMonitor {
         do {
             try KindleClippings.save(clippings, to: directories.clippings)
         } catch {
-            lastError = "Impossible d'enregistrer les notes : \(error.localizedDescription)"
+            lastError = String(localized: "Impossible d'enregistrer les notes : \(error.localizedDescription)")
         }
     }
 
@@ -238,7 +238,7 @@ final class KindleMonitor {
         do {
             try ReaderList.save(readers, to: directories.readers)
         } catch {
-            lastError = "Impossible d'enregistrer les liseuses : \(error.localizedDescription)"
+            lastError = String(localized: "Impossible d'enregistrer les liseuses : \(error.localizedDescription)")
         }
     }
     let mtpAvailable = MTPKindle.isLibraryAvailable
@@ -267,7 +267,7 @@ final class KindleMonitor {
         do {
             readers = try ReaderList.load(directories.readers)
         } catch {
-            lastError = "Liste des liseuses illisible : \(error.localizedDescription)"
+            lastError = String(localized: "Liste des liseuses illisible : \(error.localizedDescription)")
         }
         Task { await refresh() }
     }
@@ -390,15 +390,15 @@ final class KindleMonitor {
         let unavailable = books.filter { library.isUnavailable($0) }
         if let first = unavailable.first {
             lastError = unavailable.count == 1
-                ? "« \(first.title) » est indisponible : son dossier de livres est introuvable (disque débranché ?)."
-                : "\(unavailable.count) livres sont indisponibles : leur dossier de livres est introuvable (disque débranché ?)."
+                ? String(localized: "« \(first.title) » est indisponible : son dossier de livres est introuvable (disque débranché ?).")
+                : String(localized: "\(unavailable.count) livres sont indisponibles : leur dossier de livres est introuvable (disque débranché ?).")
         }
         let brand = device.brand
         let refused = books.filter { !$0.canSend(to: brand) }
         if let first = refused.first {
             lastError = refused.count == 1
-                ? "« \(first.title) » est protégé par DRM : il ne peut pas être lu sur cette \(brand.label)."
-                : "\(refused.count) livres sont protégés par DRM : ils ne peuvent pas être lus sur cette \(brand.label)."
+                ? String(localized: "« \(first.title) » est protégé par DRM : il ne peut pas être lu sur cette \(brand.label).")
+                : String(localized: "\(refused.count) livres sont protégés par DRM : ils ne peuvent pas être lus sur cette \(brand.label).")
         }
         let sendable = books.filter { $0.canSend(to: brand) && $0.trashedAt == nil && !library.isUnavailable($0) }
         for b in sendable { transfers[b.id] = .queued }
@@ -481,12 +481,12 @@ final class KindleMonitor {
 
     func eject() async {
         guard let volume = device as? VolumeKindle else {
-            lastError = isConnected ? "Cette Kindle (MTP) n'a pas besoin d'être éjectée : vous pouvez la débrancher."
-                                    : "Aucune liseuse à éjecter."
+            lastError = isConnected ? String(localized: "Cette Kindle (MTP) n'a pas besoin d'être éjectée : vous pouvez la débrancher.")
+                                    : String(localized: "Aucune liseuse à éjecter.")
             return
         }
         guard !isBusy else {
-            lastError = "Un transfert est en cours : attendez qu'il se termine avant d'éjecter la liseuse."
+            lastError = String(localized: "Un transfert est en cours : attendez qu'il se termine avant d'éjecter la liseuse.")
             return
         }
         isBusy = true
@@ -503,7 +503,7 @@ final class KindleMonitor {
             documents = []
             freeSpace = nil
         } catch {
-            lastError = "Impossible d'éjecter la liseuse : \(error.localizedDescription) Fermez les fichiers ouverts sur l'appareil, puis réessayez."
+            lastError = String(localized: "Impossible d'éjecter la liseuse : \(error.localizedDescription) Fermez les fichiers ouverts sur l'appareil, puis réessayez.")
         }
     }
 
@@ -526,7 +526,7 @@ final class KindleMonitor {
         for d in documents {
             do { try await Task.detached { try device.delete(d) }.value } catch { failures += 1 }
         }
-        if failures > 0 { lastError = "\(failures) livre(s) n'ont pas pu être retirés de la liseuse." }
+        if failures > 0 { lastError = String(localized: "\(failures) livres n'ont pas pu être retirés de la liseuse.") }
         await reloadDocuments()
     }
 

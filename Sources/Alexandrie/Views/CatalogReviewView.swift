@@ -36,7 +36,7 @@ struct CatalogReviewSheet: View {
                 Text("Revue des propositions du catalogue").font(.title3.weight(.semibold))
                 let books = Set(rows.map(\.book.id)).count
                 Text("\(books) livres, \(rows.count) propositions"
-                     + (coverTotal > 0 && coversRead < coverTotal ? " · lecture des couvertures \(coversRead)/\(coverTotal)" : ""))
+                     + (coverTotal > 0 && coversRead < coverTotal ? String(localized: " · lecture des couvertures \(coversRead)/\(coverTotal)") : ""))
                     .font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
@@ -67,7 +67,7 @@ struct CatalogReviewSheet: View {
                 Button("Rien") { selected.removeAll() }
             }
             .fixedSize()
-            Text(selected.isEmpty ? "Aucune proposition cochée" : "\(selected.count) cochée(s)")
+            Text(selected.isEmpty ? String(localized: "Aucune proposition cochée") : String(localized: "\(selected.count) cochées"))
                 .font(.caption).foregroundStyle(.secondary)
             Spacer()
             Button("Fermer") { dismiss() }
@@ -121,9 +121,9 @@ struct CatalogReviewSheet: View {
         case .confirmed?:
             Label("Confirmé", systemImage: "checkmark.circle").foregroundStyle(Palette.success).font(.caption)
         case .contradicted(let value)?:
-            Label(value.map { "« \($0) »" } ?? "Contredit", systemImage: "exclamationmark.triangle")
+            Label(value.map { "« \($0) »" } ?? String(localized: "Contredit"), systemImage: "exclamationmark.triangle")
                 .foregroundStyle(Palette.warning).font(.caption)
-                .help(value.map { "La couverture indique « \($0) »" } ?? "La couverture porte la valeur actuelle")
+                .help(value.map { String(localized: "La couverture indique « \($0) »") } ?? String(localized: "La couverture porte la valeur actuelle"))
         case nil:
             Text("—").foregroundStyle(.tertiary).font(.caption)
         }
@@ -161,9 +161,9 @@ struct CatalogReviewSheet: View {
     private func act(apply: Bool) {
         let chosen = rows.filter { selected.contains($0.id) }
         if apply {
-            library.undoable("Appliquer la revue") { library.applyReview(chosen) }
+            library.undoable(String(localized: "Appliquer la revue")) { library.applyReview(chosen) }
         } else {
-            library.undoable("Ignorer des propositions") { library.dismissReview(chosen) }
+            library.undoable(String(localized: "Ignorer des propositions")) { library.dismissReview(chosen) }
         }
         selected.removeAll()
         reload()

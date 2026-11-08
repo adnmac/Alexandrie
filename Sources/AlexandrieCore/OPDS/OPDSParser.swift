@@ -16,12 +16,12 @@ public enum OPDSError: LocalizedError, Equatable {
 
     public var errorDescription: String? {
         switch self {
-        case .notAFeed: "Cette adresse ne mène pas à un catalogue OPDS."
-        case .opds2: "Ce catalogue utilise OPDS 2 (JSON), qu'Alexandrie ne lit pas encore."
-        case .insecure: "Seules les adresses sécurisées (https) sont acceptées."
-        case .noSearch: "Ce catalogue ne propose pas de recherche."
-        case .tooLarge: "Le fichier dépasse 200 Mo."
-        case .wrongFormat(let f): "Le fichier reçu n'est pas un \(f.label)."
+        case .notAFeed: String(localized: "Cette adresse ne mène pas à un catalogue OPDS.")
+        case .opds2: String(localized: "Ce catalogue utilise OPDS 2 (JSON), qu'Alexandrie ne lit pas encore.")
+        case .insecure: String(localized: "Seules les adresses sécurisées (https) sont acceptées.")
+        case .noSearch: String(localized: "Ce catalogue ne propose pas de recherche.")
+        case .tooLarge: String(localized: "Le fichier dépasse 200 Mo.")
+        case .wrongFormat(let f): String(localized: "Le fichier reçu n'est pas un \(f.label).")
         }
     }
 }
@@ -114,7 +114,7 @@ public enum OPDSParser {
             } else if type == "application/atom+xml" {
                 switch rel {
                 case "related":
-                    related.append(OPDSRelated(title: link.attr("title") ?? "Voir aussi", url: url))
+                    related.append(OPDSRelated(title: link.attr("title") ?? String(localized: "Voir aussi"), url: url))
                 case "self", "alternate", "start", "up", "search", "next", "previous":
                     break
                 default:

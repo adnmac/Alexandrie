@@ -205,13 +205,13 @@ public struct CatalogClient: Sendable {
         let unavailable: [URLError.Code] = [.secureConnectionFailed, .networkConnectionLost, .cannotConnectToHost,
                                             .cannotFindHost, .timedOut, .badServerResponse, .dnsLookupFailed]
         if let e = error as? URLError {
-            if e.code == .notConnectedToInternet { return "Vérification impossible : pas de connexion Internet." }
+            if e.code == .notConnectedToInternet { return String(localized: "Vérification impossible : pas de connexion Internet.") }
             if unavailable.contains(e.code) {
-                let host = e.failingURL?.host.map { $0.contains("bnf.fr") ? "de la BnF" : "d'Open Library" } ?? "en ligne"
-                return "Vérification impossible : le catalogue \(host) ne répond pas pour le moment. Réessayez plus tard."
+                let host = e.failingURL?.host.map { $0.contains("bnf.fr") ? String(localized: "de la BnF") : String(localized: "d'Open Library") } ?? String(localized: "en ligne")
+                return String(localized: "Vérification impossible : le catalogue \(host) ne répond pas pour le moment. Réessayez plus tard.")
             }
         }
-        return "Vérification impossible : \(error.localizedDescription)"
+        return String(localized: "Vérification impossible : \(error.localizedDescription)")
     }
 }
 
@@ -321,12 +321,12 @@ public enum CatalogField: String, CaseIterable, Codable, Sendable, Identifiable 
     public var label: String {
         switch self {
         case .isbn: "ISBN"
-        case .title: "Titre"
-        case .genre: "Genre"
-        case .authors: "Auteurs"
-        case .publisher: "Éditeur"
-        case .publishedDate: "Publication"
-        case .language: "Langue"
+        case .title: String(localized: "Titre")
+        case .genre: String(localized: "Genre")
+        case .authors: String(localized: "Auteurs")
+        case .publisher: String(localized: "Éditeur")
+        case .publishedDate: String(localized: "Publication")
+        case .language: String(localized: "Langue")
         }
     }
 }

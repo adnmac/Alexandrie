@@ -14,18 +14,18 @@ public enum PDFKindleMode: String, Codable, CaseIterable, Sendable {
 
     public var label: String {
         switch self {
-        case .asIs: "Tel quel"
-        case .cropped: "Marges rognées"
-        case .reflowable: "Texte redimensionnable"
+        case .asIs: String(localized: "Tel quel")
+        case .cropped: String(localized: "Marges rognées")
+        case .reflowable: String(localized: "Texte redimensionnable")
         }
     }
 
     /// Ce que la fiche explique sous le choix.
     public var explanation: String {
         switch self {
-        case .asIs: "La Kindle reçoit le PDF d'origine, page par page."
-        case .cropped: "Les marges blanches sont retirées : le texte paraît plus grand. Le fichier d'origine n'est pas modifié."
-        case .reflowable: "Le texte devient un livre Kindle dont vous réglez la taille. Images, tableaux et colonnes peuvent se perdre."
+        case .asIs: String(localized: "La Kindle reçoit le PDF d'origine, page par page.")
+        case .cropped: String(localized: "Les marges blanches sont retirées : le texte paraît plus grand. Le fichier d'origine n'est pas modifié.")
+        case .reflowable: String(localized: "Le texte devient un livre Kindle dont vous réglez la taille. Images, tableaux et colonnes peuvent se perdre.")
         }
     }
 
@@ -111,7 +111,7 @@ public enum PDFCrop {
 
     /// Écrit une copie rognée (l'original n'est jamais modifié), avec les informations corrigées.
     public static func write(_ input: URL, to output: URL, edits: MetadataEdits?) throws {
-        guard let document = PDFDocument(url: input) else { throw BookError.unreadable("PDF invalide") }
+        guard let document = PDFDocument(url: input) else { throw BookError.unreadable(String(localized: "PDF invalide")) }
         if let boxes = cropBoxes(of: document) {
             for (index, crop) in boxes.enumerated() where !crop.isEmpty {
                 guard let page = document.page(at: index) else { continue }
@@ -120,7 +120,7 @@ public enum PDFCrop {
             }
         }
         PDFReflow.applyAttributes(edits, to: document)
-        guard document.write(to: output) else { throw BookError.conversionFailed("écriture du PDF rogné") }
+        guard document.write(to: output) else { throw BookError.conversionFailed(String(localized: "écriture du PDF rogné")) }
     }
 }
 
@@ -321,7 +321,7 @@ public enum PDFReflow {
                 guard let item = root.child(at: i), let page = item.destination?.page else { continue }
                 let index = document.index(for: page)
                 if index != NSNotFound, starts.last.map({ $0.1 < index }) ?? true {
-                    starts.append((item.label ?? "Chapitre \(starts.count + 1)", index))
+                    starts.append((item.label ?? String(localized: "Chapitre \(starts.count + 1)"), index))
                 }
             }
         }
@@ -334,8 +334,8 @@ public enum PDFReflow {
 
     /// EPUB du texte du PDF (un fichier par chapitre), à convertir ensuite en AZW3.
     public static func writeEPUB(_ input: URL, to output: URL, edits: MetadataEdits) throws {
-        guard let document = PDFDocument(url: input) else { throw BookError.unreadable("PDF invalide") }
-        guard hasText(input) else { throw BookError.unsupported("ce PDF ne contient pas de texte") }
+        guard let document = PDFDocument(url: input) else { throw BookError.unreadable(String(localized: "PDF invalide")) }
+        guard hasText(input) else { throw BookError.unsupported(String(localized: "ce PDF ne contient pas de texte")) }
         var meta = BookMetadata(title: edits.title, authors: edits.authors, language: edits.language ?? "fr")
         meta.apply(edits)
         var epub = EPUBBuilder(metadata: meta)

@@ -17,7 +17,7 @@ struct KindleSendButton<Content: View>: View {
                 } else {
                     // Mise en attente annulable (⌘Z), comme la commande Kindle > Envoyer.
                     let reader = kindle.readers.first.map(\.id)
-                    library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader) }
+                    library.undoable(String(localized: "Envoyer à la connexion")) { library.queueForKindle(books, reader: reader) }
                     SendNotifier.prepare()
                 }
             } label: { label() }
@@ -26,7 +26,7 @@ struct KindleSendButton<Content: View>: View {
                 Section("Envoyer à la connexion de") {
                     ForEach(kindle.readers) { reader in
                         Button(reader.name) {
-                            library.undoable("Envoyer à la connexion") { library.queueForKindle(books, reader: reader.id) }
+                            library.undoable(String(localized: "Envoyer à la connexion")) { library.queueForKindle(books, reader: reader.id) }
                             SendNotifier.prepare()
                         }
                     }
@@ -39,9 +39,9 @@ struct KindleSendButton<Content: View>: View {
 /// Libellé des boutons d'envoi : envoi immédiat, ou mise en attente si la liseuse est débranchée.
 enum KindleSendLabel {
     @MainActor static func title(_ kindle: KindleMonitor) -> String {
-        if kindle.isConnected { return kindle.currentReader.map { "Envoyer sur « \($0.name) »" } ?? "Envoyer à la liseuse" }
-        if kindle.readers.count == 1 { return "Envoyer à la connexion de « \(kindle.readers[0].name) »" }
-        return "Envoyer à la connexion"
+        if kindle.isConnected { return kindle.currentReader.map { String(localized: "Envoyer sur « \($0.name) »") } ?? String(localized: "Envoyer à la liseuse") }
+        if kindle.readers.count == 1 { return String(localized: "Envoyer à la connexion de « \(kindle.readers[0].name) »") }
+        return String(localized: "Envoyer à la connexion")
     }
     @MainActor static func icon(_ kindle: KindleMonitor) -> String {
         kindle.isConnected ? "arrow.down.to.line.compact" : "clock.arrow.circlepath"

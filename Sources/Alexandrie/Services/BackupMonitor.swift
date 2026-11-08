@@ -37,8 +37,8 @@ final class BackupMonitor {
         self.library = library
         defaults = AppDirectories.testStore == nil ? .standard : nil
         switch restoreResult {
-        case .success?: restoreMessage = "Sauvegarde restaurée à ce lancement ; l'état d'avant est dans le dossier Sauvegardes de l'app."
-        case .failure(let error)?: restoreMessage = "Restauration impossible : \(error.localizedDescription)"
+        case .success?: restoreMessage = String(localized: "Sauvegarde restaurée à ce lancement ; l'état d'avant est dans le dossier Sauvegardes de l'app.")
+        case .failure(let error)?: restoreMessage = String(localized: "Restauration impossible : \(error.localizedDescription)")
         case nil: break
         }
     }
@@ -154,7 +154,7 @@ final class BackupMonitor {
         do {
             try PendingRestore(snapshot: snapshot.url, destination: folder).schedule(directories)
         } catch {
-            status = .failed("Restauration impossible : \(error.localizedDescription)")
+            status = .failed(String(localized: "Restauration impossible : \(error.localizedDescription)"))
             return
         }
         guard AppDirectories.testStore == nil else { return }

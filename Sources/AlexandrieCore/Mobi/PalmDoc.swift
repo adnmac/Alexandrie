@@ -111,7 +111,7 @@ final class HuffCDICReader {
 
     init(huff: [UInt8], cdics: [[UInt8]]) throws {
         guard huff.hasPrefix("HUFF"), huff.u32(4) == 0x18 else {
-            throw BookError.unreadable("enregistrement HUFF invalide")
+            throw BookError.unreadable(String(localized: "enregistrement HUFF invalide"))
         }
         let off1 = huff.u32(8), off2 = huff.u32(12)
         for i in 0..<256 {
@@ -131,7 +131,7 @@ final class HuffCDICReader {
         }
         for cdic in cdics {
             guard cdic.hasPrefix("CDIC"), cdic.u32(4) == 0x10 else {
-                throw BookError.unreadable("enregistrement CDIC invalide")
+                throw BookError.unreadable(String(localized: "enregistrement CDIC invalide"))
             }
             let phrases = cdic.u32(8), bits = cdic.u32(12)
             let n = min(1 << bits, phrases - dictionary.count)

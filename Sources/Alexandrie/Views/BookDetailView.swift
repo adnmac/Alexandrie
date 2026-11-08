@@ -33,7 +33,7 @@ struct BookDetailView: View {
                 HStack {
                     if isTrashed {
                         Button {
-                            library.undoable("Restaurer") { library.restoreFromTrash(draft) }
+                            library.undoable(String(localized: "Restaurer")) { library.restoreFromTrash(draft) }
                         } label: {
                             Label("Restaurer", systemImage: "arrow.uturn.backward")
                                 .frame(maxWidth: .infinity)
@@ -42,7 +42,7 @@ struct BookDetailView: View {
                         .controlSize(.large)
                     } else if isPending && !kindle.isConnected {
                         Button {
-                            library.undoable("Retirer de la file d'envoi") { library.removeFromKindleQueue([draft.id]) }
+                            library.undoable(String(localized: "Retirer de la file d'envoi")) { library.removeFromKindleQueue([draft.id]) }
                         } label: {
                             Label("Retirer de la file d'envoi", systemImage: "xmark.circle")
                                 .frame(maxWidth: .infinity)
@@ -93,7 +93,7 @@ struct BookDetailView: View {
                 if draft.canRead && !isTrashed && !library.isUnavailable(draft) {
                     let position = reading.savedPosition(of: draft)
                     Button { ReaderWindows.open(draft.id) } label: {
-                        Label(position.map { "Reprendre la lecture · \($0.label)" } ?? "Lire", systemImage: "book")
+                        Label(position.map { String(localized: "Reprendre la lecture · \($0.label)") } ?? String(localized: "Lire"), systemImage: "book")
                     }
                     .buttonStyle(.link)
                     .help("Ouvrir le livre dans la fenêtre de lecture (⌘L)")
@@ -132,20 +132,20 @@ struct BookDetailView: View {
                 if files.count > 1 || !hiddenCopies.isEmpty { filesSection(hiddenCopies: hiddenCopies) }
 
                 Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.md, verticalSpacing: Space.sm) {
-                    info("Format", draft.format.label)
-                    info("Taille", ByteCountFormatter.string(fromByteCount: draft.fileSize, countStyle: .file))
-                    info("Ajouté le", draft.addedAt.formatted(date: .long, time: .omitted))
-                    if let sent = draft.lastSentAt { info("Envoyé le", sent.formatted(date: .long, time: .shortened)) }
+                    info(String(localized: "Format"), draft.format.label)
+                    info(String(localized: "Taille"), ByteCountFormatter.string(fromByteCount: draft.fileSize, countStyle: .file))
+                    info(String(localized: "Ajouté le"), draft.addedAt.formatted(date: .long, time: .omitted))
+                    if let sent = draft.lastSentAt { info(String(localized: "Envoyé le"), sent.formatted(date: .long, time: .shortened)) }
                     // Fenêtre de lecture (S-068) : où la lecture s'est arrêtée.
-                    if let position = reading.savedPosition(of: draft) { info("Lecture", position.label) }
+                    if let position = reading.savedPosition(of: draft) { info(String(localized: "Lecture"), position.label) }
                     // Par liseuse : étagères et derniers envois (liseuses oubliées ignorées).
                     let shelfNames = kindle.readers.filter { draft.shelfIDs.contains($0.id) }.map(\.name)
-                    if !shelfNames.isEmpty { info("Étagères", shelfNames.joined(separator: ", ")) }
+                    if !shelfNames.isEmpty { info(String(localized: "Étagères"), shelfNames.joined(separator: ", ")) }
                     ForEach(kindle.readers.filter { draft.sentTo?[$0.id] != nil }) { reader in
-                        info("Sur « \(reader.name) »",
-                             "envoyé le " + draft.sentTo![reader.id]!.formatted(date: .long, time: .shortened))
+                        info(String(localized: "Sur « \(reader.name) »"),
+                             String(localized: "envoyé le ") + draft.sentTo![reader.id]!.formatted(date: .long, time: .shortened))
                     }
-                    info("Emplacement", draft.isImported ? "Imports d'Alexandrie" : draft.path)
+                    info(String(localized: "Emplacement"), draft.isImported ? String(localized: "Imports d'Alexandrie") : draft.path)
                 }
                 .font(.callout)
                 // Bord à part : le formulaire et les sections entre « actions » et lui ne sont pas sondés.
@@ -242,15 +242,15 @@ struct BookDetailView: View {
                 }
                 if !hiddenCopies.isEmpty {
                     Text(hiddenCopies.count == 1
-                         ? "1 copie en double (même format) est masquée ; elle reste sur le disque."
-                         : "\(hiddenCopies.count) copies en double (même format) sont masquées ; elles restent sur le disque.")
+                         ? String(localized: "1 copie en double (même format) est masquée ; elle reste sur le disque.")
+                         : String(localized: "\(hiddenCopies.count) copies en double (même format) sont masquées ; elles restent sur le disque."))
                         .font(.caption).foregroundStyle(.secondary)
                         .help(hiddenCopies.map(\.path).joined(separator: "\n"))
                 }
             }
             .padding(4)
         } label: {
-            Label(files.count == 1 ? "1 fichier pour ce livre" : "\(files.count) fichiers pour ce livre", systemImage: "doc.on.doc")
+            Label(files.count == 1 ? String(localized: "1 fichier pour ce livre") : String(localized: "\(files.count) fichiers pour ce livre"), systemImage: "doc.on.doc")
         }
     }
 
@@ -307,7 +307,7 @@ struct MultiSelectionView: View {
             let done = books.filter { kindle.transfers[$0.id] == .done }.count
             let failed = books.filter { if case .failed = kindle.transfers[$0.id] { true } else { false } }.count
             if done + failed > 0 {
-                Text("\(done) envoyé(s), \(failed) échec(s)").foregroundStyle(failed > 0 ? AnyShapeStyle(Palette.warning) : AnyShapeStyle(.secondary))
+                Text(verbatim: String(localized: "\(done) envoyés") + ", " + String(localized: "\(failed) échecs")).foregroundStyle(failed > 0 ? AnyShapeStyle(Palette.warning) : AnyShapeStyle(.secondary))
             }
         }
         .padding(Space.section)
@@ -356,7 +356,7 @@ struct ClippingsSection: View {
                         .lineLimit(3)
                         .foregroundStyle(.primary)
                 }
-                Button(clippings.count <= 3 ? "Ouvrir dans Notes" : "Voir les \(clippings.count) notes et surlignages") {
+                Button(clippings.count <= 3 ? String(localized: "Ouvrir dans Notes") : String(localized: "Voir les \(clippings.count) notes et surlignages")) {
                     kindle.notesRequest = bookKey
                 }
                 .controlSize(.small)
@@ -364,7 +364,7 @@ struct ClippingsSection: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(4)
         } label: {
-            Label(clippings.count == 1 ? "1 note ou surlignage de liseuse" : "\(clippings.count) notes et surlignages de liseuse",
+            Label(clippings.count == 1 ? String(localized: "1 note ou surlignage de liseuse") : String(localized: "\(clippings.count) notes et surlignages de liseuse"),
                   systemImage: "highlighter")
         }
     }
@@ -420,7 +420,8 @@ struct CatalogSection: View {
                 let contradicted = Set(verdicts.compactMap { field, v in
                     if case .contradicted = v { return field } else { return nil }
                 })
-                Text("La notice \(record.source) propose \(suggestions.count == 1 ? "une correction" : "\(suggestions.count) corrections") :")
+                Text(suggestions.count == 1 ? String(localized: "La notice \(record.source) propose une correction :")
+                     : String(localized: "La notice \(record.source) propose \(suggestions.count) corrections :"))
                     .font(.callout.weight(.medium))
                 ForEach(suggestions) { d in
                     row(d, verdict: verdicts[d.field])
@@ -514,8 +515,8 @@ struct CatalogSection: View {
                     .font(.caption).foregroundStyle(Palette.warning)
                 if d.field == .publisher {
                     // La couverture confirme la valeur actuelle : on la garde ; sinon on adopte celle de la couverture.
-                    Button(value == d.current ? "Garder « \(value) »" : "Utiliser « \(value) »") {
-                        library.prepareUndo("Corriger l'éditeur", ids: fileIDs)
+                    Button(value == d.current ? String(localized: "Garder « \(value) »") : String(localized: "Utiliser « \(value) »")) {
+                        library.prepareUndo(String(localized: "Corriger l'éditeur"), ids: fileIDs)
                         book.publisher = value
                         book.catalogDismissed = (book.catalogDismissed ?? []).union([.publisher])
                     }
@@ -535,14 +536,14 @@ struct CatalogSection: View {
     /// Modifie le brouillon de la fiche (enregistré automatiquement), pour ne pas être écrasé par lui.
     private func apply(_ fields: Set<CatalogField>) {
         guard let record = book.catalogRecord else { return }
-        library.prepareUndo(fields.count == 1 ? "Appliquer « \(fields.first!.label) »" : "Appliquer la notice", ids: fileIDs)
+        library.prepareUndo(fields.count == 1 ? String(localized: "Appliquer « \(fields.first!.label) »") : String(localized: "Appliquer la notice"), ids: fileIDs)
         var edits = book.edits
         CatalogComparison.apply(fields, from: record, to: &edits)
         book.edits = edits
     }
 
     private func dismiss(_ fields: Set<CatalogField>) {
-        library.prepareUndo("Ignorer des propositions", ids: fileIDs)
+        library.prepareUndo(String(localized: "Ignorer des propositions"), ids: fileIDs)
         book.catalogDismissed = (book.catalogDismissed ?? []).union(fields)
     }
 }

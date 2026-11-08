@@ -27,7 +27,7 @@ struct OPDSCatalogView: View {
         } else if let page = opds.current(catalogID) {
             if let error = page.error {
                 VStack(spacing: Space.lg) {
-                    ContentUnavailableView(page.terms == nil ? "Catalogue injoignable" : "Recherche impossible",
+                    ContentUnavailableView(page.terms == nil ? String(localized: "Catalogue injoignable") : String(localized: "Recherche impossible"),
                                            systemImage: "wifi.exclamationmark", description: Text(error))
                         .fixedSize(horizontal: false, vertical: true)
                     Button("Réessayer") { Task { await opds.reload(catalogID) } }
@@ -39,10 +39,10 @@ struct OPDSCatalogView: View {
                     ContentUnavailableView("Aucun livre en \(languageName.lowercased())", systemImage: "character.book.closed",
                                            description: Text("Les \(visible.hidden) livres de cette page sont dans une autre langue. Choisissez « Toutes les langues » dans le menu Langue pour les voir."))
                 } else if feed.entries.isEmpty {
-                    ContentUnavailableView(page.terms.map { "Aucun livre pour « \($0) »" } ?? "Page vide",
+                    ContentUnavailableView(page.terms.map { String(localized: "Aucun livre pour « \($0) »") } ?? String(localized: "Page vide"),
                                            systemImage: "books.vertical",
-                                           description: Text(page.terms == nil ? "Le catalogue n'a rien à montrer ici."
-                                                             : "Essayez un autre mot, un nom d'auteur ou un titre."))
+                                           description: Text(page.terms == nil ? String(localized: "Le catalogue n'a rien à montrer ici.")
+                                                             : String(localized: "Essayez un autre mot, un nom d'auteur ou un titre.")))
                 } else {
                     entries(feed)
                 }
@@ -94,7 +94,7 @@ struct OPDSCatalogView: View {
     }
 
     private var languageName: String {
-        opds.language(catalogID).map(OPDSLanguage.name) ?? "Toutes les langues"
+        opds.language(catalogID).map(OPDSLanguage.name) ?? String(localized: "Toutes les langues")
     }
 
     /// Langue des livres (S-090) : envoyée à la recherche quand le catalogue sait filtrer, et appliquée aux livres
@@ -112,8 +112,8 @@ struct OPDSCatalogView: View {
         .fixedSize()
         .controlSize(.small)
         .help(opds.catalog(id: catalogID)?.languageQuery != nil
-              ? "Langue des livres : la recherche ne rend que cette langue, et les livres d'une autre langue sont masqués"
-              : "Langue des livres : les livres d'une autre langue sont masqués (ceux dont la langue n'est pas indiquée restent)")
+              ? String(localized: "Langue des livres : la recherche ne rend que cette langue, et les livres d'une autre langue sont masqués")
+              : String(localized: "Langue des livres : les livres d'une autre langue sont masqués (ceux dont la langue n'est pas indiquée restent)"))
     }
 
     private func entries(_ feed: OPDSFeed) -> some View {
@@ -133,7 +133,7 @@ struct OPDSCatalogView: View {
             }
             let visible = opds.visibleEntries(catalogID)
             if visible.hidden > 0 {
-                Label("\(visible.hidden) livre\(visible.hidden > 1 ? "s" : "") dans une autre langue masqué\(visible.hidden > 1 ? "s" : "")",
+                Label(String(localized: "\(visible.hidden) livres dans une autre langue masqués"),
                       systemImage: "line.3.horizontal.decrease.circle")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -205,7 +205,7 @@ struct OPDSEntryRow: View {
         .padding(.vertical, Space.xs)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
-        .accessibilityHint(entry.isBook ? "Montre la fiche du livre" : "Ouvre cette partie du catalogue")
+        .accessibilityHint(entry.isBook ? String(localized: "Montre la fiche du livre") : String(localized: "Ouvre cette partie du catalogue"))
     }
 }
 
@@ -265,12 +265,12 @@ struct OPDSEntryDetailView: View {
                         }
                     }
                     Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: Space.md, verticalSpacing: Space.sm) {
-                        info("Formats", entry.acquisitions.map(\.format.label).joined(separator: ", "))
-                        if let language = entry.language { info("Langue", language) }
+                        info(String(localized: "Formats"), entry.acquisitions.map(\.format.label).joined(separator: ", "))
+                        if let language = entry.language { info(String(localized: "Langue"), language) }
                         if let size = entry.acquisitions.first?.length {
-                            info("Taille", ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
+                            info(String(localized: "Taille"), ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
                         }
-                        if let catalog = opds.catalog(id: catalogID) { info("Catalogue", catalog.name) }
+                        if let catalog = opds.catalog(id: catalogID) { info(String(localized: "Catalogue"), catalog.name) }
                     }
                     .font(.callout)
                     .gridProbe("details", area: "fiche-catalogue", edge: "details")
@@ -338,8 +338,8 @@ struct OPDSEntryDetailView: View {
                         .foregroundStyle(Palette.warning)
                 } else {
                     Text(first.format == .epub
-                         ? "Le livre rejoint la bibliothèque (imports d'Alexandrie) ; il sera converti en AZW3 à l'envoi sur la Kindle."
-                         : "Le livre rejoint la bibliothèque (imports d'Alexandrie).")
+                         ? String(localized: "Le livre rejoint la bibliothèque (imports d'Alexandrie) ; il sera converti en AZW3 à l'envoi sur la Kindle.")
+                         : String(localized: "Le livre rejoint la bibliothèque (imports d'Alexandrie)."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

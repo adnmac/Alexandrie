@@ -12,7 +12,7 @@ public enum KoboAnnotations {
     public enum Failure: LocalizedError, Equatable {
         case unreadable(String)
         public var errorDescription: String? {
-            switch self { case .unreadable(let why): "Base de notes de la Kobo illisible : \(why)." }
+            switch self { case .unreadable(let why): String(localized: "Base de notes de la Kobo illisible : \(why).") }
         }
     }
 
@@ -112,7 +112,7 @@ public enum KoboAnnotations {
         let name = (volume as NSString).lastPathComponent
         let base = name.lowercased().hasSuffix(".kepub.epub") ? String(name.dropLast(".kepub.epub".count))
             : (name as NSString).deletingPathExtension
-        return base.isEmpty ? "Livre de la Kobo" : base
+        return base.isEmpty ? String(localized: "Livre de la Kobo") : base
     }
 
     /// « Chapitre premier · 40 % » : la Kobo situe un passage par chapitre et progression dans le chapitre.

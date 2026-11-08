@@ -13,7 +13,7 @@ struct MobiIndexReader {
 
     init(records: [[UInt8]], index: Int) throws {
         guard index < records.count, records[index].hasPrefix("INDX") else {
-            throw BookError.unreadable("index INDX introuvable")
+            throw BookError.unreadable(String(localized: "index INDX introuvable"))
         }
         let header = records[index]
         let headerLength = header.u32(4)

@@ -38,9 +38,9 @@ public enum ExternalBackup {
 
         public var errorDescription: String? {
             switch self {
-            case .destinationMissing(let path): "Dossier de sauvegarde introuvable (\(path)) : disque débranché ou dossier déplacé."
-            case .nothingToSave: "Aucune donnée à sauvegarder pour l'instant."
-            case .emptySnapshot: "Cette sauvegarde ne contient aucun fichier de données."
+            case .destinationMissing(let path): String(localized: "Dossier de sauvegarde introuvable (\(path)) : disque débranché ou dossier déplacé.")
+            case .nothingToSave: String(localized: "Aucune donnée à sauvegarder pour l'instant.")
+            case .emptySnapshot: String(localized: "Cette sauvegarde ne contient aucun fichier de données.")
             }
         }
     }

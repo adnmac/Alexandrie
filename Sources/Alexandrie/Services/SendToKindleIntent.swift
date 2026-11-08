@@ -89,13 +89,13 @@ enum SendToKindle {
     static func run(_ book: Book, library: LibraryStore, kindle: KindleMonitor) async -> String {
         if kindle.isConnected {
             await kindle.send([book], library: library)
-            if case .failed(let message) = kindle.transfers[book.id] { return "Échec : \(message)" }
-            return "Envoyé " + (kindle.currentReader.map { "sur « \($0.name) »" } ?? "sur la liseuse")
+            if case .failed(let message) = kindle.transfers[book.id] { return String(localized: "Échec : \(message)") }
+            return kindle.currentReader.map { String(localized: "Envoyé sur « \($0.name) »") } ?? String(localized: "Envoyé sur la liseuse")
         }
         let reader = kindle.readers.count == 1 ? kindle.readers[0].id : nil
         library.queueForKindle([book], reader: reader)
         SendNotifier.prepare()
-        return "En attente de la liseuse"
+        return String(localized: "En attente de la liseuse")
     }
 }
 

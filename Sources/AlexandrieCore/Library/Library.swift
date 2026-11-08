@@ -87,7 +87,7 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var canSendToKindle: Bool { !isDRMProtected || format.isKindleNative }
     /// La fenêtre de lecture ouvre tous les formats, sauf un livre sous DRM.
     public var canRead: Bool { !isDRMProtected }
-    public var authorLine: String { authors.isEmpty ? "Auteur inconnu" : authors.joined(separator: ", ") }
+    public var authorLine: String { authors.isEmpty ? String(localized: "Auteur inconnu") : authors.joined(separator: ", ") }
 
     /// Informations corrigeables, appliquées aux copies envoyées sur la Kindle.
     public var edits: MetadataEdits {

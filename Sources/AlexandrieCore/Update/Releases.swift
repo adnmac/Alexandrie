@@ -54,9 +54,9 @@ public enum SignatureCheck {
         public var errorDescription: String? {
             switch self {
             case .runningAppNotSigned:
-                "Cette copie d'Alexandrie n'est pas signée avec le certificat stable : installez cette version à la main une fois, les suivantes s'installeront d'elles-mêmes."
+                String(localized: "Cette copie d'Alexandrie n'est pas signée avec le certificat stable : installez cette version à la main une fois, les suivantes s'installeront d'elles-mêmes.")
             case .mismatch(let status):
-                "La version téléchargée ne porte pas la signature attendue (\(status)) : elle n'a pas été installée."
+                String(localized: "La version téléchargée ne porte pas la signature attendue (\(status)) : elle n'a pas été installée.")
             }
         }
     }

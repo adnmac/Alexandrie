@@ -1,14 +1,69 @@
 {
-  "fill" : { "automatic-gradient" : "srgb:0.55000,0.18000,0.16000,1.00000" },
+  "fill" : {
+    "automatic-gradient" : "srgb:0.13000,0.16000,0.42000,1.00000"
+  },
   "groups" : [
     {
       "layers" : [
-        { "glass" : true, "image-name" : "front.svg", "name" : "front" },
-        { "glass" : true, "image-name" : "back.svg", "name" : "back", "opacity" : 0.6 }
+        {
+          "fill" : {
+            "solid" : "display-p3:0.97435,0.97706,0.71495,1.00000"
+          },
+          "glass" : true,
+          "image-name" : "moon.svg",
+          "name" : "moon"
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.78000,0.83000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.86000,0.89000,1.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "book.svg",
+          "name" : "book"
+        },
+        {
+          "fill-specializations" : [
+            {
+              "value" : {
+                "solid" : "srgb:0.78000,0.83000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "solid" : "srgb:0.86000,0.89000,1.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : true,
+          "image-name" : "stars.svg",
+          "name" : "stars",
+          "opacity" : 0.6
+        }
       ],
-      "shadow" : { "kind" : "neutral", "opacity" : 0.5 },
-      "translucency" : { "enabled" : true, "value" : 0.5 }
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
     }
   ],
-  "supported-platforms" : { "squares" : [ "macOS" ] }
+  "supported-platforms" : {
+    "squares" : [
+      "macOS"
+    ]
+  }
 }

@@ -1,142 +1,150 @@
 # Foluna
 
-*Anciennement Alexandrie : le code, l'exécutable et le dossier de données gardent ce nom. Contact : info@foluna.app.*
+A book library for macOS that loads your books onto your e-reader (Kindle, Kobo, or any USB e-reader that reads EPUB) **over a USB cable**, without Calibre.
 
-Bibliothèque de livres pour macOS qui charge vos livres sur une liseuse (Kindle, Kobo, ou toute liseuse USB qui lit l'EPUB) **par câble USB**, sans Calibre.
+Website: [foluna.app](https://foluna.app) · Download: [latest release](https://github.com/adnmac/Foluna/releases/latest) · Contact: info@foluna.app
 
-- Indexe un ou plusieurs dossiers de livres existants (EPUB, MOBI, AZW3, AZW, PDF) **sans jamais les modifier** ; un dossier sur un disque débranché garde ses livres, indisponibles jusqu'au rebranchement.
-- Extrait titre, auteurs, langue, éditeur, résumé et couverture ; recherche, tri, filtres par format et auteur.
-- Titre, auteurs, éditeur, date de publication, ISBN, langue, résumé et étiquettes corrigeables dans l'app ;
-  les corrections sont appliquées aux copies envoyées sur la Kindle (le fichier source reste intact).
-- Correction directe d'un livre déjà sur la Kindle (MOBI/AZW3 sans DRM) : seules les métadonnées du fichier sont réécrites.
-- Vérification en ligne des nouveaux livres auprès de la **BnF** puis d'**Open Library** (par ISBN, ou par titre et auteur) :
-  les différences sont proposées dans la fiche, rien n'est modifié sans validation. Filtre « À vérifier » dans la barre latérale.
-- Envoi sur la Kindle : copie directe des MOBI/AZW3/PDF, **conversion automatique EPUB → AZW3** (la Kindle ne lit pas l'EPUB par USB), avec miniature de couverture.
-- **Fenêtre de lecture** (⌘L ou double-clic) pour EPUB, MOBI, AZW3 et PDF : pages au clavier, table des matières, reprise là où la lecture s'est arrêtée (« % lu » dans la fiche), taille du texte, menu « Aa » avec la police (celle du livre, ou une police de macOS avec ou sans empattements : New York, Charter, Iowan Old Style, Georgia, Avenir Next…) et fond clair, sépia ou sombre, surlignages (⇧⌘H) rangés avec ceux de la Kindle dans « Notes et surlignages », d'où ils rouvrent la lecture à leur passage, et leurs notes (clic sur le passage surligné) et couleurs, modifiables des deux côtés. Des thématiques (« Rénovation des voiries », un mémoire) classent les surlignages, un passage pouvant en avoir plusieurs, et nomment leurs couleurs (jaune = construction) ; la fenêtre de lecture choisit la thématique du livre, les notes se filtrent par couleurs et par thématiques, et chaque thématique a sa page dans la barre latérale : toutes ses notes, de tous les livres, triées par couleur nommée, par livre ou par date, et exportées en Markdown dans cet ordre.
-- **Recherche dans le contenu** : le champ de recherche cherche dans les titres, auteurs… ou dans le texte des livres (EPUB, MOBI, AZW3, PDF), indexé en arrière-plan, un fichier par livre, avec une option « Écriture exacte » (majuscules et accents) ; chaque livre trouvé montre ses extraits, et un extrait ouvre la fenêtre de lecture au passage, avec la liste des renvois du mot dans la colonne de gauche et ⌘G / ⇧⌘G pour passer de l'un à l'autre.
-- PDF : tel quel, **marges rognées** (le texte paraît plus grand) ou **texte redimensionnable** (texte extrait en AZW3, chapitres d'après la table du PDF) ; l'original n'est jamais modifié.
-- **Conversion MOBI/AZW3 → EPUB** (KF7, KF8 et fichiers hybrides).
-- **Zotero** : « Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages, notes, couleurs et positions dans une note rattachée à la référence du livre, retrouvée par ISBN ou titre et auteur, ou créée d'après la fiche. Un nouvel envoi met la note à jour, sans doublon ; une thématique donne une note par livre. Les notes restent dans Foluna : ce qui change dans Zotero ne revient pas. Il faut Zotero 10 ou plus récent, ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero », et « Toujours autoriser » au premier envoi.
-- **Catalogues en ligne (OPDS)** : Project Gutenberg, Ebooks libres et gratuits et la Bibliothèque numérique romande sont proposés dans la barre latérale ; on peut ajouter l'adresse de tout catalogue OPDS 1.2 public (https, sans compte). On parcourt ses rubriques, on y cherche depuis le champ de recherche (touche Retour), un menu « Langue » ne garde que les livres de cette langue (chez Gutenberg, recherches et listes sont restreintes par le serveur), et « Télécharger » ajoute le livre à la bibliothèque comme un import ; l'envoi sur la Kindle se fait ensuite depuis sa fiche. Les livres payants ou sous DRM sont ignorés.
-- Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
-- **Kobo** (disque USB, reconnue d'elle-même) : les EPUB partent tels quels, avec vos corrections dans le fichier ; MOBI et AZW3 sont convertis en EPUB, le PDF suit son mode. Ses surlignages et notes (base `KoboReader.sqlite`, lue sur une copie) rejoignent « Notes et surlignages ».
-- **Autre liseuse USB** qui lit l'EPUB (PocketBook, Tolino…) : Réglages › Liseuses › « Ajouter une liseuse USB… », avec le dossier où vont les livres ; elle est ensuite reconnue à chaque branchement. Ses notes ne sont pas lues.
+Requires macOS 14 Sonoma or later on a Mac with Apple silicon. Free and open source under the MIT licence.
 
-## Langues
+## Features
 
-L'interface existe en français, anglais, néerlandais, allemand et espagnol. Elle suit la langue de macOS
-(ou celle choisie pour Foluna dans Réglages Système › Langue et région › Applications), et Réglages › Général ›
-Langue la choisit dans l'app (appliquée au redémarrage). Les exports Markdown, les notes envoyées à Zotero, les
-notifications et l'action Raccourcis suivent cette langue ; les titres, notes et dates déjà enregistrés restent tels
-quels. Les traductions sont dans `Resources/Localizable.xcstrings` (voir `scripts/l10n.sh` et `docs/l10n-glossaire.md`) ;
-le néerlandais, l'allemand et l'espagnol gagneraient à être relus par une personne dont c'est la langue.
+- Indexes one or more existing book folders (EPUB, MOBI, AZW3, AZW, PDF) **without ever modifying them**; a folder on an unplugged disk keeps its books, shown as unavailable until the disk is back.
+- Reads title, authors, language, publisher, summary and cover; search, sorting, filters by format and author.
+- Title, authors, publisher, publication date, ISBN, language, summary and tags can be corrected in the app;
+  corrections are applied to the copies sent to the Kindle (the source file stays untouched).
+- Direct correction of a book already on the Kindle (MOBI/AZW3 without DRM): only the file's metadata is rewritten.
+- Online check of new books against the **BnF** (French National Library), then **Open Library** (by ISBN, or by title and author):
+  differences are suggested in the book's details and nothing changes without your approval. A “To Review” filter sits in the sidebar.
+- Sending to the Kindle: direct copy of MOBI/AZW3/PDF, **automatic EPUB → AZW3 conversion** (the Kindle does not read EPUB over USB), with a cover thumbnail.
+- **Reading window** (⌘L or double-click) for EPUB, MOBI, AZW3 and PDF: keyboard page turns, table of contents, resumes where you stopped (“% read” in the book's details), text size, an “Aa” menu with the font (the book's own, or a macOS font with or without serifs: New York, Charter, Iowan Old Style, Georgia, Avenir Next…) and light, sepia or dark pages, highlights (⇧⌘H) stored with the Kindle's in “Notes and Highlights”, from where they reopen the reading window at their passage, and their notes (click the highlighted passage) and colours, editable on both sides. Topics (“Road renovation”, a thesis) group highlights, a passage can belong to several, and they name their colours (yellow = construction); the reading window picks the book's topic, notes can be filtered by colour and topic, and each topic has its own sidebar page: all its notes from every book, sorted by named colour, by book or by date, and exported to Markdown in that order.
+- **Search inside books**: the search field looks in titles, authors… or in the text of the books (EPUB, MOBI, AZW3, PDF), indexed in the background, one file per book, with an “Exact Spelling” option (case and accents); each matching book shows its excerpts, and an excerpt opens the reading window at the passage, with the list of matches in the left column and ⌘G / ⇧⌘G to move between them.
+- PDF: as is, **with cropped margins** (the text looks bigger) or as **resizable text** (text extracted to AZW3, chapters taken from the PDF's outline); the original is never modified.
+- **MOBI/AZW3 → EPUB conversion** (KF7, KF8 and hybrid files).
+- **Zotero**: “Send to Zotero” (Export menu of a book's or a topic's notes) copies passages, notes, colours and locations into a note attached to the book's item, found by ISBN or title and author, or created from the book's details. Sending again updates the note, without duplicates; a topic gives one note per book. Notes stay in Foluna: changes made in Zotero do not come back. Requires Zotero 10 or later, open, with Settings › Advanced › “Allow other applications on this computer to communicate with Zotero”, and “Always Allow” on the first send.
+- **Online catalogues (OPDS)**: Project Gutenberg, Ebooks libres et gratuits and the Bibliothèque numérique romande are offered in the sidebar; you can add the address of any public OPDS 1.2 catalogue (https, no account). Browse its sections, search it from the search field (Return key), keep only books in one language with the “Language” menu (at Gutenberg, searches and lists are filtered by the server), and “Download” adds the book to the library like an import; it is then sent to the e-reader from its details. Paid or DRM-protected books are skipped.
+- Kindle as a **USB disk** (models up to 2023) and over **MTP** (models from late 2024, via libmtp).
+- **Kobo** (USB disk, recognised automatically): EPUB files are sent as is, with your corrections written into the file; MOBI and AZW3 are converted to EPUB, and PDF follows its mode. Its highlights and notes (the `KoboReader.sqlite` database, read from a copy) join “Notes and Highlights”.
+- **Other USB e-readers** that read EPUB (PocketBook, Tolino…): Settings › E-Readers › “Add a USB E-Reader…”, with the folder where books go; it is then recognised every time it is plugged in. Its notes are not read.
 
-## Compiler et lancer
+## Languages
+
+The interface is available in English, French, Dutch, German and Spanish. It follows the macOS language
+(or the one chosen for Foluna in System Settings › General › Language & Region › Applications), and Settings › General ›
+Language changes it in the app (applied after a restart). Markdown exports, notes sent to Zotero, notifications and the
+Shortcuts action follow this language; titles, notes and dates already saved stay as they are. Translations live in
+`Resources/Localizable.xcstrings` (see `scripts/l10n.sh` and `docs/l10n-glossaire.md`); the Dutch, German and Spanish
+translations would benefit from a review by native speakers.
+
+## Build and run
 
 ```bash
-scripts/bundle.sh               # construit build/Foluna.app (release) et la copie dans ~/Applications
+scripts/bundle.sh               # builds build/Foluna.app (release) and copies it to ~/Applications
 open build/Foluna.app
 ```
 
-Autres scripts : `scripts/build.sh [release]`, `scripts/test.sh`, `scripts/selftest.sh` (self-test de l'app sur des données de test dans `/tmp`), `scripts/snap.sh` (captures de chaque page en clair et en sombre, avec des livres d'exemple).
+Other scripts: `scripts/build.sh [release]`, `scripts/test.sh`, `scripts/selftest.sh` (the app's self-test on test data in `/tmp`), `scripts/snap.sh` (screenshots of every page in light and dark mode, with sample books).
 
-### Signature et versions
+Internal names (Swift targets `Alexandrie` and `AlexandrieCore`, the executable, `ALEXANDRIE_*` environment variables,
+the bundle identifier `be.adnmac.alexandrie` and the data folder) keep the project's original code name, because
+permissions, settings, the Keychain and update checks depend on them.
 
-`scripts/bundle.sh` signe l'app avec un certificat **Apple Development** s'il existe (gratuit : Xcode › Réglages ›
-Comptes › ton identifiant Apple › Gérer les certificats › + › Apple Development ; le trousseau doit aussi contenir
-l'intermédiaire [Apple WWDR G3](https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer)).
-L'action Raccourcis ne s'exécute qu'avec ce certificat, qui porte un team ID.
-À défaut, il prend le certificat « Alexandrie Dev » (Trousseaux d'accès › Assistant de certification ›
-Créer un certificat : racine auto-signée, signature de code).
-Avec une signature stable, macOS garde les autorisations de l'app (disque de la Kindle…) d'une version à l'autre ;
-sans certificat, la signature est ad hoc.
+### Signing and releases
 
-`scripts/release.sh X.Y.Z` publie une version sur GitHub : une image disque `Foluna-X.Y.Z.dmg` (l'app signée
-et un lien vers Applications) et une archive `.zip` pour les anciennes versions. L'app installée la signale et propose
-« Installer et relancer » : elle télécharge le `.dmg`, en extrait l'app, vérifie qu'elle porte la même signature,
-puis se ferme ; un script remplace alors l'app (l'ancienne revient si la copie échoue) et la relance.
-Le `.dmg` s'installe aussi à la main depuis la page de la version (glisser Foluna dans Applications).
-Avec les seules Command Line Tools, ces scripts chargent les plugins de macros SwiftUI et Swift Testing
-depuis `/Applications/Xcode.app` (Xcode doit être installé, mais sa licence n'a pas besoin d'être acceptée).
+`scripts/bundle.sh` signs the app with an **Apple Development** certificate if there is one (free: Xcode › Settings ›
+Accounts › your Apple Account › Manage Certificates › + › Apple Development; the keychain must also hold the
+[Apple WWDR G3](https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer) intermediate certificate).
+The Shortcuts action only runs with this certificate, which carries a team ID.
+Otherwise it uses a self-signed code-signing certificate named “Alexandrie Dev” (Keychain Access › Certificate Assistant ›
+Create a Certificate: self-signed root, code signing).
+With a stable signature, macOS keeps the app's permissions (the Kindle's disk…) from one version to the next;
+without a certificate, the signature is ad hoc.
 
-### Kindle récentes (MTP)
+`scripts/release.sh X.Y.Z` publishes a release on GitHub: a `Foluna-X.Y.Z.dmg` disk image (the signed app and
+a link to Applications) and a `.zip` archive for older versions. The installed app reports it and offers
+“Install and Relaunch”: it downloads the `.dmg`, extracts the app, checks that it carries the same signature,
+then quits; a script then replaces the app (the old one comes back if the copy fails) and relaunches it.
+The `.dmg` can also be installed by hand from the release page (drag Foluna to Applications).
+With only the Command Line Tools, these scripts load the SwiftUI and Swift Testing macro plugins
+from `/Applications/Xcode.app` (Xcode must be installed, but its licence does not need to be accepted).
+
+### Recent Kindles (MTP)
 
 ```bash
 brew install libmtp
 ```
 
-libmtp est chargée à l'exécution : sans elle, l'app fonctionne avec les Kindle « disque USB » uniquement.
-Fermez Android File Transfer (ou tout outil MTP) avant de brancher la Kindle.
+libmtp is loaded at run time: without it, the app works with “USB disk” Kindles only.
+Quit Android File Transfer (or any MTP tool) before plugging in the Kindle.
 
-## Données
+## Data
 
-Tout ce que l'app produit est dans `~/Library/Application Support/Alexandrie/` :
+Everything the app produces is in `~/Library/Application Support/Alexandrie/`:
 
-| Élément | Rôle |
+| Item | Purpose |
 |---|---|
-| `library.json` | index de la bibliothèque |
-| `Covers/` | couvertures réduites |
-| `Conversions/` | AZW3 et EPUB convertis (cache) |
-| `Imports/` | livres ajoutés par glisser-déposer, « Importer » ou téléchargés d'un catalogue en ligne |
-| `opds.json` | catalogues en ligne ajoutés, et livres qui en ont été téléchargés |
-| `zotero.json` | références et notes Zotero reliées à chaque livre et thématique |
+| `library.json` | library index |
+| `Covers/` | scaled-down covers |
+| `Conversions/` | converted AZW3 and EPUB files (cache) |
+| `Imports/` | books added by drag and drop, “Import”, or downloaded from an online catalogue |
+| `opds.json` | added online catalogues, and books downloaded from them |
+| `zotero.json` | Zotero items and notes linked to each book and topic |
 
-**Copie hors du Mac** (Réglages › Sauvegarde) : chaque jour, Foluna copie ses fichiers de données, les livres
-importés ou téléchargés (`Imports/`) et les couvertures dans `Sauvegarde Foluna`, à l'intérieur du dossier choisi :
-iCloud Drive (proposé s'il est activé) ou un disque externe. Les 30 derniers jours sont gardés ; un disque débranché est
-signalé et la copie reprend à son retour. « Restaurer… » relance l'app sur une copie datée : l'état d'avant est mis de
-côté dans `Sauvegardes/`, les livres absents reviennent, aucun n'est effacé. Les caches (conversions, texte indexé) et
-vos propres dossiers de livres ne sont pas copiés.
+**Copy off the Mac** (Settings › Backup): every day, Foluna copies its data files, imported or downloaded books
+(`Imports/`) and covers into `Sauvegarde Foluna`, inside the chosen folder: iCloud Drive (offered if it is turned on)
+or an external disk. The last 30 days are kept; an unplugged disk is reported and copying resumes when it is back.
+“Restore…” relaunches the app on a dated copy: the previous state is set aside in `Sauvegardes/`, missing books come
+back, and none is deleted. Caches (conversions, indexed text) and your own book folders are not copied.
 
-Les couvertures et conversions qui ne servent plus sont supprimées après chaque rescan ; les réglages affichent
-la taille de ces caches et permettent de vider les conversions. Un `library.json` illisible n'est jamais écrasé :
-il est renommé en `library.corrupt-<date>.json` et la bibliothèque est réindexée (les retouches restent dans ce fichier).
+Covers and conversions no longer in use are deleted after each rescan; the settings show the size of these caches
+and can empty the conversions. An unreadable `library.json` is never overwritten: it is renamed
+`library.corrupt-<date>.json` and the library is indexed again (edits remain in that file).
 
 ## Architecture
 
-- `Sources/AlexandrieCore` : logique sans interface (testable)
-  - `EPUB/` lecture (OPF, nav, NCX) et écriture EPUB 3
-  - `Mobi/` PalmDB, en-têtes MOBI/EXTH, PalmDoc, HUFF/CDIC, index INDX/TAGX/CNCX
-  - `Conversion/` `MobiToEPUB` (inspiré de KindleUnpack) et `EPUBToAZW3` (inspiré du writer KF8 de calibre)
-  - `Library/` scanner, empreintes, couvertures, index JSON
-  - `Kindle/` détection et transfert (disque monté, MTP)
-- `Sources/CMTPShim` : pont C vers libmtp (dlopen)
-- `Sources/Alexandrie` : app SwiftUI
-  - `Views/` une vue par fichier (`ContentView` : la fenêtre principale ; `Navigation` : pages de la barre latérale)
-  - `Services/` état de l'app (`LibraryStore`, `KindleMonitor`, `UpdateMonitor`) et `BookCommands`, les commandes
-    sur la sélection partagées par la barre des menus et le self-test
-  - `UI/` jetons du système de design (voir `design/DESIGN-SYSTEM.md`)
+- `Sources/AlexandrieCore`: logic without UI (testable)
+  - `EPUB/` EPUB reading (OPF, nav, NCX) and EPUB 3 writing
+  - `Mobi/` PalmDB, MOBI/EXTH headers, PalmDoc, HUFF/CDIC, INDX/TAGX/CNCX indexes
+  - `Conversion/` `MobiToEPUB` (inspired by KindleUnpack) and `EPUBToAZW3` (inspired by calibre's KF8 writer)
+  - `Library/` scanner, fingerprints, covers, JSON index
+  - `Kindle/` detection and transfer (mounted disk, MTP)
+- `Sources/CMTPShim`: C bridge to libmtp (dlopen)
+- `Sources/Alexandrie`: SwiftUI app
+  - `Views/` one view per file (`ContentView`: the main window; `Navigation`: sidebar pages)
+  - `Services/` app state (`LibraryStore`, `KindleMonitor`, `UpdateMonitor`) and `BookCommands`, the commands on the
+    selection shared by the menu bar and the self-test
+  - `UI/` design system tokens (see `design/DESIGN-SYSTEM.md`)
+
+Code comments and internal documents (`docs/`, `design/`) are written in French.
 
 ## Tests
 
 ```bash
 scripts/test.sh
-ALEXANDRIE_FIXTURES=/dossier/de/livres scripts/test.sh   # + conversions sur de vrais fichiers
+ALEXANDRIE_FIXTURES=/path/to/books scripts/test.sh   # + conversions on real files
 ```
 
-## Limites
+## Limitations
 
-- Kobo : les livres partent en EPUB, pas en KEPUB (le format optimisé de la Kobo) ; les couleurs de surlignage des Kobo couleur sont lues selon une correspondance supposée (jaune, rose, bleu, vert).
-- Liseuses Android (Boox) et reMarkable ne sont pas prises en charge.
+- Kobo: books are sent as EPUB, not KEPUB (the Kobo's optimised format); highlight colours on colour Kobos are read according to an assumed mapping (yellow, pink, blue, green).
+- Android e-readers (Boox) and reMarkable are not supported.
+- DRM-protected books are neither converted nor unlocked (a purchased AZW3 can still be copied as is).
+- The KFX format is not supported.
+- EPUB → AZW3 conversion targets common books (text, images, CSS, table of contents); complex layouts may be less faithful than with Calibre.
 
-- Les livres protégés par DRM ne sont ni convertis ni déverrouillés (un AZW3 acheté peut toutefois être recopié tel quel).
-- Le format KFX n'est pas pris en charge.
-- La conversion EPUB → AZW3 vise les livres courants (texte, images, CSS, table des matières) ; les mises en page complexes peuvent être moins fidèles qu'avec Calibre.
+## Privacy
 
-## Confidentialité
+Foluna is free, with no account, analytics or advertising. Everything stays on the Mac, in `~/Library/Application Support/Alexandrie/`, except two connections, which can be turned off in Settings › General, and the online catalogues:
 
-Foluna est gratuite, sans compte, sans mesure d'audience ni publicité. Tout reste sur le Mac, dans `~/Library/Application Support/Alexandrie/`, sauf deux connexions, que l'on peut couper dans Réglages > Général, et les catalogues en ligne :
+- **Online check of books**, only after you agree (welcome screen or Settings): the ISBN, or else the title and author, is sent to the BnF catalogue, then to Open Library.
+- **Update check**: the app asks GitHub for the latest release of this repository.
+- **Online catalogues (OPDS)**: nothing is sent until a catalogue is opened in the sidebar; then the catalogue receives the pages browsed, the words searched and the books downloaded. A removed catalogue (“Manage Catalogs…”) is never contacted again.
 
-- **Vérification en ligne des livres**, seulement après accord (accueil ou Réglages) : l'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library.
-- **Recherche de mises à jour** : l'app demande à GitHub la dernière version publiée de ce dépôt.
-- **Catalogues en ligne (OPDS)** : rien ne part tant qu'un catalogue n'est pas ouvert dans la barre latérale ; ensuite, le catalogue reçoit les pages parcourues, les mots cherchés et les livres téléchargés. Un catalogue retiré (« Gérer les catalogues… ») n'est plus jamais contacté.
+Sending to Zotero stays on the Mac: Foluna writes to Zotero through its local API (`127.0.0.1`), only when you click “Send to Zotero”; Zotero then syncs the notes if you use its online account. The permission granted by Zotero is kept in the Keychain.
 
-L'envoi à Zotero reste sur le Mac : Foluna écrit dans Zotero par son API locale (`127.0.0.1`), seulement quand on clique sur « Envoyer à Zotero » ; Zotero synchronise ensuite les notes si on utilise son compte en ligne. L'autorisation donnée par Zotero est gardée dans le Trousseau.
+The copy off the Mac goes through no Foluna server: it writes to the chosen folder; in iCloud Drive, the user's own iCloud account syncs it.
 
-La copie hors du Mac ne passe par aucun serveur de Foluna : elle écrit dans le dossier choisi ; dans iCloud Drive, c'est le compte iCloud de l'utilisateur qui la synchronise.
-
-Les rapports de plantage restent sur le Mac ; ils ne partent que si l'utilisateur choisit de les envoyer. Le détail est dans `docs/AUDIT-PRODUCTION.md`, § 5.
+Crash reports stay on the Mac; they are only sent if the user chooses to send them. Details are in `docs/AUDIT-PRODUCTION.md`, § 5.
 
 ## Licence
 
-Foluna est un logiciel libre, distribué sous [licence MIT](LICENSE). Les skills BAMA de `.claude/skills/` sont aussi sous licence MIT (voir `.claude/skills/BAMA-COMMIT`).
+Foluna is free software, distributed under the [MIT licence](LICENSE). The BAMA skills in `.claude/skills/` are also under the MIT licence (see `.claude/skills/BAMA-COMMIT`).

@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Construit build/Alexandrie.app (release). Signé avec un certificat Apple Development s'il existe,
+# Construit build/Foluna.app (release ; l'exécutable et le code gardent le nom d'origine, Alexandrie). Signé avec un certificat Apple Development s'il existe,
 # sinon « Alexandrie Dev » (identité stable : macOS garde les autorisations d'une version à l'autre), sinon ad hoc.
 # Autre certificat : ALEXANDRIE_SIGN_IDENTITY="Nom du certificat" scripts/bundle.sh
 # Copie ensuite l'app dans ~/Applications (ALEXANDRIE_INSTALL=0 pour s'en passer).
@@ -11,7 +11,7 @@ PROTOCOLS="$ROOT/scripts/appintents-protocols.json"
 CONST_FLAGS=(-Xswiftc -emit-const-values -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$PROTOCOLS")
 swift build -c release "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}"
 BIN="$(swift build -c release --show-bin-path "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}")/Alexandrie"
-APP="$ROOT/build/Alexandrie.app"
+APP="$ROOT/build/Foluna.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/Alexandrie"
@@ -54,8 +54,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>CFBundleName</key><string>Alexandrie</string>
-  <key>CFBundleDisplayName</key><string>Alexandrie</string>
+  <key>CFBundleName</key><string>Foluna</string>
+  <key>CFBundleDisplayName</key><string>Foluna</string>
   <key>CFBundleIdentifier</key><string>be.adnmac.alexandrie</string>
   <key>CFBundleExecutable</key><string>Alexandrie</string>
   <key>CFBundlePackageType</key><string>APPL</string>
@@ -69,14 +69,14 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSApplicationCategoryType</key><string>public.app-category.books</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>AlexandrieCommit</key><string>${COMMIT}</string>
-  <!-- Adresse qui reçoit les rapports de plantage que l'utilisateur choisit d'envoyer (vide : Finder seulement). -->
-  <key>AlexandrieSupportEmail</key><string>${ALEXANDRIE_SUPPORT_EMAIL:-}</string>
+  <!-- Adresse qui reçoit les rapports de plantage que l'utilisateur choisit d'envoyer (info@foluna.app par défaut ; vide : Finder seulement). -->
+  <key>AlexandrieSupportEmail</key><string>${ALEXANDRIE_SUPPORT_EMAIL:-info@foluna.app}</string>
   <!-- Explications des autorisations demandées par macOS (audit, § 3). -->
-  <key>NSRemovableVolumesUsageDescription</key><string>Alexandrie envoie vos livres à votre liseuse et lit ses notes et surlignages quand elle est branchée.</string>
-  <key>NSDocumentsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Documents, sans les modifier.</string>
-  <key>NSDesktopFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés sur le Bureau, sans les modifier.</string>
-  <key>NSDownloadsFolderUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés dans Téléchargements, sans les modifier.</string>
-  <key>NSNetworkVolumesUsageDescription</key><string>Alexandrie lit les livres de votre bibliothèque rangés sur un volume réseau, sans les modifier.</string>
+  <key>NSRemovableVolumesUsageDescription</key><string>Foluna envoie vos livres à votre liseuse et lit ses notes et surlignages quand elle est branchée.</string>
+  <key>NSDocumentsFolderUsageDescription</key><string>Foluna lit les livres de votre bibliothèque rangés dans Documents, sans les modifier.</string>
+  <key>NSDesktopFolderUsageDescription</key><string>Foluna lit les livres de votre bibliothèque rangés sur le Bureau, sans les modifier.</string>
+  <key>NSDownloadsFolderUsageDescription</key><string>Foluna lit les livres de votre bibliothèque rangés dans Téléchargements, sans les modifier.</string>
+  <key>NSNetworkVolumesUsageDescription</key><string>Foluna lit les livres de votre bibliothèque rangés sur un volume réseau, sans les modifier.</string>
 </dict>
 </plist>
 PLIST
@@ -94,16 +94,23 @@ else
   echo "⚠️  certificat « $IDENTITY » introuvable : signature ad hoc (macOS peut redemander ses autorisations à chaque version)"
 fi
 echo "✅ $APP"
-# Copie dans ~/Applications : Raccourcis et le Finder trouvent une seule Alexandrie, toujours à jour.
+# Copie dans ~/Applications : Raccourcis et le Finder trouvent une seule Foluna, toujours à jour.
+# Une ancienne copie nommée Alexandrie.app est retirée.
 # La copie de build/ est retirée de LaunchServices. ALEXANDRIE_INSTALL=0 garde seulement build/.
 if [[ "${ALEXANDRIE_INSTALL:-1}" != 0 ]]; then
-  DEST="$HOME/Applications/Alexandrie.app"
+  DEST="$HOME/Applications/Foluna.app"
+  LEGACY="$HOME/Applications/Alexandrie.app"
   LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  if pgrep -f "$DEST/Contents/MacOS/Alexandrie" >/dev/null; then
-    echo "⚠️  Alexandrie est ouverte : quittez-la puis relancez scripts/bundle.sh pour mettre à jour $DEST"
+  if pgrep -f "$DEST/Contents/MacOS/Alexandrie" >/dev/null || pgrep -f "$LEGACY/Contents/MacOS/Alexandrie" >/dev/null; then
+    echo "⚠️  Foluna est ouverte : quittez-la puis relancez scripts/bundle.sh pour mettre à jour $DEST"
   else
     mkdir -p "$HOME/Applications"
     rm -rf "$DEST"
+    if [[ -d "$LEGACY" ]]; then
+      "$LSREGISTER" -u "$LEGACY" 2>/dev/null || true
+      rm -rf "$LEGACY"
+      echo "🧹 ancienne copie $LEGACY retirée"
+    fi
     ditto "$APP" "$DEST"
     "$LSREGISTER" -u "$APP" 2>/dev/null || true
     "$LSREGISTER" -f "$DEST"

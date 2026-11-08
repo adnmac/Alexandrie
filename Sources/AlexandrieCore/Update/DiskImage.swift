@@ -1,6 +1,6 @@
 import Foundation
 
-/// Image disque (.dmg) d'une version publiée : scripts/release.sh y met Alexandrie.app et un lien vers Applications.
+/// Image disque (.dmg) d'une version publiée : scripts/release.sh y met Foluna.app et un lien vers Applications.
 public enum DiskImage {
     public enum Failure: LocalizedError, Equatable {
         case tool(String)
@@ -9,22 +9,24 @@ public enum DiskImage {
         public var errorDescription: String? {
             switch self {
             case .tool(let why): String(localized: "Image disque illisible : \(why).")
-            case .appMissing: String(localized: "L'image disque ne contient pas Alexandrie.app.")
+            case .appMissing: String(localized: "L'image disque ne contient pas Foluna.app.")
             }
         }
     }
 
     /// Monte l'image en lecture seule (sans l'afficher dans le Finder), copie l'app qu'elle contient dans `folder`,
     /// puis la démonte. Rend l'URL de la copie.
-    public static func extractApp(named name: String = "Alexandrie.app", from dmg: URL, to folder: URL) throws -> URL {
+    public static func extractApp(named names: [String] = ["Foluna.app", "Alexandrie.app"], from dmg: URL, to folder: URL) throws -> URL {
         let fm = FileManager.default
         let mount = fm.temporaryDirectory.appendingPathComponent("alexandrie-dmg-\(UUID().uuidString)", isDirectory: true)
         try fm.createDirectory(at: mount, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: mount) }
         try run("/usr/bin/hdiutil", ["attach", dmg.path, "-nobrowse", "-readonly", "-noautoopen", "-mountpoint", mount.path])
         defer { try? run("/usr/bin/hdiutil", ["detach", mount.path, "-force"]) }
+        guard let name = names.first(where: { fm.fileExists(atPath: mount.appendingPathComponent($0).path) }) else {
+            throw Failure.appMissing
+        }
         let source = mount.appendingPathComponent(name)
-        guard fm.fileExists(atPath: source.path) else { throw Failure.appMissing }
         try fm.createDirectory(at: folder, withIntermediateDirectories: true)
         let copy = folder.appendingPathComponent(name)
         try? fm.removeItem(at: copy)
@@ -55,20 +57,21 @@ public enum DiskImage {
 /// version à la place de l'ancienne (l'ancienne revient si la copie échoue), puis relance l'app.
 public enum UpdateInstall {
     /// Arguments : $0 le processus à attendre, $1 la nouvelle app, $2 l'app installée, $3 « open » pour relancer,
-    /// $4 un dossier de travail à effacer à la fin (facultatif).
+    /// $4 un dossier de travail à effacer à la fin (facultatif), $5 l'emplacement de la nouvelle app (par défaut
+    /// celui de l'app installée ; autre nom quand l'app change de nom, Alexandrie.app → Foluna.app).
     public static let script = #"""
-        pid="$0"; new="$1"; dest="$2"; relaunch="$3"; work="$4"
+        pid="$0"; new="$1"; installed="$2"; relaunch="$3"; work="$4"; dest="${5:-$2}"
         i=0
         while kill -0 "$pid" 2>/dev/null; do
           sleep 0.2; i=$((i+1))
           [ "$i" -gt 300 ] && exit 1
         done
-        old="$dest.old-$$"
-        if mv "$dest" "$old"; then
+        old="$installed.old-$$"
+        if mv "$installed" "$old"; then
           if /usr/bin/ditto "$new" "$dest"; then
             rm -rf "$old"
           else
-            rm -rf "$dest"; mv "$old" "$dest"
+            rm -rf "$dest"; mv "$old" "$installed"; dest="$installed"
           fi
         fi
         /usr/bin/xattr -dr com.apple.quarantine "$dest" 2>/dev/null
@@ -78,11 +81,12 @@ public enum UpdateInstall {
         """#
 
     /// Lance le script en arrière-plan ; il survit à la fermeture de l'app.
-    public static func launch(waitingFor pid: Int32, newApp: URL, installedApp: URL, relaunch: Bool = true,
-                              cleaning work: URL? = nil) throws -> Process {
+    public static func launch(waitingFor pid: Int32, newApp: URL, installedApp: URL, destination: URL? = nil,
+                              relaunch: Bool = true, cleaning work: URL? = nil) throws -> Process {
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
-        p.arguments = ["-c", script, String(pid), newApp.path, installedApp.path, relaunch ? "open" : "", work?.path ?? ""]
+        p.arguments = ["-c", script, String(pid), newApp.path, installedApp.path, relaunch ? "open" : "", work?.path ?? "",
+                       (destination ?? installedApp).path]
         try p.run()
         return p
     }

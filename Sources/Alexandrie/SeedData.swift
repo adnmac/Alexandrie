@@ -107,7 +107,7 @@ enum SeedData {
 
     private static func write(_ s: Sample, in folder: URL) throws {
         var meta = BookMetadata(title: s.title, authors: s.authors, language: "fr", publisher: "Éditions d'Exemple",
-                                summary: "Livre d'exemple pour les captures d'écran d'Alexandrie.")
+                                summary: "Livre d'exemple pour les captures d'écran de Foluna.")
         meta.series = s.series
         meta.seriesIndex = s.index
         meta.publishedDate = s.year

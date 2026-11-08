@@ -12,7 +12,7 @@ struct OnboardingView: View {
             Image(systemName: "books.vertical")
                 .font(.system(size: 56, weight: .light))
                 .foregroundStyle(.secondary)
-            Text("Bienvenue dans Alexandrie")
+            Text("Bienvenue dans Foluna")
                 .font(.largeTitle.weight(.semibold))
             Text("Choisissez le dossier où se trouvent vos livres (EPUB, MOBI, AZW3, PDF).\nIl sera indexé en lecture seule : aucun fichier n'y sera modifié.")
                 .multilineTextAlignment(.center)
@@ -58,7 +58,7 @@ struct CatalogConsentSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             Text("Vérification en ligne des livres").font(.title3.weight(.semibold))
-            Text("Alexandrie peut compléter les informations de vos nouveaux livres (ISBN, éditeur, série) à partir de catalogues publics. Elle ne le fait plus sans votre accord.")
+            Text("Foluna peut compléter les informations de vos nouveaux livres (ISBN, éditeur, série) à partir de catalogues publics. Elle ne le fait plus sans votre accord.")
                 .fixedSize(horizontal: false, vertical: true)
             CatalogConsentChoice(checkOnline: $checkOnline)
             HStack {

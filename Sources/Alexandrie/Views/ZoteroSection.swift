@@ -20,7 +20,7 @@ struct ZoteroSection: View {
                         .help("Zotero redemandera l'autorisation au prochain envoi ; elle se retire aussi dans Zotero (Réglages › Avancés)")
                 }
             }
-            Text("« Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages dans une note rattachée à la référence du livre, retrouvée ou créée ; un nouvel envoi met la note à jour. Vos notes restent dans Alexandrie. Zotero doit être ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero » ; au premier envoi, choisissez « Toujours autoriser ». Rien ne passe par Internet.")
+            Text("« Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages dans une note rattachée à la référence du livre, retrouvée ou créée ; un nouvel envoi met la note à jour. Vos notes restent dans Foluna. Zotero doit être ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero » ; au premier envoi, choisissez « Toujours autoriser ». Rien ne passe par Internet.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }

@@ -21,8 +21,8 @@ public enum ZoteroNote {
         let date = sentAt.formatted(date: .long, time: .shortened)
         var out = "<h1>\(escape(heading)) — \(escape(title))</h1>\n"
         let count = passages.count
-        let sent = count == 1 ? String(localized: "1 passage, envoyé depuis Alexandrie le \(date)")
-            : String(localized: "\(count) passages, envoyés depuis Alexandrie le \(date)")
+        let sent = count == 1 ? String(localized: "1 passage, envoyé depuis Foluna le \(date)")
+            : String(localized: "\(count) passages, envoyés depuis Foluna le \(date)")
         out += "<p><em>\(author.isEmpty ? "" : escape(author) + " · ")\(escape(sent))</em></p>\n"
         let ordered = KindleClippings.readingOrder(passages.map(\.clipping))
         let byID = Dictionary(passages.map { ($0.clipping.id, $0) }, uniquingKeysWith: { a, _ in a })

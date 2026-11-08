@@ -78,7 +78,7 @@ public struct ZoteroSender: Sendable {
                 // Supprimée dans Zotero : recréée plus bas.
             }
         }
-        let note: [String: Any] = ["itemType": "note", "note": html, "parentItem": parent, "tags": [["tag": "Alexandrie"]]]
+        let note: [String: Any] = ["itemType": "note", "note": html, "parentItem": parent, "tags": [["tag": "Foluna"]]]
         let created = try await client.create(note, key: apiKey, serverID: serverID)
         return Outcome(link: .init(itemKey: parent, noteKey: created.key, noteVersion: created.version, sentAt: now),
                        createdItem: createdItem, createdNote: true)

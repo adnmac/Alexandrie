@@ -1,6 +1,6 @@
-# Système de design d'Alexandrie
+# Système de design de Foluna
 
-Alexandrie garde l'apparence d'Apple. Les jetons ne couvrent que ce que le système ne fournit pas.
+Foluna garde l'apparence d'Apple. Les jetons ne couvrent que ce que le système ne fournit pas.
 Ils vivent dans `Sources/Alexandrie/UI/`. Les vues utilisent les jetons, jamais de valeurs brutes.
 Règles générales du Mac : skill `mac-design`. Espacements et alignement : skill `layout-grid`.
 

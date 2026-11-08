@@ -1,7 +1,13 @@
-# Alexandrie
+# Foluna
 
 App macOS SwiftUI (paquet SwiftPM, Swift 6, macOS 14+) qui gère une bibliothèque de livres
-et les charge sur une Kindle par USB. Voir `README.md` pour les fonctions et l'architecture.
+et les charge sur une liseuse par USB. Voir `README.md` pour les fonctions et l'architecture.
+
+Nom affiché : **Foluna** (contact info@foluna.app, dépôt `adnmac/Foluna`). Le code garde le nom d'origine,
+Alexandrie : cibles `Alexandrie`/`AlexandrieCore`, exécutable, variables `ALEXANDRIE_*`, identifiant
+`be.adnmac.alexandrie` (autorisations, réglages, Trousseau et vérification des mises à jour en dépendent),
+dossier de données `~/Library/Application Support/Alexandrie/` (l'index y référence les imports par chemin complet).
+Ne pas les renommer. Tout texte affiché dit « Foluna ».
 
 Répondre, commenter et écrire les commits en français (Conventional Commits).
 
@@ -18,14 +24,14 @@ Règles de design : `design/DESIGN-SYSTEM.md`. Utiliser ses jetons (`Palette`, `
 
 Les skills de [BAMA](https://github.com/daveebbelaar/bama) sont dans `.claude/skills/`
 (copie du commit noté dans `.claude/skills/BAMA-COMMIT`, licence MIT). `/bama` choisit le skill
-selon la tâche. Alexandrie n'a pas été créée avec le modèle `new-mac-app` : utiliser la
+selon la tâche. Foluna n'a pas été créée avec le modèle `new-mac-app` : utiliser la
 correspondance ci-dessous à la place des commandes du modèle.
 
-| Pièce du modèle BAMA | Équivalent dans Alexandrie |
+| Pièce du modèle BAMA | Équivalent dans Foluna |
 | --- | --- |
-| `./build.sh` | `scripts/bundle.sh` (release, construit `build/Alexandrie.app`, signé Apple Development, sinon « Alexandrie Dev », sinon ad hoc, puis copié dans `~/Applications` ; `ALEXANDRIE_INSTALL=0` pour s'en passer) |
+| `./build.sh` | `scripts/bundle.sh` (release, construit `build/Foluna.app`, signé Apple Development, sinon « Alexandrie Dev », sinon ad hoc, puis copié dans `~/Applications` ; `ALEXANDRIE_INSTALL=0` pour s'en passer) |
 | `./build.sh --debug` | `scripts/build.sh` (debug, sans bundle) |
-| `./build.sh --open` | `scripts/bundle.sh && open ~/Applications/Alexandrie.app` (quitter l'app avant, sinon la copie n'est pas mise à jour) |
+| `./build.sh --open` | `scripts/bundle.sh && open ~/Applications/Foluna.app` (quitter l'app avant, sinon la copie n'est pas mise à jour) |
 | `UI/Grid.swift`, `tools/grid-lint.sh`, `tools/check-layout.swift`, `APP_GRID=1` | `Sources/Alexandrie/UI/Grid.swift` (jetons `Space`, sondes `.gridArea`/`.gridProbe`), `scripts/grid-lint.sh` (vues seulement), `swift scripts/check-layout.swift /tmp/alexandrie-shots/*-layout.json` (fichiers écrits par `scripts/snap.sh`), `ALEXANDRIE_GRID=1` dessine la grille. Sondes posées sur la fiche du livre (zone `fiche`) |
 | `swift test` | `scripts/test.sh` (charge les plugins de macros si seules les Command Line Tools sont actives) ; `ALEXANDRIE_FIXTURES=/dossier scripts/test.sh` pour les vrais livres |
 | Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |

@@ -1,6 +1,6 @@
-# Histoires d'Alexandrie
+# Histoires de Foluna
 
-Ce que fait une personne avec l'app, une action par histoire. Alexandrie existait avant ce fichier :
+Ce que fait une personne avec l'app, une action par histoire. Foluna existait avant ce fichier :
 les jalons M1 à M4 décrivent ce qui marche déjà (`done`) et la preuve qui le couvre ; M5 et M6 ont
 suivi, M7 est la suite (`todo`). Pas de brief ni d'app de référence : `Screens:` nomme les pages de `scripts/snap.sh`.
 
@@ -13,7 +13,7 @@ Noms de l'interface : `docs/GLOSSARY.md`.
 On ouvre son dossier de livres et on retrouve chaque livre avec ses bonnes informations.
 
 ### S-001 Choisir son dossier de livres
-Au premier lancement, je choisis le dossier où sont mes livres ; Alexandrie l'indexe sans le modifier.
+Au premier lancement, je choisis le dossier où sont mes livres ; Foluna l'indexe sans le modifier.
 Screens: tous
 Acceptance:
 - [self] « indexation du dossier » : les livres du dossier apparaissent avec leur titre.
@@ -312,7 +312,7 @@ Status: done
 
 ## M6 Système
 
-Alexandrie travaille avec le Finder et le reste du Mac.
+Foluna travaille avec le Finder et le reste du Mac.
 
 ### S-050 Glisser un livre vers le Finder
 Je glisse un livre de la grille vers le Finder ou le bureau : une copie du fichier y apparaît.
@@ -350,7 +350,7 @@ Acceptance:
 - [unit] Le texte de la notification suit le nombre (1 livre, n livres, échecs) : `SendSummaryTests`.
 - [manual] La permission est demandée au premier envoi en attente, pas au lancement.
 UX:
-- Flow: Kindle branchée -> la file d'attente part -> notification « 3 livres envoyés sur « Kindle de Léa » » ; un clic sur la notification ramène Alexandrie au premier plan
+- Flow: Kindle branchée -> la file d'attente part -> notification « 3 livres envoyés sur « Kindle de Léa » » ; un clic sur la notification ramène Foluna au premier plan
 - Surface: notification du système (information sans action requise, l'app peut être en arrière-plan)
 - States: permission demandée au premier envoi en attente, jamais au lancement ; refusée : rien ne s'affiche, l'envoi marche quand même ; échecs : « 2 livres envoyés, 1 échec » ; un seul livre : son titre
 - Words: titre « Livres envoyés sur la Kindle » ; corps « 3 livres envoyés sur « Kindle de Léa » » / « « Le Port des brumes » envoyé sur « Kindle de Léa » » / « 2 livres envoyés, 1 échec »
@@ -365,7 +365,7 @@ Acceptance:
 - [self] `SendToKindle.run` met le livre en attente sans Kindle et répond « En attente de la Kindle ».
 - Fix: action visible mais muette sans team ID, voir `docs/FIXLOG.md`.
 UX:
-- Flow: Raccourcis > action « Envoyer à la Kindle » d'Alexandrie -> paramètre Livre (choisi dans la liste ou par titre) -> le livre part, ou passe en attente sans Kindle -> l'action rend « Envoyé » ou « En attente »
+- Flow: Raccourcis > action « Envoyer à la Kindle » de Foluna -> paramètre Livre (choisi dans la liste ou par titre) -> le livre part, ou passe en attente sans Kindle -> l'action rend « Envoyé » ou « En attente »
 - Surface: action App Intents, sans ouvrir de fenêtre
 - States: titre introuvable : l'action échoue avec « Aucun livre « … » dans la bibliothèque » ; livre protégé ou format non pris en charge : « « … » ne peut pas être envoyé sur la Kindle »
 - Words: action « Envoyer à la Kindle », paramètre « Livre » ; résumé « Envoyer ${Livre} à la Kindle »
@@ -481,7 +481,7 @@ Screens: lecture-epub, notes
 Depends: S-066, S-024
 Acceptance:
 - [self] Un surlignage d'EPUB et un de PDF sont enregistrés avec leur position, sans modifier le fichier du livre.
-- [snap] Le passage surligné dans la fenêtre de lecture ; dans « Notes et surlignages », il porte la marque « Alexandrie ».
+- [snap] Le passage surligné dans la fenêtre de lecture ; dans « Notes et surlignages », il porte la marque « Foluna ».
 - [unit] Les surlignages de l'app et ceux de la Kindle se trient ensemble par position dans le livre.
 Status: done
 
@@ -574,7 +574,7 @@ Acceptance:
 Status: done
 
 ### S-081 Indexer le texte des livres
-Alexandrie lit une fois le texte de chaque livre (EPUB, MOBI, AZW3, PDF) et le garde dans un index, en arrière-plan, pour chercher dans le contenu sans attendre.
+Foluna lit une fois le texte de chaque livre (EPUB, MOBI, AZW3, PDF) et le garde dans un index, en arrière-plan, pour chercher dans le contenu sans attendre.
 Depends: S-066
 Acceptance:
 - [unit] Le texte d'un EPUB est extrait chapitre par chapitre, sans balises ni styles, entités décodées ; l'index trouve un livre par un mot de son texte, sans tenir compte des accents ni des majuscules, et par le début d'un mot.
@@ -671,10 +671,10 @@ Acceptance:
 - [unit] Une copie par jour des fichiers de données (remplacée le même jour, 30 gardées, jamais à moitié écrite) ; Imports et Covers tenus à jour, jamais vidés si le dossier source manque ; caches non copiés ; dossier absent signalé ; la restauration met l'état d'avant de côté, rend les livres absents, n'efface rien, et n'est appliquée qu'une fois.
 - [self] Coupée sans dossier ; due la première fois, pas deux fois le même jour ; données et livres importés copiés ; réglages de l'utilisateur intacts en mode test ; restauration demandée puis appliquée au lancement.
 - [snap] La section « Copie hors du Mac » avec un dossier et une copie datée.
-- [manual] Avec iCloud Drive, « Sauvegarde Alexandrie » apparaît dans le Finder ; « Restaurer… » relance l'app sur la copie choisie.
+- [manual] Avec iCloud Drive, « Sauvegarde Foluna » apparaît dans le Finder ; « Restaurer… » relance l'app sur la copie choisie.
 Status: done
 
-### S-092 Relier Alexandrie à Zotero
+### S-092 Relier Foluna à Zotero
 Réglages › Général montre si Zotero est ouvert et accepte les autres applications, et explique quoi cocher ; au premier envoi, Zotero demande l'autorisation, gardée dans le Trousseau (« Oublier » la retire).
 Depends: S-071
 Acceptance:
@@ -684,11 +684,11 @@ Acceptance:
 Status: done
 
 ### S-093 Envoyer les notes d'un livre à Zotero
-Dans les notes d'un livre, Exporter › « Envoyer à Zotero » copie tous ses passages (citation, note, couleur, thématiques, position, date) dans une note rattachée à sa référence Zotero, retrouvée ou créée ; un nouvel envoi la met à jour. Les notes restent dans Alexandrie.
+Dans les notes d'un livre, Exporter › « Envoyer à Zotero » copie tous ses passages (citation, note, couleur, thématiques, position, date) dans une note rattachée à sa référence Zotero, retrouvée ou créée ; un nouvel envoi la met à jour. Les notes restent dans Foluna.
 Depends: S-092
 Acceptance:
 - [unit] Référence retrouvée par ISBN, sinon titre et auteur (les articles et autres auteurs écartés), sinon créée avec prénom et nom (particules gardées) ; note HTML échappée, dans l'ordre de lecture ; second envoi sans doublon ; note modifiée dans Zotero relue (412), supprimée recréée, référence supprimée retrouvée ou recréée ; `zotero.json` relu et sauvegardé.
-- [self] Référence et note créées ; second envoi sans doublon ni nouvelle autorisation ; notes d'Alexandrie intactes.
+- [self] Référence et note créées ; second envoi sans doublon ni nouvelle autorisation ; notes de Foluna intactes.
 - [snap] Le menu Exporter de la page Notes.
 - [manual] Avec le vrai Zotero : la note apparaît sous la référence et se cite depuis le module Zotero de Word ou LibreOffice.
 Status: done
@@ -745,7 +745,7 @@ Acceptance:
 Status: done
 
 ### S-100 Interface en anglais
-Toute l'interface, les messages, les exports, les notifications et l'action Raccourcis existent en anglais ; Alexandrie suit la langue de macOS.
+Toute l'interface, les messages, les exports, les notifications et l'action Raccourcis existent en anglais ; Foluna suit la langue de macOS.
 Depends: S-001
 Acceptance:
 - [unit] Les tests du cœur gardent le français (pas de catalogue chargé) ; singulier et pluriel distincts dans le cœur.
@@ -780,7 +780,7 @@ Status: done
 ## Dropped
 
 - Comptes, synchronisation en ligne : la bibliothèque reste sur le Mac.
-- Envoi par e-mail « Send to Kindle » : Alexandrie charge par câble, c'est sa raison d'être.
+- Envoi par e-mail « Send to Kindle » : Foluna charge par câble, c'est sa raison d'être.
 - Suppression des DRM et format KFX : hors du droit et de la portée de l'app.
 - Boutique, recommandations, statistiques de lecture : servent un vendeur, pas la bibliothèque.
 - Partage de bibliothèque entre personnes : une bibliothèque par Mac.

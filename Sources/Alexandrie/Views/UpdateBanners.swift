@@ -11,7 +11,7 @@ struct ReleaseBanner: View {
         HStack(alignment: .top, spacing: Space.md) {
             Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(Palette.info)
             VStack(alignment: .leading, spacing: Space.xs) {
-                Text("Alexandrie \(release.version) est disponible (vous avez la \(updates.currentVersion))")
+                Text("Foluna \(release.version) est disponible (vous avez la \(updates.currentVersion))")
                     .font(.callout.weight(.semibold))
                 if case .failed(let why) = updates.installState {
                     Text(why).foregroundStyle(Palette.warning).lineLimit(3)
@@ -48,7 +48,7 @@ struct UpdateBanner: View {
         HStack(alignment: .top, spacing: Space.md) {
             Image(systemName: "arrow.down.circle.fill").font(.title2).foregroundStyle(Palette.info)
             VStack(alignment: .leading, spacing: Space.xs) {
-                Text("Une mise à jour d'Alexandrie est disponible sur GitHub").font(.callout.weight(.semibold))
+                Text("Une mise à jour de Foluna est disponible sur GitHub").font(.callout.weight(.semibold))
                 Text(String(localized: "\(info.newCommits) modifications"))
                     + Text(info.latestMessage.isEmpty ? "" : String(localized: " · dernière : \(info.latestMessage)"))
                 Text("Pour l'installer : git pull, puis scripts/bundle.sh.")

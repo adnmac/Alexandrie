@@ -17,7 +17,7 @@ enum Keychain {
         delete(service: service, account: account)
         let item: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service,
                                    kSecAttrAccount as String: account, kSecValueData as String: Data(value.utf8),
-                                   kSecAttrLabel as String: "Alexandrie — autorisation Zotero"]
+                                   kSecAttrLabel as String: "Foluna — autorisation Zotero"]
         return SecItemAdd(item as CFDictionary, nil) == errSecSuccess
     }
 

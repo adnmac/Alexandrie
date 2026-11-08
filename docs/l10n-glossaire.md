@@ -14,7 +14,7 @@ Les termes de macOS suivent ceux de macOS dans chaque langue (Réglages Système
 | thématique | topic | thema | Thema | tema |
 | étagère | shelf | boekenplank | Regal | estantería |
 | notice (catalogue) | record | record | Datensatz | registro |
-| corbeille d'Alexandrie | Alexandrie's trash | prullenmand van Alexandrie | Papierkorb von Alexandrie | papelera de Alexandrie |
+| corbeille de Foluna | Foluna's trash | prullenmand van Foluna | Papierkorb von Foluna | papelera de Foluna |
 | Corbeille de macOS | macOS Trash | macOS-prullenmand | macOS-Papierkorb | Papelera de macOS |
 | sauvegarde | backup | reservekopie | Sicherung | copia de seguridad |
 | éjecter | eject | verwijderen | auswerfen | expulsar |
@@ -23,6 +23,6 @@ Les termes de macOS suivent ceux de macOS dans chaque langue (Réglages Système
 | texte redimensionnable | resizable text | aanpasbare tekst | anpassbarer Text | texto ajustable |
 | police | font | lettertype | Schrift | tipo de letra |
 
-Les noms propres ne se traduisent pas : Alexandrie, Kindle, Kobo, Zotero, Open Library, BnF, iCloud Drive.
-Le dossier « Sauvegarde Alexandrie » garde son nom dans toutes les langues (c'est un nom de dossier sur le disque).
+Les noms propres ne se traduisent pas : Foluna, Kindle, Kobo, Zotero, Open Library, BnF, iCloud Drive.
+Le dossier « Sauvegarde Foluna » garde son nom dans toutes les langues (c'est un nom de dossier sur le disque).
 Le néerlandais, l'allemand et l'espagnol gagneraient à être relus par une personne dont c'est la langue.

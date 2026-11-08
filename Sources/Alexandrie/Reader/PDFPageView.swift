@@ -127,7 +127,7 @@ final class PDFPageController {
 
     func clearSelection() { view.clearSelection() }
 
-    private static let marker = "Alexandrie"
+    private static let marker = "Alexandrie"  // nom d'origine, inscrit dans les PDF annotés : ne pas changer
 
     /// Redessine les surlignages : une couleur de thème a pu changer.
     func redraw() { drawHighlights() }

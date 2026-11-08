@@ -18,7 +18,7 @@ import Testing
                                 commits: [("111", "fix: un"), ("222", "feat: formats sous la couverture\n\nDétails…")])
         }
         let info = try #require(try await checker.check(currentCommit: "abc"))
-        #expect(requested.get()?.absoluteString == "https://api.github.com/repos/adnmac/Alexandrie/compare/abc...main")
+        #expect(requested.get()?.absoluteString == "https://api.github.com/repos/adnmac/Foluna/compare/abc...main")
         #expect(info.newCommits == 2)
         #expect(info.latestSHA == "222")
         #expect(info.latestMessage == "feat: formats sous la couverture")
@@ -87,7 +87,7 @@ final class LockedURL: @unchecked Sendable {
         let fm = FileManager.default
         let dir = fm.temporaryDirectory.appendingPathComponent("alx-dmg-\(UUID().uuidString)", isDirectory: true)
         defer { try? fm.removeItem(at: dir) }
-        let stage = dir.appendingPathComponent("stage/Alexandrie.app/Contents", isDirectory: true)
+        let stage = dir.appendingPathComponent("stage/Foluna.app/Contents", isDirectory: true)
         try fm.createDirectory(at: stage, withIntermediateDirectories: true)
         try Data("v2".utf8).write(to: stage.appendingPathComponent("version"))
         try fm.createSymbolicLink(atPath: dir.appendingPathComponent("stage/Applications").path, withDestinationPath: "/Applications")
@@ -98,7 +98,7 @@ final class LockedURL: @unchecked Sendable {
         #expect(try String(contentsOf: app.appendingPathComponent("Contents/version"), encoding: .utf8) == "v2")
         #expect(!(try DiskImage.run("/usr/bin/hdiutil", ["info"])).contains(dir.path))
         #expect(throws: DiskImage.Failure.appMissing) {
-            try DiskImage.extractApp(named: "Autre.app", from: dmg, to: dir.appendingPathComponent("out2"))
+            try DiskImage.extractApp(named: ["Autre.app"], from: dmg, to: dir.appendingPathComponent("out2"))
         }
     }
 
@@ -126,6 +126,23 @@ final class LockedURL: @unchecked Sendable {
         #expect(try String(contentsOf: installed.appendingPathComponent("v"), encoding: .utf8) == "nouvelle")
         #expect(!fm.fileExists(atPath: work.path))
         #expect(try fm.contentsOfDirectory(atPath: installed.deletingLastPathComponent().path) == ["Alexandrie.app"])
+    }
+
+    /// Une copie nommée Alexandrie.app est remplacée par Foluna.app.
+    @Test func installScriptRenamesApp() throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("alx-ren-\(UUID().uuidString)", isDirectory: true)
+        defer { try? fm.removeItem(at: dir) }
+        let apps = dir.appendingPathComponent("Applications")
+        let installed = apps.appendingPathComponent("Alexandrie.app")
+        let new = dir.appendingPathComponent("work/Foluna.app")
+        try fm.createDirectory(at: installed, withIntermediateDirectories: true)
+        try fm.createDirectory(at: new, withIntermediateDirectories: true)
+        try Data("nouvelle".utf8).write(to: new.appendingPathComponent("v"))
+        let p = try UpdateInstall.launch(waitingFor: 999_999, newApp: new, installedApp: installed,
+                                         destination: apps.appendingPathComponent("Foluna.app"), relaunch: false)
+        p.waitUntilExit()
+        #expect(try fm.contentsOfDirectory(atPath: apps.path) == ["Foluna.app"])
     }
 
     @Test func releaseWithoutZipIsIgnored() {

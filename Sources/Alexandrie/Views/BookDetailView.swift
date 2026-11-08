@@ -69,7 +69,7 @@ struct BookDetailView: View {
                 }
                 .gridProbe("actions", area: "fiche")
                 if isTrashed {
-                    Label("Dans la corbeille d'Alexandrie : ses fichiers sont intacts tant qu'elle n'est pas vidée.",
+                    Label("Dans la corbeille de Foluna : ses fichiers sont intacts tant qu'elle n'est pas vidée.",
                           systemImage: "trash")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if isPending && !kindle.isConnected {
@@ -112,7 +112,7 @@ struct BookDetailView: View {
                     } header: {
                         Text("Informations")
                     } footer: {
-                        Text("Corrections enregistrées dans Alexandrie et appliquées aux copies envoyées sur la liseuse. Le fichier d'origine n'est jamais modifié.")
+                        Text("Corrections enregistrées dans Foluna et appliquées aux copies envoyées sur la liseuse. Le fichier d'origine n'est jamais modifié.")
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -145,7 +145,7 @@ struct BookDetailView: View {
                         info(String(localized: "Sur « \(reader.name) »"),
                              String(localized: "envoyé le ") + draft.sentTo![reader.id]!.formatted(date: .long, time: .shortened))
                     }
-                    info(String(localized: "Emplacement"), draft.isImported ? String(localized: "Imports d'Alexandrie") : draft.path)
+                    info(String(localized: "Emplacement"), draft.isImported ? String(localized: "Imports de Foluna") : draft.path)
                 }
                 .font(.callout)
                 // Bord à part : le formulaire et les sections entre « actions » et lui ne sont pas sondés.

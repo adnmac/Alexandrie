@@ -338,8 +338,8 @@ struct OPDSEntryDetailView: View {
                         .foregroundStyle(Palette.warning)
                 } else {
                     Text(first.format == .epub
-                         ? String(localized: "Le livre rejoint la bibliothèque (imports d'Alexandrie) ; il sera converti en AZW3 à l'envoi sur la Kindle.")
-                         : String(localized: "Le livre rejoint la bibliothèque (imports d'Alexandrie)."))
+                         ? String(localized: "Le livre rejoint la bibliothèque (imports de Foluna) ; il sera converti en AZW3 à l'envoi sur la Kindle.")
+                         : String(localized: "Le livre rejoint la bibliothèque (imports de Foluna)."))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

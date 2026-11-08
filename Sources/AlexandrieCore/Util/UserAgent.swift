@@ -5,6 +5,6 @@ import Foundation
 public enum UserAgent {
     public static var value: String {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
-        return "Alexandrie/\(version) (macOS)"
+        return "Foluna/\(version) (macOS)"
     }
 }

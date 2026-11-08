@@ -41,7 +41,7 @@ struct LanguageSection: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
-        .alert("Relancer Alexandrie pour changer de langue ?", isPresented: $asksRelaunch) {
+        .alert("Relancer Foluna pour changer de langue ?", isPresented: $asksRelaunch) {
             Button("Relancer maintenant") { Self.relaunch() }
             Button("Plus tard", role: .cancel) {}
         } message: {

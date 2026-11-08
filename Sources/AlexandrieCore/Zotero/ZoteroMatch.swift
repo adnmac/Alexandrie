@@ -29,7 +29,7 @@ public enum ZoteroMatch {
             "itemType": "book",
             "title": title,
             "creators": authors.map(creator),
-            "tags": [["tag": "Alexandrie"]],
+            "tags": [["tag": "Foluna"]],
         ]
         if let isbn = isbn.flatMap(ISBN.normalized) { item["ISBN"] = isbn }
         if let publisher, !publisher.isEmpty { item["publisher"] = publisher }

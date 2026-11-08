@@ -184,7 +184,7 @@ final class LibraryStore {
         save()
         if let first = result.failures.first {
             let name = (first.path as NSString).lastPathComponent
-            lastError = String(localized: "\(result.failures.count) fichiers n'ont pas pu être placés dans la Corbeille de macOS et restent dans celle d'Alexandrie.")
+            lastError = String(localized: "\(result.failures.count) fichiers n'ont pas pu être placés dans la Corbeille de macOS et restent dans celle de Foluna.")
                 + " " + String(localized: "Premier : « \(name) » — \(first.reason)")
         }
     }

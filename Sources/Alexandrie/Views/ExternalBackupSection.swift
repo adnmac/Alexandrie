@@ -22,7 +22,7 @@ struct ExternalBackupSection: View {
                     folderLabel
                     if backups.folder == nil, BackupMonitor.iCloudDrive != nil {
                         Button("iCloud Drive") { backups.folder = BackupMonitor.iCloudDrive }
-                            .help("Sauvegarder dans iCloud Drive (dossier « Sauvegarde Alexandrie »)")
+                            .help("Sauvegarder dans iCloud Drive (dossier « Sauvegarde Foluna »)")
                     }
                     Button("Choisir…", action: chooseFolder)
                 }
@@ -57,7 +57,7 @@ struct ExternalBackupSection: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
-            Text("Chaque jour, l'index (vos corrections, étagères, corbeille), les notes et surlignages, les thématiques, les positions de lecture et les catalogues sont copiés dans « Sauvegarde Alexandrie », avec les livres importés ou téléchargés et les couvertures ; les 30 derniers jours sont gardés. Vos dossiers de livres ne sont pas copiés : ils restent où ils sont.")
+            Text("Chaque jour, l'index (vos corrections, étagères, corbeille), les notes et surlignages, les thématiques, les positions de lecture et les catalogues sont copiés dans « Sauvegarde Foluna », avec les livres importés ou téléchargés et les couvertures ; les 30 derniers jours sont gardés. Vos dossiers de livres ne sont pas copiés : ils restent où ils sont.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -67,7 +67,7 @@ struct ExternalBackupSection: View {
                 if let s = chosen { backups.restore(s) }
             }
         } message: {
-            Text("Alexandrie se relance et reprend cette sauvegarde : les changements faits depuis seront remplacés. L'état actuel est d'abord mis de côté dans le dossier Sauvegardes de l'app ; les livres absents reviennent, aucun n'est effacé.")
+            Text("Foluna se relance et reprend cette sauvegarde : les changements faits depuis seront remplacés. L'état actuel est d'abord mis de côté dans le dossier Sauvegardes de l'app ; les livres absents reviennent, aucun n'est effacé.")
         }
         .task { backups.refresh() }
     }
@@ -117,7 +117,7 @@ struct ExternalBackupSection: View {
         panel.canChooseFiles = false
         panel.canCreateDirectories = true
         panel.prompt = String(localized: "Choisir")
-        panel.message = String(localized: "Dossier de sauvegarde : iCloud Drive, un disque externe… Alexandrie y crée « Sauvegarde Alexandrie ».")
+        panel.message = String(localized: "Dossier de sauvegarde : iCloud Drive, un disque externe… Foluna y crée « Sauvegarde Foluna ».")
         panel.directoryURL = backups.folder ?? BackupMonitor.iCloudDrive
         if panel.runModal() == .OK, let url = panel.url {
             backups.folder = url

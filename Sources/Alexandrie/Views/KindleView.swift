@@ -81,7 +81,7 @@ struct KindleView: View {
                     Task { await kindle.delete(docs) }
                 }
             } message: {
-                Text("Les fichiers et leurs données de lecture (position, notes sur l'appareil) seront effacés de la liseuse. Votre bibliothèque n'est pas modifiée, et les notes déjà importées restent dans Alexandrie.")
+                Text("Les fichiers et leurs données de lecture (position, notes sur l'appareil) seront effacés de la liseuse. Votre bibliothèque n'est pas modifiée, et les notes déjà importées restent dans Foluna.")
             }
             Divider()
         }
@@ -214,7 +214,7 @@ struct KindleView: View {
         if kindle.mtpAvailable {
             return String(localized: "Branchez-la en USB et déverrouillez\u{2011}la. Fermez Android File Transfer s'il est ouvert.")
         }
-        return String(localized: "Branchez-la en USB et déverrouillez\u{2011}la. Les Kindle récentes demandent libmtp : « brew install libmtp », puis relancez Alexandrie.")
+        return String(localized: "Branchez-la en USB et déverrouillez\u{2011}la. Les Kindle récentes demandent libmtp : « brew install libmtp », puis relancez Foluna.")
     }
 }
 

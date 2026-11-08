@@ -190,7 +190,8 @@ public struct AppDirectories: Sendable {
         ProcessInfo.processInfo.environment["ALEXANDRIE_STORE"].flatMap { $0.isEmpty ? nil : URL(fileURLWithPath: $0, isDirectory: true) }
     }
 
-    /// Dossier de données réel de l'app.
+    /// Dossier de données réel de l'app. Il garde le nom d'origine de l'app (Alexandrie, avant Foluna) :
+    /// l'index y référence les livres importés par leur chemin complet.
     public static var realBase: URL {
         FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Alexandrie", isDirectory: true)

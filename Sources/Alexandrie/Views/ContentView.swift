@@ -393,7 +393,7 @@ struct ContentView: View {
                     Label("Vider la corbeille…", systemImage: "trash.slash")
                 }
                 .disabled(library.trashedBooks.isEmpty)
-                .help("Placer tous les fichiers de la corbeille d'Alexandrie dans la Corbeille de macOS")
+                .help("Placer tous les fichiers de la corbeille de Foluna dans la Corbeille de macOS")
             }
             KindleSendButton(books: selected) {
                 Label(KindleSendLabel.title(kindle), systemImage: KindleSendLabel.icon(kindle))

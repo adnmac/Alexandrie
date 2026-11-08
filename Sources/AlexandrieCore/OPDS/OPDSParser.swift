@@ -17,7 +17,7 @@ public enum OPDSError: LocalizedError, Equatable {
     public var errorDescription: String? {
         switch self {
         case .notAFeed: String(localized: "Cette adresse ne mène pas à un catalogue OPDS.")
-        case .opds2: String(localized: "Ce catalogue utilise OPDS 2 (JSON), qu'Alexandrie ne lit pas encore.")
+        case .opds2: String(localized: "Ce catalogue utilise OPDS 2 (JSON), que Foluna ne lit pas encore.")
         case .insecure: String(localized: "Seules les adresses sécurisées (https) sont acceptées.")
         case .noSearch: String(localized: "Ce catalogue ne propose pas de recherche.")
         case .tooLarge: String(localized: "Le fichier dépasse 200 Mo.")

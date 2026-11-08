@@ -37,7 +37,7 @@ final class OPDSStore {
     @ObservationIgnored private var templates: [String: OPDSSearchTemplate] = [:]
     @ObservationIgnored private var covers: [URL: URL] = [:]
     @ObservationIgnored private let coverDirectory = FileManager.default.temporaryDirectory
-        .appendingPathComponent("Alexandrie-OPDS", isDirectory: true)
+        .appendingPathComponent("Foluna-OPDS", isDirectory: true)
 
     init(directories: AppDirectories, library: LibraryStore, client: OPDSClient = OPDSClient()) {
         url = directories.opds
@@ -210,7 +210,7 @@ final class OPDSStore {
         downloading.insert(acquisition.url)
         downloadError = nil
         defer { downloading.remove(acquisition.url) }
-        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("Alexandrie-\(UUID().uuidString)", isDirectory: true)
+        let temp = FileManager.default.temporaryDirectory.appendingPathComponent("Foluna-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: temp) }
         do {
             let file = try await client.download(acquisition, of: entry, into: temp)

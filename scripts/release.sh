@@ -20,7 +20,7 @@ if [[ "$(cat VERSION)" != "$VERSION" ]]; then
 fi
 
 scripts/bundle.sh
-APP="$ROOT/build/Alexandrie.app"
+APP="$ROOT/build/Foluna.app"
 # Une app ad hoc ne peut pas être vérifiée par « Installer et relancer » : on refuse de la publier.
 if codesign -dv "$APP" 2>&1 | grep -q "Signature=adhoc"; then
   echo "L'app n'est pas signée avec le certificat stable : publication annulée."
@@ -28,23 +28,23 @@ if codesign -dv "$APP" 2>&1 | grep -q "Signature=adhoc"; then
 fi
 codesign --verify --deep --strict "$APP"
 
-ZIP="$ROOT/build/Alexandrie-$VERSION.zip"
+ZIP="$ROOT/build/Foluna-$VERSION.zip"
 rm -f "$ZIP"
 ditto -c -k --keepParent "$APP" "$ZIP"
 
-DMG="$ROOT/build/Alexandrie-$VERSION.dmg"
+DMG="$ROOT/build/Foluna-$VERSION.dmg"
 STAGE="$ROOT/build/dmg"
 rm -rf "$STAGE" "$DMG" && mkdir -p "$STAGE"
-ditto "$APP" "$STAGE/Alexandrie.app"
+ditto "$APP" "$STAGE/Foluna.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -quiet -volname "Alexandrie $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDZO "$DMG"
+hdiutil create -quiet -volname "Foluna $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDZO "$DMG"
 rm -rf "$STAGE"
 hdiutil verify -quiet "$DMG"
 
 PREVIOUS="$(git describe --tags --abbrev=0 2>/dev/null || true)"
 NOTES="$(git log ${PREVIOUS:+$PREVIOUS..}HEAD --pretty='- %s' | grep -v '^- chore: version' || true)"
 
-git tag -a "$TAG" -m "Alexandrie $VERSION"
+git tag -a "$TAG" -m "Foluna $VERSION"
 git push -q origin main "$TAG"
-gh release create "$TAG" "$DMG" "$ZIP" --title "Alexandrie $VERSION" --notes "${NOTES:-Version $VERSION}"
-echo "✅ Alexandrie $VERSION publiée"
+gh release create "$TAG" "$DMG" "$ZIP" --title "Foluna $VERSION" --notes "${NOTES:-Version $VERSION}"
+echo "✅ Foluna $VERSION publiée"

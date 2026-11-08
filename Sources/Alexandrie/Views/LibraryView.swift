@@ -357,7 +357,7 @@ struct BookDragItem: Transferable {
     /// Copie dans un dossier temporaire à part, sous le nom du fichier (clone instantané sur APFS).
     func dragCopy() throws -> URL {
         let folder = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Alexandrie-glisser", isDirectory: true)
+            .appendingPathComponent("Foluna-glisser", isDirectory: true)
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         let copy = folder.appendingPathComponent(file.lastPathComponent)

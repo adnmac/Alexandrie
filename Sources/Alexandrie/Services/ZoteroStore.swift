@@ -82,7 +82,7 @@ final class ZoteroStore {
     /// Un envoi écrit plusieurs éléments : seule « Toujours autoriser » convient.
     private func writeKey(serverID: String) async throws -> String {
         if let key = savedKey { return key }
-        let granted = try await client.authorize(appName: "Alexandrie", serverID: serverID)
+        let granted = try await client.authorize(appName: "Foluna", serverID: serverID)
         guard granted.remember else { throw ZoteroStoreError.needsAlwaysAllow }
         savedKey = granted.key
         return granted.key
@@ -97,7 +97,7 @@ final class ZoteroStore {
         let clippings = entry.clippings.filter { !$0.isHidden && $0.kind != .bookmark }
         await run(title: book?.title ?? entry.title) { sender in
             let ref = Self.reference(book, entry: entry)
-            let html = ZoteroNote.html(heading: String(localized: "Notes d'Alexandrie"), title: ref.title, author: ref.authors.joined(separator: ", "),
+            let html = ZoteroNote.html(heading: String(localized: "Notes de Foluna"), title: ref.title, author: ref.authors.joined(separator: ", "),
                                        passages: clippings.map { self.passage($0, in: nil) })
             let outcome = try await sender.send(html: html, book: ref, previous: self.links.books[bookKey])
             self.links.books[bookKey] = outcome.link

@@ -67,7 +67,7 @@ extension SeedData {
         let feed = opdsFeed
         var covers: [String: Data] = [:]
         for b in opdsBooks { covers[b.id] = coverPNG(title: b.title, color: b.color) }
-        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("Alexandrie-seed-\(UUID().uuidString)")
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent("Foluna-seed-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
         var epubs: [String: Data] = [:]
         for b in opdsBooks {

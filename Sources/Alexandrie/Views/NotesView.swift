@@ -437,8 +437,8 @@ struct NoteRow: View {
                     Label {
                         // Fait dans la fenêtre de lecture (S-070) : marqué « Alexandrie », pas « Kindle ».
                         if clipping.isFromApp {
-                            Text("\(Text("Alexandrie").fontWeight(.semibold)) · \(meta)")
-                                .help("Surligné dans la fenêtre de lecture d'Alexandrie, pas sur la liseuse")
+                            Text("\(Text("Foluna").fontWeight(.semibold)) · \(meta)")
+                                .help("Surligné dans la fenêtre de lecture de Foluna, pas sur la liseuse")
                         } else {
                             Text(meta)
                         }
@@ -467,7 +467,7 @@ struct NoteRow: View {
                             .buttonStyle(.hover)
                             .fixedSize()
                             .help(clipping.isFromApp ? String(localized: "Note visible aussi dans la fenêtre de lecture")
-                                  : String(localized: "Note gardée dans Alexandrie ; la liseuse n'est pas modifiée"))
+                                  : String(localized: "Note gardée dans Foluna ; la liseuse n'est pas modifiée"))
                     }
                     Menu {
                         if clipping.isFromApp {
@@ -516,13 +516,13 @@ struct NoteRow: View {
             }
         }
         .padding(.vertical, Space.md)
-        .confirmationDialog(clipping.isFromApp ? String(localized: "Supprimer ce surlignage ?") : String(localized: "Supprimer ce relevé d'Alexandrie ?"),
+        .confirmationDialog(clipping.isFromApp ? String(localized: "Supprimer ce surlignage ?") : String(localized: "Supprimer ce relevé de Foluna ?"),
                             isPresented: $confirmDelete) {
             Button("Supprimer", role: .destructive) { kindle.deleteClipping(clipping.id) }
         } message: {
             Text(clipping.isFromApp
                  ? String(localized: "Il disparaît aussi de la fenêtre de lecture. Le fichier du livre n'est pas modifié.")
-                 : String(localized: "Il disparaît d'Alexandrie et ne reviendra pas au prochain import. La liseuse n'est pas modifiée."))
+                 : String(localized: "Il disparaît de Foluna et ne reviendra pas au prochain import. La liseuse n'est pas modifiée."))
         }
     }
 }

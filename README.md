@@ -1,4 +1,6 @@
-# Alexandrie
+# Foluna
+
+*Anciennement Alexandrie : le code, l'exécutable et le dossier de données gardent ce nom. Contact : info@foluna.app.*
 
 Bibliothèque de livres pour macOS qui charge vos livres sur une liseuse (Kindle, Kobo, ou toute liseuse USB qui lit l'EPUB) **par câble USB**, sans Calibre.
 
@@ -14,7 +16,7 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une liseuse (Kindle
 - **Recherche dans le contenu** : le champ de recherche cherche dans les titres, auteurs… ou dans le texte des livres (EPUB, MOBI, AZW3, PDF), indexé en arrière-plan, un fichier par livre, avec une option « Écriture exacte » (majuscules et accents) ; chaque livre trouvé montre ses extraits, et un extrait ouvre la fenêtre de lecture au passage, avec la liste des renvois du mot dans la colonne de gauche et ⌘G / ⇧⌘G pour passer de l'un à l'autre.
 - PDF : tel quel, **marges rognées** (le texte paraît plus grand) ou **texte redimensionnable** (texte extrait en AZW3, chapitres d'après la table du PDF) ; l'original n'est jamais modifié.
 - **Conversion MOBI/AZW3 → EPUB** (KF7, KF8 et fichiers hybrides).
-- **Zotero** : « Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages, notes, couleurs et positions dans une note rattachée à la référence du livre, retrouvée par ISBN ou titre et auteur, ou créée d'après la fiche. Un nouvel envoi met la note à jour, sans doublon ; une thématique donne une note par livre. Les notes restent dans Alexandrie : ce qui change dans Zotero ne revient pas. Il faut Zotero 10 ou plus récent, ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero », et « Toujours autoriser » au premier envoi.
+- **Zotero** : « Envoyer à Zotero » (menu Exporter des notes d'un livre ou d'une thématique) copie les passages, notes, couleurs et positions dans une note rattachée à la référence du livre, retrouvée par ISBN ou titre et auteur, ou créée d'après la fiche. Un nouvel envoi met la note à jour, sans doublon ; une thématique donne une note par livre. Les notes restent dans Foluna : ce qui change dans Zotero ne revient pas. Il faut Zotero 10 ou plus récent, ouvert, avec Réglages › Avancés › « Autoriser d'autres applications de cet ordinateur à communiquer avec Zotero », et « Toujours autoriser » au premier envoi.
 - **Catalogues en ligne (OPDS)** : Project Gutenberg, Ebooks libres et gratuits et la Bibliothèque numérique romande sont proposés dans la barre latérale ; on peut ajouter l'adresse de tout catalogue OPDS 1.2 public (https, sans compte). On parcourt ses rubriques, on y cherche depuis le champ de recherche (touche Retour), un menu « Langue » ne garde que les livres de cette langue (chez Gutenberg, recherches et listes sont restreintes par le serveur), et « Télécharger » ajoute le livre à la bibliothèque comme un import ; l'envoi sur la Kindle se fait ensuite depuis sa fiche. Les livres payants ou sous DRM sont ignorés.
 - Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
 - **Kobo** (disque USB, reconnue d'elle-même) : les EPUB partent tels quels, avec vos corrections dans le fichier ; MOBI et AZW3 sont convertis en EPUB, le PDF suit son mode. Ses surlignages et notes (base `KoboReader.sqlite`, lue sur une copie) rejoignent « Notes et surlignages ».
@@ -23,7 +25,7 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une liseuse (Kindle
 ## Langues
 
 L'interface existe en français, anglais, néerlandais, allemand et espagnol. Elle suit la langue de macOS
-(ou celle choisie pour Alexandrie dans Réglages Système › Langue et région › Applications), et Réglages › Général ›
+(ou celle choisie pour Foluna dans Réglages Système › Langue et région › Applications), et Réglages › Général ›
 Langue la choisit dans l'app (appliquée au redémarrage). Les exports Markdown, les notes envoyées à Zotero, les
 notifications et l'action Raccourcis suivent cette langue ; les titres, notes et dates déjà enregistrés restent tels
 quels. Les traductions sont dans `Resources/Localizable.xcstrings` (voir `scripts/l10n.sh` et `docs/l10n-glossaire.md`) ;
@@ -32,8 +34,8 @@ le néerlandais, l'allemand et l'espagnol gagneraient à être relus par une per
 ## Compiler et lancer
 
 ```bash
-scripts/bundle.sh               # construit build/Alexandrie.app (release) et la copie dans ~/Applications
-open build/Alexandrie.app
+scripts/bundle.sh               # construit build/Foluna.app (release) et la copie dans ~/Applications
+open build/Foluna.app
 ```
 
 Autres scripts : `scripts/build.sh [release]`, `scripts/test.sh`, `scripts/selftest.sh` (self-test de l'app sur des données de test dans `/tmp`), `scripts/snap.sh` (captures de chaque page en clair et en sombre, avec des livres d'exemple).
@@ -49,11 +51,11 @@ Créer un certificat : racine auto-signée, signature de code).
 Avec une signature stable, macOS garde les autorisations de l'app (disque de la Kindle…) d'une version à l'autre ;
 sans certificat, la signature est ad hoc.
 
-`scripts/release.sh X.Y.Z` publie une version sur GitHub : une image disque `Alexandrie-X.Y.Z.dmg` (l'app signée
+`scripts/release.sh X.Y.Z` publie une version sur GitHub : une image disque `Foluna-X.Y.Z.dmg` (l'app signée
 et un lien vers Applications) et une archive `.zip` pour les anciennes versions. L'app installée la signale et propose
 « Installer et relancer » : elle télécharge le `.dmg`, en extrait l'app, vérifie qu'elle porte la même signature,
 puis se ferme ; un script remplace alors l'app (l'ancienne revient si la copie échoue) et la relance.
-Le `.dmg` s'installe aussi à la main depuis la page de la version (glisser Alexandrie dans Applications).
+Le `.dmg` s'installe aussi à la main depuis la page de la version (glisser Foluna dans Applications).
 Avec les seules Command Line Tools, ces scripts chargent les plugins de macros SwiftUI et Swift Testing
 depuis `/Applications/Xcode.app` (Xcode doit être installé, mais sa licence n'a pas besoin d'être acceptée).
 
@@ -79,8 +81,8 @@ Tout ce que l'app produit est dans `~/Library/Application Support/Alexandrie/` :
 | `opds.json` | catalogues en ligne ajoutés, et livres qui en ont été téléchargés |
 | `zotero.json` | références et notes Zotero reliées à chaque livre et thématique |
 
-**Copie hors du Mac** (Réglages › Sauvegarde) : chaque jour, Alexandrie copie ses fichiers de données, les livres
-importés ou téléchargés (`Imports/`) et les couvertures dans `Sauvegarde Alexandrie`, à l'intérieur du dossier choisi :
+**Copie hors du Mac** (Réglages › Sauvegarde) : chaque jour, Foluna copie ses fichiers de données, les livres
+importés ou téléchargés (`Imports/`) et les couvertures dans `Sauvegarde Foluna`, à l'intérieur du dossier choisi :
 iCloud Drive (proposé s'il est activé) ou un disque externe. Les 30 derniers jours sont gardés ; un disque débranché est
 signalé et la copie reprend à son retour. « Restaurer… » relance l'app sur une copie datée : l'état d'avant est mis de
 côté dans `Sauvegardes/`, les livres absents reviennent, aucun n'est effacé. Les caches (conversions, texte indexé) et
@@ -123,18 +125,18 @@ ALEXANDRIE_FIXTURES=/dossier/de/livres scripts/test.sh   # + conversions sur de 
 
 ## Confidentialité
 
-Alexandrie est gratuite, sans compte, sans mesure d'audience ni publicité. Tout reste sur le Mac, dans `~/Library/Application Support/Alexandrie/`, sauf deux connexions, que l'on peut couper dans Réglages > Général, et les catalogues en ligne :
+Foluna est gratuite, sans compte, sans mesure d'audience ni publicité. Tout reste sur le Mac, dans `~/Library/Application Support/Alexandrie/`, sauf deux connexions, que l'on peut couper dans Réglages > Général, et les catalogues en ligne :
 
 - **Vérification en ligne des livres**, seulement après accord (accueil ou Réglages) : l'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library.
 - **Recherche de mises à jour** : l'app demande à GitHub la dernière version publiée de ce dépôt.
 - **Catalogues en ligne (OPDS)** : rien ne part tant qu'un catalogue n'est pas ouvert dans la barre latérale ; ensuite, le catalogue reçoit les pages parcourues, les mots cherchés et les livres téléchargés. Un catalogue retiré (« Gérer les catalogues… ») n'est plus jamais contacté.
 
-L'envoi à Zotero reste sur le Mac : Alexandrie écrit dans Zotero par son API locale (`127.0.0.1`), seulement quand on clique sur « Envoyer à Zotero » ; Zotero synchronise ensuite les notes si on utilise son compte en ligne. L'autorisation donnée par Zotero est gardée dans le Trousseau.
+L'envoi à Zotero reste sur le Mac : Foluna écrit dans Zotero par son API locale (`127.0.0.1`), seulement quand on clique sur « Envoyer à Zotero » ; Zotero synchronise ensuite les notes si on utilise son compte en ligne. L'autorisation donnée par Zotero est gardée dans le Trousseau.
 
-La copie hors du Mac ne passe par aucun serveur d'Alexandrie : elle écrit dans le dossier choisi ; dans iCloud Drive, c'est le compte iCloud de l'utilisateur qui la synchronise.
+La copie hors du Mac ne passe par aucun serveur de Foluna : elle écrit dans le dossier choisi ; dans iCloud Drive, c'est le compte iCloud de l'utilisateur qui la synchronise.
 
 Les rapports de plantage restent sur le Mac ; ils ne partent que si l'utilisateur choisit de les envoyer. Le détail est dans `docs/AUDIT-PRODUCTION.md`, § 5.
 
 ## Licence
 
-Alexandrie est un logiciel libre, distribué sous [licence MIT](LICENSE). Les skills BAMA de `.claude/skills/` sont aussi sous licence MIT (voir `.claude/skills/BAMA-COMMIT`).
+Foluna est un logiciel libre, distribué sous [licence MIT](LICENSE). Les skills BAMA de `.claude/skills/` sont aussi sous licence MIT (voir `.claude/skills/BAMA-COMMIT`).

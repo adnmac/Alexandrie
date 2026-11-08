@@ -2,14 +2,16 @@ import Foundation
 
 /// Sauvegarde de la bibliothèque dans un dossier choisi par l'utilisateur (iCloud Drive, disque externe).
 ///
-///     <dossier choisi>/Sauvegarde Alexandrie/
+///     <dossier choisi>/Sauvegarde Foluna/
 ///         Données/2026-11-08/library.json, clippings.json…   une copie par jour, les 30 dernières gardées
 ///         Imports/                                          copie à jour des livres importés ou téléchargés
 ///         Covers/                                           copie à jour des couvertures
 ///
 /// Les caches qui se reconstruisent (conversions, texte indexé, livres préparés pour la lecture) ne sont pas copiés.
 public enum ExternalBackup {
-    public static let folderName = "Sauvegarde Alexandrie"
+    public static let folderName = "Sauvegarde Foluna"
+    /// Nom d'avant Foluna : un dossier existant est renommé à la première sauvegarde.
+    public static let legacyFolderName = "Sauvegarde Alexandrie"
     /// Fichiers de données copiés chaque jour (ceux qui manquent sont ignorés).
     public static let dataFiles = ["library.json", "folders.json", "readers.json", "reading.json",
                                    "clippings.json", "researches.json", "opds.json", "zotero.json"]
@@ -46,7 +48,14 @@ public enum ExternalBackup {
     }
 
     public static func root(in destination: URL) -> URL {
-        destination.appendingPathComponent(folderName, isDirectory: true)
+        let root = destination.appendingPathComponent(folderName, isDirectory: true)
+        let legacy = destination.appendingPathComponent(legacyFolderName, isDirectory: true)
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: root.path), fm.fileExists(atPath: legacy.path) {
+            try? fm.moveItem(at: legacy, to: root)
+            if !fm.fileExists(atPath: root.path) { return legacy }
+        }
+        return root
     }
 
     static var dayFormat: DateFormatter {

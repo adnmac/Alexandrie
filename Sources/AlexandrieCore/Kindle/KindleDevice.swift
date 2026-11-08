@@ -42,8 +42,8 @@ public enum KindleError: LocalizedError {
         case .transferFailed(let why): String(localized: "Le transfert a échoué : \(why).")
         case .insufficientSpace: String(localized: "Espace insuffisant sur la liseuse.")
         case .accessDenied:
-            String(localized: "macOS ne laisse pas Alexandrie lire la liseuse. Autorisez-la dans Réglages Système › Confidentialité et sécurité › ")
-                + String(localized: "Fichiers et dossiers › Alexandrie › Volumes amovibles, puis cliquez sur « Actualiser ».")
+            String(localized: "macOS ne laisse pas Foluna lire la liseuse. Autorisez-la dans Réglages Système › Confidentialité et sécurité › ")
+                + String(localized: "Fichiers et dossiers › Foluna › Volumes amovibles, puis cliquez sur « Actualiser ».")
         }
     }
 }

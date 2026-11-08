@@ -93,7 +93,7 @@ final class UpdateMonitor {
             alert.messageText = String(localized: "Vérification impossible")
             alert.informativeText = String(localized: "GitHub n'a pas pu être interrogé (\(why)). Vérifiez la connexion Internet et réessayez.")
         default:
-            alert.messageText = String(localized: "Alexandrie est à jour")
+            alert.messageText = String(localized: "Foluna est à jour")
             alert.informativeText = String(localized: "Vous avez la version \(currentVersion), la plus récente publiée.")
         }
         alert.runModal()
@@ -122,7 +122,7 @@ final class UpdateMonitor {
             let (downloaded, _) = try await URLSession.shared.download(for: request)
             // Le fichier téléchargé est temporaire : il est mis à l'abri tout de suite.
             try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
-            let archive = work.appendingPathComponent(release.isDiskImage ? "Alexandrie.dmg" : "Alexandrie.zip")
+            let archive = work.appendingPathComponent(release.isDiskImage ? "Foluna.dmg" : "Foluna.zip")
             try FileManager.default.moveItem(at: downloaded, to: archive)
             installState = .installing
             let isDiskImage = release.isDiskImage
@@ -138,14 +138,16 @@ final class UpdateMonitor {
                     try unzip.run()
                     unzip.waitUntilExit()
                     guard unzip.terminationStatus == 0 else { throw CocoaError(.fileReadCorruptFile) }
-                    app = staged.appendingPathComponent("Alexandrie.app")
+                    app = staged.appendingPathComponent("Foluna.app")
                 }
                 try SignatureCheck.verifySameSigner(app)
                 return app
             }.value
             // L'index est enregistré à la fermeture ; le script attend qu'elle soit finie pour remplacer l'app.
+            // Une copie encore nommée Alexandrie.app devient Foluna.app.
+            let destination = current.deletingLastPathComponent().appendingPathComponent("Foluna.app")
             _ = try UpdateInstall.launch(waitingFor: ProcessInfo.processInfo.processIdentifier,
-                                         newApp: app, installedApp: current, cleaning: work)
+                                         newApp: app, installedApp: current, destination: destination, cleaning: work)
             NSApp.terminate(nil)
         } catch {
             try? FileManager.default.removeItem(at: work)

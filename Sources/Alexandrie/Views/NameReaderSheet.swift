@@ -17,7 +17,7 @@ struct NameReaderSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.lg) {
             Label("Nouvelle liseuse", systemImage: "ipad.landscape.badge.play").font(.title3.weight(.semibold))
-            Text("Cette liseuse est branchée pour la première fois. Donnez-lui un nom : Alexandrie la reconnaîtra ensuite automatiquement et lui tiendra une étagère de livres.")
+            Text("Cette liseuse est branchée pour la première fois. Donnez-lui un nom : Foluna la reconnaîtra ensuite automatiquement et lui tiendra une étagère de livres.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             TextField("Nom", text: $name, prompt: Text("ex. Liseuse de Léa"))

@@ -18,7 +18,7 @@ struct AlexandrieApp: App {
     @ObservedObject private var menu = MenuState.shared
 
     var body: some Scene {
-        WindowGroup("Alexandrie", id: "main") {
+        WindowGroup("Foluna", id: "main") {
             ContentView()
                 .environment(library)
                 .environment(kindle)
@@ -159,7 +159,7 @@ enum Panels {
     static func addLibraryFolder(_ library: LibraryStore) {
         let panel = NSOpenPanel()
         panel.title = library.folders.isEmpty ? String(localized: "Choisir le dossier de livres") : String(localized: "Ajouter un dossier de livres")
-        panel.message = String(localized: "Alexandrie indexe ce dossier sans jamais le modifier.")
+        panel.message = String(localized: "Foluna indexe ce dossier sans jamais le modifier.")
         panel.prompt = library.folders.isEmpty ? String(localized: "Choisir") : String(localized: "Ajouter")
         panel.canChooseDirectories = true
         panel.canChooseFiles = false
@@ -183,15 +183,15 @@ enum Panels {
     static func confirmDeletePermanently(_ book: Book, fileCount: Int) -> Bool {
         confirm(title: String(localized: "Supprimer définitivement « \(book.title) » ?"),
                 message: (fileCount == 1 ? String(localized: "Son fichier sera placé") : String(localized: "Ses \(fileCount) fichiers seront placés"))
-                    + String(localized: " dans la Corbeille de macOS et le livre quittera Alexandrie. Les fichiers resteront récupérables ")
+                    + String(localized: " dans la Corbeille de macOS et le livre quittera Foluna. Les fichiers resteront récupérables ")
                     + String(localized: "dans la Corbeille de macOS tant que vous ne la videz pas."),
                 action: String(localized: "Supprimer"))
     }
 
     static func confirmEmptyTrash(fileCount: Int) -> Bool {
-        confirm(title: String(localized: "Vider la corbeille d'Alexandrie ?"),
+        confirm(title: String(localized: "Vider la corbeille de Foluna ?"),
                 message: (fileCount == 1 ? String(localized: "Le fichier sera placé") : String(localized: "Les \(fileCount) fichiers seront placés"))
-                    + String(localized: " dans la Corbeille de macOS et ces livres quitteront Alexandrie. Ils resteront récupérables ")
+                    + String(localized: " dans la Corbeille de macOS et ces livres quitteront Foluna. Ils resteront récupérables ")
                     + String(localized: "dans la Corbeille de macOS tant que vous ne la videz pas."),
                 action: String(localized: "Vider la corbeille"))
     }

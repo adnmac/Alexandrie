@@ -61,7 +61,7 @@ enum SendToKindleError: Error, CustomLocalizedStringResourceConvertible {
 /// sinon met le livre en attente, comme Kindle > Envoyer à la liseuse (S-053).
 struct SendToKindleIntent: AppIntent {
     static let title: LocalizedStringResource = "Envoyer à la liseuse"
-    static let description = IntentDescription("Copie un livre d'Alexandrie sur la liseuse branchée, ou le met en attente jusqu'à sa connexion.")
+    static let description = IntentDescription("Copie un livre de Foluna sur la liseuse branchée, ou le met en attente jusqu'à sa connexion.")
 
     @Parameter(title: "Livre")
     var book: BookEntity

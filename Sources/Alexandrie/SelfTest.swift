@@ -601,8 +601,8 @@ struct SelfTest {
             ours = await reader.js("typeof alx === 'object' && document.body.textContent.includes('Texte')") as? Bool
         }
         let bookScript = await reader.js("document.body.getAttribute('data-livre')") as? String
-        check("JavaScript du livre coupé, scripts d'Alexandrie actifs", ours == true && bookScript == nil,
-              "Alexandrie : \(String(describing: ours)), livre : \(bookScript ?? "rien")")
+        check("JavaScript du livre coupé, scripts de Foluna actifs", ours == true && bookScript == nil,
+              "Foluna : \(String(describing: ours)), livre : \(bookScript ?? "rien")")
 
         // Relus au redémarrage, rangés avec les notes, livres intacts.
         let reopened = KindleMonitor()
@@ -893,7 +893,7 @@ struct SelfTest {
         check("zotero : thématique envoyée sur la même référence", notes.count == 2 && server.list().count == 3
               && notes.allSatisfy { $0.json["parentItem"] as? String == items[0].key }
               && (notes[1].json["note"] as? String)?.contains("<h1>Mémoire d'essai — ") == true, zotero.message ?? "")
-        check("zotero : notes d'Alexandrie intactes", kindle.clippings.filter { $0.uid?.hasPrefix("zotero-") == true }.count == 2
+        check("zotero : notes de Foluna intactes", kindle.clippings.filter { $0.uid?.hasPrefix("zotero-") == true }.count == 2
               && kindle.clippings.count == before.count)
         check("zotero : correspondances enregistrées", ZoteroLinks.load(library.directories.zotero).books[bookKey]?.noteKey != nil)
 
@@ -990,7 +990,7 @@ struct SelfTest {
         check("téléchargement reconnu", opds.libraryBook(for: entry)?.id == book?.id
               && OPDSCatalogList.load(library.directories.opds).downloads[entry.id] == book?.id)
         check("dossier temporaire nettoyé", !((try? fm.contentsOfDirectory(atPath: fm.temporaryDirectory.path)) ?? [])
-              .contains { $0.hasPrefix("Alexandrie-") && $0.count > 40 && !$0.hasPrefix("Alexandrie-seed") })
+              .contains { $0.hasPrefix("Foluna-") && $0.count > 40 && !$0.hasPrefix("Foluna-seed") })
         if let mobi = entry.acquisitions.first(where: { $0.format == .mobi }) {
             let refused = await opds.download(mobi, of: entry)
             check("fichier illisible refusé", refused == nil && opds.downloadError != nil && library.books.count == before + 1)

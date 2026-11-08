@@ -13,7 +13,7 @@ public struct UpdateInfo: Equatable, Sendable {
 /// Compare le commit compilé dans l'app à la branche principale du dépôt GitHub (API publique, sans compte).
 /// L'accès réseau est injectable pour les tests.
 public struct UpdateChecker: Sendable {
-    public static let repository = "adnmac/Alexandrie"
+    public static let repository = "adnmac/Foluna"
     public static let branch = "main"
     let fetch: CatalogClient.Fetch
 

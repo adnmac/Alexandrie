@@ -44,6 +44,19 @@ import Testing
         #expect(!leftovers.contains { $0.hasPrefix(".en-cours") }, "aucun dossier provisoire laissé")
     }
 
+    /// Une sauvegarde faite avant le changement de nom (« Sauvegarde Alexandrie ») est reprise et renommée.
+    @Test func legacyFolderIsRenamed() throws {
+        let (dirs, dest, tmp) = try setUp()
+        defer { try? fm.removeItem(at: tmp) }
+        let legacy = dest.appendingPathComponent(ExternalBackup.legacyFolderName, isDirectory: true)
+        _ = try ExternalBackup.backUp(dirs, to: dest, now: day("2026-11-07"))
+        try fm.moveItem(at: ExternalBackup.root(in: dest), to: legacy)
+        #expect(ExternalBackup.root(in: dest).lastPathComponent == "Sauvegarde Foluna")
+        #expect(!fm.fileExists(atPath: legacy.path))
+        _ = try ExternalBackup.backUp(dirs, to: dest, now: day("2026-11-08"))
+        #expect(ExternalBackup.snapshots(in: dest).count == 2)
+    }
+
     @Test func keepsTheLatestSnapshots() throws {
         let (dirs, dest, tmp) = try setUp()
         defer { try? fm.removeItem(at: tmp) }

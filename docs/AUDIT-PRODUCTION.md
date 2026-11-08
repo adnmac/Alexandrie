@@ -97,6 +97,8 @@ Chaque requête porte l'adresse IP du Mac et le User-Agent « Alexandrie (macOS)
 
 Les réglages sont dans `UserDefaults`.
 
+**Copie hors du Mac**, si l'utilisateur l'active (Réglages › Sauvegarde) : les fichiers ci-dessus (sauf le texte indexé et les caches), les livres importés et les couvertures sont copiés chaque jour dans le dossier qu'il choisit. Dans iCloud Drive, ils partent chez Apple avec son compte iCloud, pas chez le développeur.
+
 **Pour l'App Store**, si ce canal est choisi :
 - l'étiquette de confidentialité serait « Données non collectées », car les requêtes aux catalogues ne vont pas au développeur ;
 - il faudrait un manifeste `PrivacyInfo.xcprivacy`, qui déclare l'usage de `UserDefaults` (raison `CA92.1`) et des dates de fichiers (`C617.1`).

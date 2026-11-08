@@ -82,6 +82,8 @@ struct ContentView: View {
         .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
         .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
         .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
+        // Sauvegarde du jour dans le dossier choisi (jamais pendant les captures).
+        .onAppear { if Snapshot.directory == nil { AppServices.shared.backups.start() } }
         .task {
             guard Snapshot.directory != nil else { return }
             await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,

@@ -661,6 +661,16 @@ Acceptance:
 - [manual] Les catalogues tout en français (Ebooks libres et gratuits, BNR) n'ont pas le menu ; en français, « Popular » de Gutenberg ne montre que des livres en français, et la page d'un auteur masque ses autres langues.
 Status: done
 
+### S-091 Sauvegarder hors du Mac
+Dans Réglages › Sauvegarde, « Copie hors du Mac » sauvegarde chaque jour la bibliothèque dans un dossier choisi (iCloud Drive proposé, ou un disque externe), et « Restaurer… » relance l'app sur une des copies datées.
+Depends: S-001
+Acceptance:
+- [unit] Une copie par jour des fichiers de données (remplacée le même jour, 30 gardées, jamais à moitié écrite) ; Imports et Covers tenus à jour, jamais vidés si le dossier source manque ; caches non copiés ; dossier absent signalé ; la restauration met l'état d'avant de côté, rend les livres absents, n'efface rien, et n'est appliquée qu'une fois.
+- [self] Coupée sans dossier ; due la première fois, pas deux fois le même jour ; données et livres importés copiés ; réglages de l'utilisateur intacts en mode test ; restauration demandée puis appliquée au lancement.
+- [snap] La section « Copie hors du Mac » avec un dossier et une copie datée.
+- [manual] Avec iCloud Drive, « Sauvegarde Alexandrie » apparaît dans le Finder ; « Restaurer… » relance l'app sur la copie choisie.
+Status: done
+
 ## Later
 
 - Catalogues OPDS avec compte (Calibre-Web, Kavita, Komga) et OPDS 2 (JSON).

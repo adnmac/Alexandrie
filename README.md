@@ -63,6 +63,13 @@ Tout ce que l'app produit est dans `~/Library/Application Support/Alexandrie/` :
 | `Imports/` | livres ajoutés par glisser-déposer, « Importer » ou téléchargés d'un catalogue en ligne |
 | `opds.json` | catalogues en ligne ajoutés, et livres qui en ont été téléchargés |
 
+**Copie hors du Mac** (Réglages › Sauvegarde) : chaque jour, Alexandrie copie ses fichiers de données, les livres
+importés ou téléchargés (`Imports/`) et les couvertures dans `Sauvegarde Alexandrie`, à l'intérieur du dossier choisi :
+iCloud Drive (proposé s'il est activé) ou un disque externe. Les 30 derniers jours sont gardés ; un disque débranché est
+signalé et la copie reprend à son retour. « Restaurer… » relance l'app sur une copie datée : l'état d'avant est mis de
+côté dans `Sauvegardes/`, les livres absents reviennent, aucun n'est effacé. Les caches (conversions, texte indexé) et
+vos propres dossiers de livres ne sont pas copiés.
+
 Les couvertures et conversions qui ne servent plus sont supprimées après chaque rescan ; les réglages affichent
 la taille de ces caches et permettent de vider les conversions. Un `library.json` illisible n'est jamais écrasé :
 il est renommé en `library.corrupt-<date>.json` et la bibliothèque est réindexée (les retouches restent dans ce fichier).
@@ -102,6 +109,8 @@ Alexandrie est gratuite, sans compte, sans mesure d'audience ni publicité. Tout
 - **Vérification en ligne des livres**, seulement après accord (accueil ou Réglages) : l'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library.
 - **Recherche de mises à jour** : l'app demande à GitHub la dernière version publiée de ce dépôt.
 - **Catalogues en ligne (OPDS)** : rien ne part tant qu'un catalogue n'est pas ouvert dans la barre latérale ; ensuite, le catalogue reçoit les pages parcourues, les mots cherchés et les livres téléchargés. Un catalogue retiré (« Gérer les catalogues… ») n'est plus jamais contacté.
+
+La copie hors du Mac ne passe par aucun serveur d'Alexandrie : elle écrit dans le dossier choisi ; dans iCloud Drive, c'est le compte iCloud de l'utilisateur qui la synchronise.
 
 Les rapports de plantage restent sur le Mac ; ils ne partent que si l'utilisateur choisit de les envoyer. Le détail est dans `docs/AUDIT-PRODUCTION.md`, § 5.
 

@@ -12,6 +12,7 @@ struct AlexandrieApp: App {
     @State private var researches = AppServices.shared.researches
     @State private var contentIndexer = AppServices.shared.contentIndexer
     @State private var opds = AppServices.shared.opds
+    @State private var backups = AppServices.shared.backups
     /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
     @ObservedObject private var menu = MenuState.shared
 
@@ -58,6 +59,7 @@ struct AlexandrieApp: App {
 
         Settings {
             SettingsView()
+                .environment(backups)
                 .environment(library)
                 .environment(kindle)
                 .environment(updates)

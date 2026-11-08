@@ -768,6 +768,50 @@ struct SelfTest {
         check("dernier dossier jamais retiré", library.folders.count == 1 && library.books.count == before)
 
         await checkOPDS(library: library)
+        await checkExternalBackup(library: library)
+    }
+
+    /// Sauvegarde dans un dossier choisi (iCloud Drive, disque externe) et restauration au lancement suivant.
+    private mutating func checkExternalBackup(library: LibraryStore) async {
+        let fm = FileManager.default
+        let realFolder = UserDefaults.standard.object(forKey: BackupMonitor.folderKey) as? String
+        let backups = BackupMonitor(directories: library.directories, library: library)
+        let disk = library.directories.base.appendingPathComponent("Disque de sauvegarde", isDirectory: true)
+        try? fm.createDirectory(at: disk, withIntermediateDirectories: true)
+        check("sauvegarde : coupée tant qu'aucun dossier n'est choisi", !backups.isDue && backups.folder == nil)
+        backups.folder = disk
+        backups.isEnabled = true
+        check("sauvegarde : due la première fois", backups.isDue)
+        await backups.backUpIfDue()
+        await Self.wait { !backups.snapshots.isEmpty }
+        let root = ExternalBackup.root(in: disk)
+        let imports = (try? fm.contentsOfDirectory(atPath: root.appendingPathComponent("Imports").path)) ?? []
+        check("sauvegarde : données et livres importés copiés", backups.status == .idle && backups.snapshots.count == 1
+              && fm.fileExists(atPath: backups.snapshots[0].url.appendingPathComponent("library.json").path)
+              && imports.count == ((try? fm.contentsOfDirectory(atPath: library.directories.imports.path)) ?? []).count
+              && !imports.isEmpty, "\(backups.status) · \(imports.count) livres")
+        check("sauvegarde : pas de seconde copie le même jour", !backups.isDue && backups.lastBackupAt != nil)
+        check("sauvegarde : réglages de l'utilisateur intacts",
+              UserDefaults.standard.object(forKey: BackupMonitor.folderKey) as? String == realFolder)
+
+        backups.folder = library.directories.base.appendingPathComponent("Disque débranché", isDirectory: true)
+        await backups.backUpNow()
+        if case .failed = backups.status { check("sauvegarde : dossier absent signalé", !backups.isFolderAvailable) }
+        else { check("sauvegarde : dossier absent signalé", false, "\(backups.status)") }
+
+        // Restauration : demandée (sans relance en test), appliquée « au lancement » avant toute lecture.
+        backups.folder = disk
+        await Self.wait { backups.snapshots.count == 1 }
+        guard let snapshot = backups.snapshots.first else { return check("sauvegarde : copie listée", false) }
+        let saved = try? Data(contentsOf: library.directories.index)
+        try? Data("[]".utf8).write(to: library.directories.index)
+        backups.restore(snapshot)
+        check("restauration : demandée pour le prochain lancement", PendingRestore.pending(library.directories)?.snapshot == snapshot.url)
+        let applied = PendingRestore.apply(library.directories)
+        check("restauration : index rendu, état d'avant mis de côté",
+              (try? applied?.get()).map { fm.fileExists(atPath: $0.appendingPathComponent("library.json").path) } == true
+              && (try? Data(contentsOf: library.directories.index)) == saved
+              && PendingRestore.pending(library.directories) == nil)
     }
 
     /// S-086 à S-089 : catalogue OPDS d'exemple (sans réseau) parcouru, cherché, livre téléchargé dans la bibliothèque.

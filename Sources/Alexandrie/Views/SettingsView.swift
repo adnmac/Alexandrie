@@ -106,7 +106,7 @@ struct ReaderRow: View {
 
 /// Onglets des réglages, dans l'ordre des réglages Mac.
 enum SettingsTab: String, CaseIterable {
-    case general, library, kindle
+    case general, library, backup, kindle
 
     static let storageKey = "settingsTab"
 
@@ -114,6 +114,7 @@ enum SettingsTab: String, CaseIterable {
         switch self {
         case .general: "Général"
         case .library: "Bibliothèque"
+        case .backup: "Sauvegarde"
         case .kindle: "Kindle"
         }
     }
@@ -122,6 +123,7 @@ enum SettingsTab: String, CaseIterable {
         switch self {
         case .general: "gearshape"
         case .library: "books.vertical"
+        case .backup: "externaldrive.badge.icloud"
         case .kindle: "ipad.landscape"
         }
     }
@@ -218,7 +220,16 @@ struct SettingsView: View {
                         }
                     }
                 }
-                Section("Sauvegardes") {
+            }
+            .formStyle(.grouped)
+            .fitsContent()
+            .tabItem { Label(SettingsTab.library.title, systemImage: SettingsTab.library.symbol) }
+            .tag(SettingsTab.library)
+
+            // Sauvegardes : copie hors du Mac (iCloud Drive, disque externe) d'abord, copies locales ensuite.
+            Form {
+                ExternalBackupSection()
+                Section("Sauvegardes sur ce Mac") {
                     BackupsRow()
                     Text("Chaque jour, au premier lancement, l'index (vos corrections, étagères, corbeille…) est copié avant tout changement ; les 10 dernières copies sont gardées.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -226,8 +237,8 @@ struct SettingsView: View {
             }
             .formStyle(.grouped)
             .fitsContent()
-            .tabItem { Label(SettingsTab.library.title, systemImage: SettingsTab.library.symbol) }
-            .tag(SettingsTab.library)
+            .tabItem { Label(SettingsTab.backup.title, systemImage: SettingsTab.backup.symbol) }
+            .tag(SettingsTab.backup)
 
             Form {
                 Section("Liseuses") {

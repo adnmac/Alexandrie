@@ -124,6 +124,13 @@ enum Snapshot {
             await captureSheets(library: library, kindle: kindle, dir: dir)
         }
         if only == nil || only?.contains("reglages") == true {
+            // Sauvegarde hors du Mac : un dossier du dossier de test, et une copie déjà faite.
+            let backups = AppServices.shared.backups
+            let disk = library.directories.base.appendingPathComponent("iCloud Drive (exemple)", isDirectory: true)
+            try? FileManager.default.createDirectory(at: disk, withIntermediateDirectories: true)
+            backups.folder = disk
+            backups.isEnabled = true
+            await backups.backUpNow()
             let main = mainWindow
             openSettings()
             try? await Task.sleep(for: .seconds(1))
@@ -230,7 +237,8 @@ enum Snapshot {
         defer { CrashReports.shared.discardAll() }
         for (name, view) in sheets {
             let host = NSHostingController(rootView: view.environment(library).environment(kindle)
-                .environment(AppServices.shared.researches).environment(AppServices.shared.opds))
+                .environment(AppServices.shared.researches).environment(AppServices.shared.opds)
+                .environment(AppServices.shared.backups))
             host.sizingOptions = [.preferredContentSize]
             // Sans barre de titre, comme une feuille : la capture montre tout le contenu, rien d'autre.
             let window = NSWindow(contentViewController: host)

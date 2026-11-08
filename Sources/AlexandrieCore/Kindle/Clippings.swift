@@ -165,10 +165,16 @@ public enum KindleClippings {
     }
 
     /// Relevés rangés dans une des thématiques choisies (S-079) ; un ensemble vide ne filtre rien.
+    /// `noThematic` dans `ids` garde aussi les relevés sans aucune thématique.
     public static func withThematics(_ clippings: [Clipping], _ ids: Set<String>) -> [Clipping] {
         guard !ids.isEmpty else { return clippings }
-        return clippings.filter { !ids.isDisjoint(with: $0.thematicIDs) }
+        return clippings.filter { c in
+            !ids.isDisjoint(with: c.thematicIDs) || (ids.contains(noThematic) && c.thematicIDs.isEmpty)
+        }
     }
+
+    /// Choix « Sans thématique » du filtre des notes.
+    public static let noThematic = "-"
 
     /// Export Markdown des relevés d'un livre (texte modifié s'il existe).
     /// `label` nomme la couleur ou le thème d'un surlignage (rien pour le jaune sans recherche).

@@ -181,6 +181,25 @@ struct NotesEditor: View {
             TextField("Filtrer ces notes", text: $filter)
                 .textFieldStyle(.roundedBorder)
                 .controlSize(.small)
+            // Filtres gardés d'une fois à l'autre : ce qu'ils cachent se voit, et se rend d'un clic.
+            let hidden = entry.clippings.count - shown.count
+            if hidden > 0 {
+                HStack(spacing: Space.sm) {
+                    Label("\(hidden) relevé\(hidden > 1 ? "s" : "") masqué\(hidden > 1 ? "s" : "") par les filtres",
+                          systemImage: "line.3.horizontal.decrease.circle")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer(minLength: 0)
+                    Button("Tout afficher") {
+                        kind = .all
+                        thematics = []
+                        colors = []
+                        filter = ""
+                    }
+                    .controlSize(.small)
+                    .help("Retirer les filtres de type, de thématique, de couleur et de texte")
+                }
+            }
         }
         .padding(Space.lg)
     }
@@ -191,7 +210,10 @@ struct NotesEditor: View {
     }
 
     /// Thématique qui nomme les couleurs : la seule choisie dans le filtre, sinon celles de chaque surlignage.
-    private var namingThematic: String? { thematics.count == 1 ? thematics.first : nil }
+    private var namingThematic: String? {
+        let chosen = thematics.subtracting([KindleClippings.noThematic])
+        return chosen.count == 1 ? chosen.first : nil
+    }
 
     /// Couleurs des surlignages de ce livre (S-074, S-079), nommées ; les couleurs de base d'abord.
     private func marks(_ entry: ClippingBook) -> [HighlightMark] {
@@ -249,10 +271,18 @@ struct NotesEditor: View {
                     if on { thematics.insert(thematic.id) } else { thematics.remove(thematic.id) }
                 }))
             }
+            // Passages qu'aucune thématique ne range : à voir à part, ou avec une thématique.
+            if entry.clippings.contains(where: { $0.thematicIDs.isEmpty }) {
+                Toggle("Sans thématique", isOn: Binding(get: { thematics.contains(KindleClippings.noThematic) }, set: { on in
+                    if on { thematics.insert(KindleClippings.noThematic) } else { thematics.remove(KindleClippings.noThematic) }
+                }))
+            }
             Divider()
             Button("Gérer les thématiques…") { managesResearches = true }
         } label: {
-            Text(title(available.filter { thematics.contains($0.id) }.map(\.name), none: "Thématiques", many: "thématiques"))
+            let names = available.filter { thematics.contains($0.id) }.map(\.name)
+                + (thematics.contains(KindleClippings.noThematic) ? ["Sans thématique"] : [])
+            Text(title(names, none: "Thématiques", many: "thématiques"))
         }
         .fixedSize()
         .help("Thématiques gardées dans la liste, la copie et l'export ; une seule nomme les couleurs selon sa légende")
@@ -286,7 +316,9 @@ struct NotesEditor: View {
         case .notes: list = list.filter { $0.kind == .note }
         }
         // Un choix fait pour un autre livre n'efface pas tout : seuls comptent les couleurs et thématiques de ce livre.
-        let ids = thematics.intersection(list.flatMap(\.thematicIDs))
+        // « Sans thématique » ne compte que si l'autre choix filtre quelque chose ou si le livre a des relevés sans thématique.
+        let present = Set(list.flatMap(\.thematicIDs)).union(list.contains { $0.thematicIDs.isEmpty } ? [KindleClippings.noThematic] : [])
+        let ids = thematics.intersection(present)
         list = KindleClippings.withThematics(list, ids)
         let keys = colors.intersection(list.filter { $0.kind == .highlight }.map(\.colorHex))
         list = KindleClippings.withMarks(list, keys, mark: \.colorHex)

@@ -140,6 +140,12 @@ import Testing
         #expect(KindleClippings.withThematics(both, [voiries.id]).map(\.text) == ["autre"])
         #expect(KindleClippings.withMarks(KindleClippings.withThematics(both, [memoire.id, voiries.id]), [HighlightColor.pink.hex],
                                           mark: \.colorHex).map(\.text) == ["passage"])
+        // « Sans thématique » : les relevés qu'aucune thématique ne range, seuls ou avec une thématique.
+        let loose = app(3, "sans thématique")
+        let three = [h, other, loose]
+        #expect(KindleClippings.withThematics(three, [KindleClippings.noThematic]).map(\.text) == ["sans thématique"])
+        #expect(KindleClippings.withThematics(three, [voiries.id, KindleClippings.noThematic]).map(\.text) == ["autre", "sans thématique"])
+        #expect(KindleClippings.withThematics(three, [voiries.id]).map(\.text) == ["autre"], "sans ce choix, il reste masqué")
     }
 
     @Test func formerResearchHighlightsAreMigrated() {

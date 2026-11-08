@@ -80,6 +80,7 @@ Dans les deux cas, garder les fichiers `.dSYM` de chaque version publiée : `scr
 | Open Library Covers (`covers.openlibrary.org`) | ISBN ou identifiant Open Library | Recherche de couverture | À la demande |
 | GitHub (`api.github.com`) | Commit installé, à cause du canal actuel ; adresse IP | Au démarrage, si la vérification des mises à jour est cochée | Réglages > Mises à jour |
 | GitHub (téléchargement) | Adresse IP | « Installer et relancer » | À la demande |
+| Catalogues OPDS (Project Gutenberg, Ebooks libres et gratuits, Bibliothèque numérique romande, ou une adresse ajoutée) | Pages parcourues, mots cherchés, livres téléchargés ; adresse IP | Seulement quand l'utilisateur ouvre un catalogue dans la barre latérale | Retirer le catalogue (« Gérer les catalogues… ») |
 
 Chaque requête porte l'adresse IP du Mac et le User-Agent « Alexandrie (macOS) ». **La liste des livres lus peut révéler des opinions, des croyances ou une santé** : c'est une donnée sensible au sens du RGPD (art. 9). D'où la demande d'accord à l'accueil (§ 3).
 
@@ -91,6 +92,7 @@ Chaque requête porte l'adresse IP du Mac et le User-Agent « Alexandrie (macOS)
 - les thématiques ;
 - les positions de lecture ;
 - le texte des livres et son index de recherche ;
+- les catalogues OPDS ajoutés et la liste des livres qui en ont été téléchargés (`opds.json`) ;
 - des sauvegardes datées.
 
 Les réglages sont dans `UserDefaults`.
@@ -102,7 +104,7 @@ Les réglages sont dans `UserDefaults`.
 **Pour le RGPD**, il faut :
 - une politique de confidentialité courte qui reprend ce tableau ;
 - les bases légales des envois : le consentement pour les catalogues, l'intérêt légitime pour la vérification des mises à jour ;
-- les destinataires et leur pays : la BnF en France, Open Library (Internet Archive) aux États-Unis, GitHub aux États-Unis ;
+- les destinataires et leur pays : la BnF en France, Open Library (Internet Archive) aux États-Unis, GitHub aux États-Unis, les catalogues OPDS ouverts par l'utilisateur (Project Gutenberg aux États-Unis, Ebooks libres et gratuits au Canada, Bibliothèque numérique romande en Suisse) ;
 - un moyen de tout effacer : supprimer le dossier de données, ce que l'app pourrait proposer.
 
 ## 6. Étape 1 faite (code)

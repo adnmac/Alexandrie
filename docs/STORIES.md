@@ -612,7 +612,47 @@ Acceptance:
 - [manual] ⌘G et ⇧⌘G passent au renvoi suivant et précédent ; fermer la barre rend la table des matières.
 Status: done
 
+### S-086 Parcourir un catalogue OPDS
+Dans la barre latérale, « Catalogues en ligne » liste des catalogues publics de livres gratuits (Project Gutenberg, Ebooks libres et gratuits, Bibliothèque numérique romande) ; un catalogue ouvre ses rubriques, une rubrique ses sous-rubriques ou ses livres, et le fil d'Ariane ramène en arrière.
+Depends: S-001
+Acceptance:
+- [unit] Un flux OPDS 1.2 donne ses rubriques et ses livres : liens relatifs rattachés à l'adresse finale, tout en HTTPS, page suivante, couverture ; un livre payant ou sous DRM n'a rien à télécharger ; une page web ou un flux OPDS 2 est refusé avec un message clair.
+- [self] Le catalogue d'exemple s'ouvre, une rubrique aussi, puis le retour ramène à l'accueil.
+- [snap] La page d'un catalogue : rubriques, livres avec couverture et formats, fiche du livre choisi.
+- [manual] Rien n'est demandé en ligne avant d'ouvrir un catalogue ; la fin de la liste charge la page suivante ; ⌘[ revient en arrière.
+Status: done
+
+### S-087 Chercher dans un catalogue
+Sur la page d'un catalogue, le champ de recherche de la barre d'outils cherche dans ce catalogue à la validation (↩︎).
+Depends: S-086
+Acceptance:
+- [unit] La description OpenSearch donne le gabarit Atom, passé en HTTPS, mots encodés, paramètres facultatifs remplis.
+- [self] Une recherche dans le catalogue d'exemple ouvre une page de résultats ; une nouvelle recherche la remplace.
+- [manual] Un catalogue sans recherche le dit dans le champ.
+Status: done
+
+### S-088 Ajouter un livre d'un catalogue à la bibliothèque
+« Télécharger EPUB » (ou un autre format dans « … ») télécharge le livre et l'ajoute à la bibliothèque comme « Importer » ; la fiche dit ensuite « Dans la bibliothèque » et « Afficher dans la bibliothèque » y mène. L'envoi sur la Kindle reste un geste à part.
+Depends: S-086
+Acceptance:
+- [unit] Le fichier est nommé « Auteur - Titre.ext » d'après son format (pas d'après l'adresse), sans caractère interdit ; une page web à la place du livre, ou un fichier de plus de 200 Mo, est refusé.
+- [self] Le livre téléchargé entre dans les imports et la bibliothèque ; il est reconnu ensuite (`opds.json`) ; le dossier temporaire est effacé ; un fichier illisible est refusé sans rien ajouter.
+- [snap] La fiche d'un livre du catalogue avec « Télécharger EPUB ».
+- [manual] Un vrai livre de Project Gutenberg, téléchargé puis envoyé sur la Kindle (conversion AZW3).
+Status: done
+
+### S-089 Gérer les catalogues
+« Ajouter un catalogue… » (barre latérale) ouvre la feuille « Catalogues en ligne » : ajouter une adresse (vérifiée en chargeant le catalogue), renommer, retirer, rétablir les catalogues proposés.
+Depends: S-086
+Acceptance:
+- [unit] Une adresse déjà connue n'est pas ajoutée deux fois ; rajouter l'adresse d'un catalogue proposé retiré le rétablit ; la liste est relue à l'identique.
+- [self] Un catalogue ajouté prend le nom donné par son flux ; retiré puis rétabli, un catalogue proposé revient.
+- [snap] La feuille « Catalogues en ligne ».
+Status: done
+
 ## Later
+
+- Catalogues OPDS avec compte (Calibre-Web, Kavita, Komga) et OPDS 2 (JSON).
 
 - Envoyer les surlignages faits dans l'app vers la Kindle.
 

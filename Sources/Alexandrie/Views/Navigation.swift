@@ -22,6 +22,8 @@ enum SidebarItem: Hashable {
     case genre(String)
     /// Dossier de livres (chemin), quand la bibliothèque en a plusieurs.
     case folder(String)
+    /// Catalogue OPDS en ligne (S-086), par son identifiant.
+    case catalog(String)
 }
 
 extension EnvironmentValues {
@@ -38,11 +40,14 @@ extension SidebarItem {
     /// Page d'une thématique (S-080).
     var isThematic: Bool { if case .thematic = self { true } else { false } }
 
+    /// Catalogue OPDS en ligne (S-086).
+    var catalogID: String? { if case .catalog(let id) = self { id } else { nil } }
+
     /// Pages où « Mettre à la corbeille » est proposé (menu du livre, menu Livre, touche Supprimer).
     var allowsTrash: Bool {
         switch self {
         case .all, .recent, .toReview, .format, .author, .series, .genre, .folder: true
-        case .sent, .pending, .shelf, .trash, .kindle, .notes, .thematic: false
+        case .sent, .pending, .shelf, .trash, .kindle, .notes, .thematic, .catalog: false
         }
     }
 }
@@ -66,6 +71,7 @@ extension SidebarItem {
         case .series(let key): "series:" + key
         case .genre(let key): "genre:" + key
         case .folder(let path): "folder:" + path
+        case .catalog(let id): "catalog:" + id
         }
     }
 
@@ -87,6 +93,7 @@ extension SidebarItem {
         case ("series", let key?): self = .series(key)
         case ("genre", let key?): self = .genre(key)
         case ("folder", let path?): self = .folder(path)
+        case ("catalog", let id?): self = .catalog(id)
         default: return nil
         }
     }

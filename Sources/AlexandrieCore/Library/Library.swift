@@ -221,6 +221,8 @@ public struct AppDirectories: Sendable {
     /// Index SearchKit de ce texte (voir `ContentIndex`) et la liste des livres déjà indexés.
     public var contentIndex: URL { base.appendingPathComponent("Recherche/contenu.index") }
     public var contentIndexState: URL { base.appendingPathComponent("Recherche/indexes.json") }
+    /// Catalogues OPDS et livres qui en ont été téléchargés (voir `OPDSCatalogList`).
+    public var opds: URL { base.appendingPathComponent("opds.json") }
     /// Copies datées de l'index (voir `IndexBackups`).
     public var backups: URL { base.appendingPathComponent("Sauvegardes", isDirectory: true) }
     public var covers: URL { base.appendingPathComponent("Covers", isDirectory: true) }

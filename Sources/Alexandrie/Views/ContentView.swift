@@ -20,6 +20,7 @@ struct ContentView: View {
     /// Écriture exacte dans le contenu (S-084), gardée d'une recherche à l'autre.
     @AppStorage("contentSearchExact") private var contentSearchExact = false
     @Environment(ContentIndexer.self) private var contentIndexer
+    @Environment(OPDSStore.self) private var opds
     @State private var sort: SortOrder = .title
     @AppStorage("gridMode") private var gridMode = true
     /// Page et sélection rendues au lancement suivant. Dans les réglages de l'app, pas dans l'état de la
@@ -70,6 +71,14 @@ struct ContentView: View {
             if !scanning { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
         }
         .onChange(of: library.visibleBooks.count) { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+        // Catalogue en ligne (S-088) : « Afficher dans la bibliothèque » montre le livre téléchargé.
+        .onChange(of: opds.showRequest) { _, id in
+            guard let id else { return }
+            search = ""
+            sidebar = .all
+            selection = [id]
+            opds.showRequest = nil
+        }
         .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
         .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
         .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
@@ -104,7 +113,8 @@ struct ContentView: View {
         }
         let selected = Self.unique(selection.sorted().compactMap(resolve))
         let commands = BookCommands(
-            books: sidebar == .kindle || sidebar == .notes || sidebar?.isThematic == true ? [] : selected,
+            books: sidebar == .kindle || sidebar == .notes || sidebar?.isThematic == true || sidebar?.catalogID != nil
+                ? [] : selected,
             list: sidebar, library: library, kindle: kindle,
             afterTrash: { selection = Self.nextSelection(after: selection, in: groups) },
             toggleQuickLook: { quickLookURL = quickLookURL == nil ? selected.first?.url : nil })
@@ -135,6 +145,9 @@ struct ContentView: View {
                         }
                         .frame(minWidth: 300, maxWidth: .infinity, maxHeight: .infinity)
                     }
+                } else if let id = sidebar?.catalogID {
+                    // Catalogue OPDS (S-086) : la recherche part à la validation du champ (S-087).
+                    OPDSCatalogView(catalogID: id).id(id)
                 } else if searchScope == .content && !search.trimmingCharacters(in: .whitespaces).isEmpty {
                     ContentSearchView(query: search.trimmingCharacters(in: .whitespaces), exact: contentSearchExact,
                                       selection: $selection)
@@ -146,7 +159,7 @@ struct ContentView: View {
             .safeAreaInset(edge: .top, spacing: 0) {
                 // Où chercher (S-082) : visible dès qu'une recherche est tapée, sur les pages de livres.
                 if !search.trimmingCharacters(in: .whitespaces).isEmpty && sidebar != .kindle && sidebar != .notes
-                    && sidebar?.isThematic != true {
+                    && sidebar?.isThematic != true && sidebar?.catalogID == nil {
                     SearchScopeBar(scope: $searchScope, exact: $contentSearchExact)
                 }
                 if let release = updates.releaseBanner {
@@ -155,12 +168,17 @@ struct ContentView: View {
                     UpdateBanner(info: info)
                 }
             }
-            .searchable(text: $search, placement: .toolbar,
-                        prompt: searchScope == .content ? "Mot ou expression dans les livres" : "Titre, auteur, série, genre…")
+            .searchable(text: $search, placement: .toolbar, prompt: searchPrompt)
+            .onSubmit(of: .search) {
+                guard let id = sidebar?.catalogID else { return }
+                Task { await opds.search(id, terms: search) }
+            }
 
         } detail: {
             Group {
-                if sidebar == .notes || sidebar?.isThematic == true {
+                if let id = sidebar?.catalogID {
+                    OPDSEntryDetailView(catalogID: id)
+                } else if sidebar == .notes || sidebar?.isThematic == true {
                     if let key = notesBook, let book = library.books(titleKey: key).first(where: { $0.trashedAt == nil }) {
                         let identity = library.identity(of: book)
                         let files = library.visibleBooks.filter { library.identity(of: $0) == identity }
@@ -232,7 +250,17 @@ struct ContentView: View {
         case .genre(let key):
             GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? "Genre"
         case .folder(let path): LibraryFolders.name(of: path)
+        case .catalog(let id): opds.catalog(id: id)?.name ?? "Catalogue"
         }
+    }
+
+    /// Invite du champ de recherche : la page de catalogue cherche dans le catalogue (S-087).
+    private var searchPrompt: String {
+        if let id = sidebar?.catalogID {
+            return opds.canSearch(id) ? "Rechercher dans \(opds.catalog(id: id)?.name ?? "le catalogue")"
+                : "Ce catalogue n'a pas de recherche"
+        }
+        return searchScope == .content ? "Mot ou expression dans les livres" : "Titre, auteur, série, genre…"
     }
 
     /// Grille ou liste des livres, avec Coup d'œil (Espace) et la touche Supprimer.
@@ -304,6 +332,7 @@ struct ContentView: View {
                 Label("Liste", systemImage: "list.bullet").tag(false)
             }
             .pickerStyle(.segmented)
+            .disabled(sidebar?.catalogID != nil)
 
             Menu {
                 Picker("Trier par", selection: $sort) {
@@ -313,10 +342,18 @@ struct ContentView: View {
             } label: {
                 Label("Trier", systemImage: "arrow.up.arrow.down")
             }
-            .disabled(sidebar == .recent || isSeriesSelected)
+            .disabled(sidebar == .recent || isSeriesSelected || sidebar?.catalogID != nil)
             .help(sidebar == .recent ? "Les ajouts récents sont toujours classés du plus récent au plus ancien"
                   : isSeriesSelected ? "Les livres d'une série sont classés par numéro" : "Trier")
 
+            if let id = sidebar?.catalogID {
+                Button {
+                    Task { await opds.reload(id) }
+                } label: {
+                    Label("Actualiser", systemImage: "arrow.clockwise")
+                }
+                .help("Recharger cette page du catalogue")
+            }
             if sidebar == .toReview {
                 Button {
                     showReview = true

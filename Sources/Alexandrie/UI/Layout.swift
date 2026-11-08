@@ -25,4 +25,8 @@ enum Layout {
     /// Recherche dans le contenu (S-082) : couverture d'un résultat, barre de progression de l'indexation.
     static let resultCover: CGFloat = 48
     static let indexProgress: CGFloat = 160
+    /// Couverture de la fiche d'un livre d'un catalogue en ligne (S-088), comme celle de la bibliothèque.
+    static let detailCover: CGFloat = 280
+    /// Feuille « Catalogues en ligne » (S-089) : hauteur de la liste.
+    static let catalogsList: CGFloat = 200
 }

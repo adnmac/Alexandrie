@@ -5,9 +5,12 @@ struct SidebarView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
     @Environment(ResearchStore.self) private var researches
+    @Environment(OPDSStore.self) private var opds
     @Binding var selection: SidebarItem?
     @AppStorage("sidebarThematicsExpanded") private var thematicsExpanded = true
     @State private var managesThematics = false
+    @State private var managesCatalogs = false
+    @AppStorage("sidebarCatalogsExpanded") private var catalogsExpanded = true
     /// États replié/déplié mémorisés : la liste des auteurs peut compter des centaines d'entrées.
     @AppStorage("sidebarAuthorsExpanded") private var authorsExpanded = false
     @AppStorage("sidebarFormatsExpanded") private var formatsExpanded = true
@@ -109,6 +112,23 @@ struct SidebarView: View {
                     }
                 }
             }
+
+            // Catalogues OPDS publics (S-086) : rien n'est demandé en ligne avant d'en ouvrir un.
+            Section {
+                CollapsibleHeader(title: "Catalogues en ligne", count: opds.catalogs.count, isExpanded: $catalogsExpanded)
+                if catalogsExpanded {
+                    ForEach(opds.catalogs) { catalog in
+                        row(catalog.name, "globe", .catalog(catalog.id))
+                            .help("Livres gratuits de « \(catalog.name) » — \(catalog.url.host ?? "")")
+                            .contextMenu { Button("Gérer les catalogues…") { managesCatalogs = true } }
+                    }
+                    Button("Ajouter un catalogue…") { managesCatalogs = true }
+                        .buttonStyle(.borderless)
+                        .foregroundStyle(.secondary)
+                        .help("Ajouter l'adresse d'un catalogue OPDS public")
+                }
+            }
+            .sheet(isPresented: $managesCatalogs) { OPDSCatalogsSheet() }
 
             // Dossiers de livres : une page par dossier dès qu'il y en a deux (S-061, S-062).
             if library.folders.count > 1 {

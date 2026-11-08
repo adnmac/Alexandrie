@@ -14,6 +14,7 @@ Bibliothèque de livres pour macOS qui charge vos livres sur une Kindle **par c�
 - **Recherche dans le contenu** : le champ de recherche cherche dans les titres, auteurs… ou dans le texte des livres (EPUB, MOBI, AZW3, PDF), indexé en arrière-plan, un fichier par livre, avec une option « Écriture exacte » (majuscules et accents) ; chaque livre trouvé montre ses extraits, et un extrait ouvre la fenêtre de lecture au passage, avec la liste des renvois du mot dans la colonne de gauche et ⌘G / ⇧⌘G pour passer de l'un à l'autre.
 - PDF : tel quel, **marges rognées** (le texte paraît plus grand) ou **texte redimensionnable** (texte extrait en AZW3, chapitres d'après la table du PDF) ; l'original n'est jamais modifié.
 - **Conversion MOBI/AZW3 → EPUB** (KF7, KF8 et fichiers hybrides).
+- **Catalogues en ligne (OPDS)** : Project Gutenberg, Ebooks libres et gratuits et la Bibliothèque numérique romande sont proposés dans la barre latérale ; on peut ajouter l'adresse de tout catalogue OPDS 1.2 public (https, sans compte). On parcourt ses rubriques, on y cherche depuis le champ de recherche (touche Retour), et « Télécharger » ajoute le livre à la bibliothèque comme un import ; l'envoi sur la Kindle se fait ensuite depuis sa fiche. Les livres payants ou sous DRM sont ignorés.
 - Kindle en **disque USB** (modèles jusqu'à 2023) et en **MTP** (modèles depuis fin 2024, via libmtp).
 
 ## Compiler et lancer
@@ -59,7 +60,8 @@ Tout ce que l'app produit est dans `~/Library/Application Support/Alexandrie/` :
 | `library.json` | index de la bibliothèque |
 | `Covers/` | couvertures réduites |
 | `Conversions/` | AZW3 et EPUB convertis (cache) |
-| `Imports/` | livres ajoutés par glisser-déposer ou « Importer » |
+| `Imports/` | livres ajoutés par glisser-déposer, « Importer » ou téléchargés d'un catalogue en ligne |
+| `opds.json` | catalogues en ligne ajoutés, et livres qui en ont été téléchargés |
 
 Les couvertures et conversions qui ne servent plus sont supprimées après chaque rescan ; les réglages affichent
 la taille de ces caches et permettent de vider les conversions. Un `library.json` illisible n'est jamais écrasé :
@@ -95,10 +97,11 @@ ALEXANDRIE_FIXTURES=/dossier/de/livres scripts/test.sh   # + conversions sur de 
 
 ## Confidentialité
 
-Alexandrie est gratuite, sans compte, sans mesure d'audience ni publicité. Tout reste sur le Mac, dans `~/Library/Application Support/Alexandrie/`, sauf deux connexions, que l'on peut couper dans Réglages > Général :
+Alexandrie est gratuite, sans compte, sans mesure d'audience ni publicité. Tout reste sur le Mac, dans `~/Library/Application Support/Alexandrie/`, sauf deux connexions, que l'on peut couper dans Réglages > Général, et les catalogues en ligne :
 
 - **Vérification en ligne des livres**, seulement après accord (accueil ou Réglages) : l'ISBN, ou à défaut le titre et l'auteur, est envoyé au catalogue de la BnF puis à Open Library.
 - **Recherche de mises à jour** : l'app demande à GitHub la dernière version publiée de ce dépôt.
+- **Catalogues en ligne (OPDS)** : rien ne part tant qu'un catalogue n'est pas ouvert dans la barre latérale ; ensuite, le catalogue reçoit les pages parcourues, les mots cherchés et les livres téléchargés. Un catalogue retiré (« Gérer les catalogues… ») n'est plus jamais contacté.
 
 Les rapports de plantage restent sur le Mac ; ils ne partent que si l'utilisateur choisit de les envoyer. Le détail est dans `docs/AUDIT-PRODUCTION.md`, § 5.
 

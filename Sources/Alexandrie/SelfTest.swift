@@ -766,6 +766,57 @@ struct SelfTest {
         check("dossier retiré : fichiers intacts", ((try? fm.contentsOfDirectory(atPath: second.path))?.count ?? 0) == 2)
         library.removeFolder(folder.path)
         check("dernier dossier jamais retiré", library.folders.count == 1 && library.books.count == before)
+
+        await checkOPDS(library: library)
+    }
+
+    /// S-086 à S-089 : catalogue OPDS d'exemple (sans réseau) parcouru, cherché, livre téléchargé dans la bibliothèque.
+    private mutating func checkOPDS(library: LibraryStore) async {
+        let fm = FileManager.default
+        let opds = OPDSStore(directories: library.directories, library: library, client: SeedData.opdsClient)
+        check("catalogues proposés", opds.catalogs.map(\.id) == OPDSCatalog.suggested.map(\.id))
+        await opds.open("gutenberg")
+        let feed = opds.current("gutenberg")?.feed
+        check("catalogue ouvert", feed?.entries.filter(\.isBook).count == SeedData.opdsBooks.count,
+              opds.current("gutenberg")?.error ?? "\(feed?.entries.count ?? 0) entrées")
+        if let section = feed?.entries.first(where: { !$0.isBook }), let url = section.navigationURL {
+            await opds.push("gutenberg", url: url, title: section.title)
+            check("sous-catalogue ouvert", opds.path("gutenberg").map(\.title) == ["Project Gutenberg", section.title])
+            opds.back("gutenberg", to: 0)
+            check("retour à l'accueil du catalogue", opds.path("gutenberg").count == 1)
+        }
+        await opds.search("gutenberg", terms: "Verne")
+        check("recherche dans le catalogue", opds.current("gutenberg")?.terms == "Verne"
+              && opds.current("gutenberg")?.feed != nil && opds.canSearch("gutenberg"),
+              opds.current("gutenberg")?.error ?? "")
+
+        guard let entry = feed?.entries.first(where: \.isBook), let epub = entry.acquisitions.first else {
+            check("livre du catalogue", false)
+            return
+        }
+        let before = library.books.count
+        let book = await opds.download(epub, of: entry)
+        check("livre téléchargé dans la bibliothèque", book?.title == entry.title && book?.isImported == true
+              && library.books.count == before + 1, opds.downloadError?.message ?? book?.path ?? "absent")
+        check("téléchargement reconnu", opds.libraryBook(for: entry)?.id == book?.id
+              && OPDSCatalogList.load(library.directories.opds).downloads[entry.id] == book?.id)
+        check("dossier temporaire nettoyé", !((try? fm.contentsOfDirectory(atPath: fm.temporaryDirectory.path)) ?? [])
+              .contains { $0.hasPrefix("Alexandrie-") && $0.count > 40 && !$0.hasPrefix("Alexandrie-seed") })
+        if let mobi = entry.acquisitions.first(where: { $0.format == .mobi }) {
+            let refused = await opds.download(mobi, of: entry)
+            check("fichier illisible refusé", refused == nil && opds.downloadError != nil && library.books.count == before + 1)
+        }
+
+        let added = await opds.add(name: "", address: "exemple.org/opds")
+        if case .success(let catalog) = added {
+            check("catalogue ajouté", catalog.name == "Catalogue d'exemple" && opds.catalogs.last?.id == catalog.id)
+            opds.remove(catalog.id)
+        } else {
+            check("catalogue ajouté", false)
+        }
+        opds.remove("bnr")
+        check("catalogue retiré, puis rétabli", !opds.catalogs.contains { $0.id == "bnr" }
+              && { opds.restoreSuggestions(); return opds.catalogs.count == OPDSCatalog.suggested.count }())
     }
 
     /// Attend une condition (au plus `timeout` secondes) en laissant tourner les tâches de l'app.

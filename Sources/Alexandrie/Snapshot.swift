@@ -25,6 +25,8 @@ enum Snapshot {
         var notes: String? = nil
         /// Teintes gardées dans la page Notes (S-074, S-079), séparées par des virgules.
         var notesColors: String? = nil
+        /// Catalogue en ligne (S-086) : premier livre du catalogue d'exemple choisi.
+        var catalogBook = false
     }
 
     static func pages(_ library: LibraryStore) -> [Page] {
@@ -43,6 +45,7 @@ enum Snapshot {
             Page(name: "fiche-lecture", item: .all, book: "Les Heures lentes"),
             Page(name: "serie", item: .series(SeriesNames.key("Commissaire Vidal")), book: "Mort à marée basse"),
             Page(name: "genre", item: .genre(GenreNames.key("Policier"))),
+            Page(name: "catalogue", item: .catalog("gutenberg"), catalogBook: true),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),
                  book: "Une très longue histoire de la cartographie des mers du Nord, de l'Antiquité à nos jours"),
         ] + (AppServices.shared.researches.researches.first.map { [Page(name: "thematique", item: .thematic($0.id), notes: ShelfSync.normalize("Le Port des brumes"))] } ?? [])
@@ -85,6 +88,11 @@ enum Snapshot {
                     .map { [$0.id] } ?? []
                 if let notes = page.notes { notesBook.wrappedValue = notes }
                 UserDefaults.standard.set(page.notesColors ?? "", forKey: "notesHues")
+                if page.catalogBook, case .catalog(let id) = page.item {
+                    let opds = AppServices.shared.opds
+                    await opds.open(id)
+                    opds.selection[id] = opds.current(id)?.feed?.entries.first(where: \.isBook)?.id
+                }
                 try? await Task.sleep(for: .seconds(0.8))
                 capture(to: "\(dir)/\(page.name)-\(mode).png")
             }
@@ -213,13 +221,14 @@ enum Snapshot {
             ("plantage", AnyView(CrashReportSheet())),
             ("accueil", AnyView(OnboardingView().frame(width: 900, height: 620))),
             ("recherches", AnyView(ResearchesSheet(selected: AppServices.shared.researches.researches.first?.id))),
+            ("catalogues", AnyView(OPDSCatalogsSheet())),
         ]
         // Un rapport factice, pour la feuille « plantage » (dossier de test seulement).
         CrashReports.shared.store(Data("{}".utf8))
         defer { CrashReports.shared.discardAll() }
         for (name, view) in sheets {
             let host = NSHostingController(rootView: view.environment(library).environment(kindle)
-                .environment(AppServices.shared.researches))
+                .environment(AppServices.shared.researches).environment(AppServices.shared.opds))
             host.sizingOptions = [.preferredContentSize]
             // Sans barre de titre, comme une feuille : la capture montre tout le contenu, rien d'autre.
             let window = NSWindow(contentViewController: host)

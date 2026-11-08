@@ -804,7 +804,29 @@ final class LibraryStore {
 
     /// Copie les fichiers dans le dossier d'imports de l'app (le dossier source n'est jamais modifié).
     func importFiles(_ urls: [URL]) {
-        var imported = 0
+        copyIntoImports(urls)
+        Task { await rescan() }
+    }
+
+    /// Ajoute un livre téléchargé d'un catalogue OPDS : copié dans les imports, indexé.
+    /// Rend le livre ajouté, une fois le parcours de la bibliothèque terminé.
+    func importDownloaded(_ file: URL) async -> Book? {
+        guard let target = copyIntoImports([file]).first else { return nil }
+        let path = target.standardizedFileURL.path
+        let suffix = "/Imports/" + target.lastPathComponent
+        // `/tmp` et `/private/tmp` : le parcours peut rendre l'un ou l'autre.
+        let matches: (Book) -> Bool = { $0.path == path || $0.path.hasSuffix(suffix) }
+        for _ in 0..<300 {
+            if let book = books.first(where: matches) { return book }
+            if isScanning { try? await Task.sleep(for: .milliseconds(100)) } else { await rescan() }
+        }
+        return nil
+    }
+
+    /// Fichiers créés dans `Imports/` (un nom déjà pris reçoit « (2) », « (3) »…).
+    @discardableResult
+    private func copyIntoImports(_ urls: [URL]) -> [URL] {
+        var imported: [URL] = []
         for url in urls where BookFormat(url: url) != nil {
             var target = directories.imports.appendingPathComponent(url.lastPathComponent)
             var n = 2
@@ -815,15 +837,15 @@ final class LibraryStore {
             }
             do {
                 try FileManager.default.copyItem(at: url, to: target)
-                imported += 1
+                imported.append(target)
             } catch {
                 lastError = "Import impossible de « \(url.lastPathComponent) » : \(error.localizedDescription)"
             }
         }
-        if imported == 0 && lastError == nil {
+        if imported.isEmpty && lastError == nil {
             lastError = "Aucun fichier pris en charge (EPUB, MOBI, AZW3, AZW, PDF)."
         }
-        Task { await rescan() }
+        return imported
     }
 
     func coverURL(_ book: Book) -> URL? {

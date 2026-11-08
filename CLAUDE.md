@@ -37,10 +37,13 @@ correspondance ci-dessous à la place des commandes du modèle.
 | Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |
 | Swift 6, isolation par défaut | Swift 6 (`swiftLanguageModes: [.v6]`), **sans** isolation `MainActor` par défaut : annoter `@MainActor` |
 | `APP_STORE=/tmp/...` | `ALEXANDRIE_STORE=/tmp/...` : dossier de données de test (index, couvertures, conversions, imports). Le dossier de livres vient alors de `ALEXANDRIE_BOOKS` (jamais du signet de l'utilisateur), sans vérification en ligne ni recherche de mises à jour. Les autres réglages (`UserDefaults`) restent partagés |
-| `APP_SNAPSHOT` / `tools/snap.sh` / `APP_SEED=1` | `scripts/snap.sh` : 14 livres d'exemple (`SeedData.swift`) dans `/tmp/alexandrie-snap`, puis une capture par page de la barre latérale, par onglet des réglages (`reglages-<onglet>`) et par feuille (`feuille-<nom>`), en clair et en sombre, dans `/tmp/alexandrie-shots` (`Snapshot.swift`). Bundle de test `be.adnmac.alexandrie.snapshot` (langue fr, réglages séparés). `ALEXANDRIE_SNAPSHOT_PAGES=tous,reglages,feuilles` limite les pages |
+| `APP_SNAPSHOT` / `tools/snap.sh` / `APP_SEED=1` | `scripts/snap.sh` : 14 livres d'exemple (`SeedData.swift`) dans `/tmp/alexandrie-snap`, puis une capture par page de la barre latérale, par onglet des réglages (`reglages-<onglet>`) et par feuille (`feuille-<nom>`), en clair et en sombre, dans `/tmp/alexandrie-shots` (`Snapshot.swift`). Bundle de test `be.adnmac.alexandrie.snapshot` (langue fr, réglages séparés). `ALEXANDRIE_SNAPSHOT_PAGES=tous,reglages,feuilles` limite les pages, `ALEXANDRIE_SNAPSHOT_FULLSCREEN=1` met la fenêtre en plein écran, `ALEXANDRIE_SNAPSHOT_STORE=/tmp/…` change le dossier de test (captures du site : `/tmp/Foluna`) |
 | `--selftest` / `tools/selftest.sh` | `scripts/selftest.sh` : compile en debug, vide `/tmp/alexandrie-selftest`, lance `Alexandrie --selftest` sans fenêtre (`Sources/Alexandrie/SelfTest.swift`). PASS/FAIL par étape, code 0 si tout passe. Refuse de tourner sans `ALEXANDRIE_STORE` ou sur un dossier non vide |
 | `Icon/AppIcon.icon`, `tools/make_icon.sh`, `tools/icon_review.sh` | `Icon/AppIcon.icon` (calques SVG dessinés à la main, aucun symbole SF), `scripts/make-icon.sh` (actool, Xcode avec licence acceptée) écrit `Resources/Assets.car` et `Resources/AppIcon.icns`, versionnés ; `scripts/icon-review.sh` écrit la planche `/tmp/alexandrie-icon.png` |
 | `release` | `scripts/release.sh X.Y.Z` (publie sur GitHub, l'app propose la mise à jour) |
+
+Site foluna.app : dossier voisin `../Foluna-Website` (pages dans `src/en` et `src/fr`, `python3 build.py`, `./deploy.sh` puis `./deploy.sh --go`).
+Ses captures ne montrent que des livres inventés ou du domaine public.
 
 Ne jamais faire de captures ni de tests contre les vraies données de
 `~/Library/Application Support/Alexandrie/` : toujours `ALEXANDRIE_STORE` dans `/tmp`.

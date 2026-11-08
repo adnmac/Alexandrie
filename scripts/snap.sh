@@ -12,7 +12,9 @@ source "${0:A:h}/env.sh"
 cd "$ROOT"
 swift build "${SWIFT_FLAGS[@]}"
 BIN="$(swift build --show-bin-path "${SWIFT_FLAGS[@]}")/Alexandrie"
-STORE=/tmp/alexandrie-snap
+# Dossier de test : ALEXANDRIE_SNAPSHOT_STORE le change (captures du site : /tmp/Foluna, chemins affichés plus lisibles).
+STORE="${ALEXANDRIE_SNAPSHOT_STORE:-/tmp/alexandrie-snap}"
+[[ "$STORE" == /tmp/?* ]] || { echo "ALEXANDRIE_SNAPSHOT_STORE doit être dans /tmp" >&2; exit 1; }
 SHOTS="${ALEXANDRIE_SNAPSHOT:-/tmp/alexandrie-shots}"
 APP=/tmp/alexandrie-snap.app
 BUNDLE_ID=be.adnmac.alexandrie.snapshot

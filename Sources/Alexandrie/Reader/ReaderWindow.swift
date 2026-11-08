@@ -109,6 +109,7 @@ struct ReaderView: View {
         .task { await load() }
         .onChange(of: reading.textScale) { applySettings() }
         .onChange(of: reading.theme) { applySettings() }
+        .onChange(of: reading.font) { applySettings() }
         .onChange(of: kindle.readerHighlights(of: book)) { showHighlights() }
         // Un thème renommé ou recoloré : les passages sont redessinés.
         .onChange(of: researches.list.researches) { redrawHighlights() }
@@ -331,14 +332,33 @@ struct ReaderView: View {
                     .disabled(!reading.canEnlarge)
             }
             .help("Taille du texte (⌘− / ⌘+)")
+            textMenu
+        }
+    }
+
+    /// Police (S-095) et fond (S-069), réunis sous une icône : deux menus déroulants se réduisaient à leurs
+    /// flèches dans une fenêtre étroite. Les choix valent pour tous les livres ; un PDF garde polices et couleurs.
+    private var textMenu: some View {
+        Menu {
+            Picker("Police", selection: Binding(get: { reading.font }, set: { reading.font = $0 })) {
+                Text(ReaderFont.book.label).tag(ReaderFont.book)
+                Divider()
+                ForEach(ReaderFont.serif) { Text($0.label).font($0.preview).tag($0) }
+                Divider()
+                ForEach(ReaderFont.sansSerif) { Text($0.label).font($0.preview).tag($0) }
+            }
+            .pickerStyle(.inline)
             Picker("Fond", selection: Binding(get: { reading.theme }, set: { reading.theme = $0 })) {
                 ForEach(ReaderTheme.allCases) { Text($0.label).tag($0) }
             }
-            .pickerStyle(.menu)
-            .fixedSize()
-            .disabled(book.format == .pdf)
-            .help(book.format == .pdf ? "Un PDF garde ses couleurs" : "Fond de la page")
+            .pickerStyle(.inline)
+        } label: {
+            Label("Police et fond", systemImage: "textformat")
         }
+        .menuIndicator(.hidden)
+        .disabled(book.format == .pdf)
+        .help(book.format == .pdf ? "Un PDF garde ses polices et ses couleurs"
+              : "Police et fond : \(reading.font.label), \(reading.theme.label.lowercased())")
     }
 
     // MARK: Thématique (S-076, S-079)
@@ -516,7 +536,7 @@ struct ReaderView: View {
                     try ReaderBook.prepare(book, directories: directories)
                 }.value
                 let controller = EPUBPageController(book: prepared)
-                controller.apply(scale: reading.textScale, theme: reading.theme)
+                controller.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
                 controller.onMove = { reading.record($0, for: book) }
                 controller.actions = highlightActions
                 controller.markOf = { [researches] in researches.mark(of: $0) }
@@ -550,7 +570,7 @@ struct ReaderView: View {
 
     private func applySettings() {
         switch content {
-        case .epub(let c): c.apply(scale: reading.textScale, theme: reading.theme)
+        case .epub(let c): c.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
         case .pdf(let c): c.apply(scale: reading.textScale)
         case nil: break
         }

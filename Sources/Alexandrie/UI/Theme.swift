@@ -71,6 +71,68 @@ enum ReaderTheme: String, CaseIterable, Identifiable {
     }
 }
 
+/// Police de la fenêtre de lecture (S-095) : celle du livre, ou une police installée avec macOS, passée en CSS.
+/// Le code (`pre`, `code`) garde sa chasse fixe ; le PDF garde ses polices.
+enum ReaderFont: String, CaseIterable, Identifiable {
+    case book
+    // Avec empattements.
+    case newYork, charter, iowan, georgia, palatino, baskerville, hoefler
+    // Sans empattements.
+    case system, avenir, helvetica, optima, verdana
+
+    var id: Self { self }
+
+    static let serif: [ReaderFont] = [.newYork, .charter, .iowan, .georgia, .palatino, .baskerville, .hoefler]
+    static let sansSerif: [ReaderFont] = [.system, .avenir, .helvetica, .optima, .verdana]
+
+    var label: String {
+        switch self {
+        case .book: "Police du livre"
+        case .newYork: "New York"
+        case .charter: "Charter"
+        case .iowan: "Iowan Old Style"
+        case .georgia: "Georgia"
+        case .palatino: "Palatino"
+        case .baskerville: "Baskerville"
+        case .hoefler: "Hoefler Text"
+        case .system: "San Francisco"
+        case .avenir: "Avenir Next"
+        case .helvetica: "Helvetica Neue"
+        case .optima: "Optima"
+        case .verdana: "Verdana"
+        }
+    }
+
+    /// Pile de polices CSS (avec un repli de la même famille) ; nil : celle du livre.
+    var css: String? {
+        switch self {
+        case .book: nil
+        case .newYork: "ui-serif, Georgia, serif"
+        case .charter: "Charter, Georgia, serif"
+        case .iowan: "'Iowan Old Style', Georgia, serif"
+        case .georgia: "Georgia, serif"
+        case .palatino: "Palatino, 'Palatino Linotype', serif"
+        case .baskerville: "Baskerville, Georgia, serif"
+        case .hoefler: "'Hoefler Text', Georgia, serif"
+        case .system: "system-ui, -apple-system, sans-serif"
+        case .avenir: "'Avenir Next', Avenir, sans-serif"
+        case .helvetica: "'Helvetica Neue', Helvetica, sans-serif"
+        case .optima: "Optima, sans-serif"
+        case .verdana: "Verdana, sans-serif"
+        }
+    }
+
+    /// Aperçu du nom dans sa police, dans le menu.
+    var preview: Font {
+        switch self {
+        case .book: .body
+        case .newYork: .system(.body, design: .serif)
+        case .system: .system(.body)
+        default: .custom(label, size: NSFont.systemFontSize)
+        }
+    }
+}
+
 extension HighlightMark {
     /// Pastille pleine de la couleur d'un surlignage ou d'un thème.
     var swatch: Color {

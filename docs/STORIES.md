@@ -697,6 +697,15 @@ Acceptance:
 - [self] Une note par livre, sur la référence déjà reliée.
 Status: done
 
+### S-095 Choisir la police de lecture
+Dans la fenêtre de lecture, le menu « Aa » (police et fond) propose la police du livre (par défaut) ou une police installée avec macOS, avec empattements (New York, Charter, Iowan Old Style, Georgia, Palatino, Baskerville, Hoefler Text) ou sans (San Francisco, Avenir Next, Helvetica Neue, Optima, Verdana) ; le choix vaut pour tous les livres.
+Depends: S-069
+Acceptance:
+- [self] La police choisie s'applique au texte de la page, puis la police du livre revient ; le choix est gardé au lancement suivant ; une valeur inconnue revient à la police du livre.
+- [snap] La fenêtre de lecture en Avenir Next sur fond sombre.
+- [manual] Le code (`pre`, `code`) garde sa chasse fixe ; le menu est désactivé pour un PDF ; dans une fenêtre étroite, l'icône « Aa » reste visible.
+Status: done
+
 ## Later
 
 - Catalogues OPDS avec compte (Calibre-Web, Kavita, Komga) et OPDS 2 (JSON).

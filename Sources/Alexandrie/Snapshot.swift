@@ -154,17 +154,20 @@ enum Snapshot {
     /// sépia avec un texte agrandi. Réglages remis à leur valeur ensuite (bundle de capture à part).
     private static func captureReader(library: LibraryStore, dir: String) async {
         let reading = AppServices.shared.reading
-        let shots: [(name: String, title: String, theme: ReaderTheme, scale: Double, contents: Bool, query: String?)] = [
-            ("lecture-epub", "Le Port des brumes", .light, 1, true, nil),
-            ("lecture-pdf", "Manuel du fleuve", .light, 1, false, nil),
-            ("lecture-sepia", "Le Port des brumes", .sepia, 1.4, false, nil),
+        let shots: [(name: String, title: String, theme: ReaderTheme, scale: Double, contents: Bool, query: String?, font: ReaderFont)] = [
+            ("lecture-epub", "Le Port des brumes", .light, 1, true, nil, .book),
+            ("lecture-pdf", "Manuel du fleuve", .light, 1, false, nil, .book),
+            ("lecture-sepia", "Le Port des brumes", .sepia, 1.4, false, nil, .book),
+            // Police choisie (S-095) : sans empattements, sur papier sombre.
+            ("lecture-police", "Le Port des brumes", .dark, 1.1, false, nil, .avenir),
             // Ouverte depuis la recherche dans le contenu (S-085) : renvois à gauche, deuxième passage affiché.
-            ("lecture-renvois", "Le Port des brumes", .light, 1, false, "phare"),
+            ("lecture-renvois", "Le Port des brumes", .light, 1, false, "phare", .book),
         ]
         for shot in shots {
             guard let book = library.visibleBooks.first(where: { $0.title == shot.title }) else { continue }
             reading.theme = shot.theme
             reading.textScale = shot.scale
+            reading.font = shot.font
             // Lecture reprise (S-068) : au milieu du deuxième chapitre.
             if book.format == .epub {
                 reading.record(ReadingPosition(chapter: 1, fraction: 0.5, percent: 0.375), for: book)
@@ -192,6 +195,7 @@ enum Snapshot {
         }
         reading.theme = .light
         reading.textScale = 1
+        reading.font = .book
     }
 
     /// WebKit dessine la page d'un EPUB dans un autre processus, que `screencapture` ne voit pas : l'image

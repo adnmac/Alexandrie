@@ -54,7 +54,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     /// Ce qu'il faut faire une fois le chapitre chargé.
     private enum Landing { case fraction(Double), last, fragment(String), text(String, Int), range(Int, Int) }
     @ObservationIgnored private var landing: Landing = .fraction(0)
-    @ObservationIgnored private var settings = (scale: 1.0, theme: ReaderTheme.light)
+    @ObservationIgnored private var settings = (scale: 1.0, theme: ReaderTheme.light, font: ReaderFont.book)
 
     init(book: ReaderBook) {
         self.book = book
@@ -116,8 +116,8 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
 
     // MARK: Réglages (S-069)
 
-    func apply(scale: Double, theme: ReaderTheme) {
-        settings = (scale, theme)
+    func apply(scale: Double, theme: ReaderTheme, font: ReaderFont = .book) {
+        settings = (scale, theme, font)
         Task {
             let before = fraction
             await js(settingsScript)
@@ -129,8 +129,10 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     }
 
     private var settingsScript: String {
-        "alx.configure({scale: \(settings.scale), paper: '\(settings.theme.paper)', ink: '\(settings.theme.ink)', "
-            + "recolor: \(settings.theme != .light)})"
+        // La pile de polices passe en JSON : guillemets et apostrophes des noms restent intacts.
+        let font = settings.font.css.flatMap { try? JSONEncoder().encode($0) }.map { String(decoding: $0, as: UTF8.self) } ?? "null"
+        return "alx.configure({scale: \(settings.scale), paper: '\(settings.theme.paper)', ink: '\(settings.theme.ink)', "
+            + "recolor: \(settings.theme != .light), font: \(font)})"
     }
 
     /// Redessine les surlignages : une couleur de thème a pu changer.
@@ -237,7 +239,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
       (document.head || document.documentElement).appendChild(style);
       const root = () => document.scrollingElement || document.documentElement;
       const alx = {
-        settings: { scale: 1, paper: '#FFFFFF', ink: '#1D1D1F', recolor: false },
+        settings: { scale: 1, paper: '#FFFFFF', ink: '#1D1D1F', recolor: false, font: null },
         margin() { return Math.max(24, Math.min(64, Math.round(window.innerWidth * 0.07))); },
         configure(s) { Object.assign(this.settings, s); this.layout(); },
         layout() {
@@ -252,6 +254,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
                    column-width: ${w - 2 * x}px !important; column-gap: ${2 * x}px !important; column-fill: auto !important;
                    color: ${s.ink} !important; background: transparent !important; line-height: 1.5; } /* grid: ok interligne CSS du livre */
             ${s.recolor ? `body *:not(a) { color: ${s.ink} !important; background-color: transparent !important; }` : ''}
+            ${s.font ? `body, body *:not(pre):not(code):not(kbd):not(samp):not(tt):not(pre *) { font-family: ${s.font} !important; }` : ''}
             img, svg, video { max-width: 100% !important; max-height: ${h - 2 * m}px !important; object-fit: contain; }
             mark.alx-hl { color: inherit; border-radius: 2px; cursor: pointer; }
             mark.alx-hl.alx-note { border-bottom: 1px dotted ${s.ink}; }

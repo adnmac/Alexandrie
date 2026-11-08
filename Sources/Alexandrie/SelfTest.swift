@@ -393,6 +393,18 @@ struct SelfTest {
                   marked ?? "rien")
         }
 
+        // S-095 : la police choisie s'applique au texte du livre, puis la police du livre revient.
+        let fontOf = "getComputedStyle(document.querySelector('p')).fontFamily"
+        let original = await reader.js(fontOf) as? String
+        reader.apply(scale: 1, theme: .light, font: .georgia)
+        try? await Task.sleep(for: .milliseconds(400))
+        let chosen = await reader.js(fontOf) as? String
+        reader.apply(scale: 1, theme: .light, font: .book)
+        try? await Task.sleep(for: .milliseconds(400))
+        let restored = await reader.js(fontOf) as? String
+        check("EPUB : police choisie appliquée, puis celle du livre rendue",
+              chosen?.hasPrefix("Georgia") == true && restored == original, "\(original ?? "?") → \(chosen ?? "?") → \(restored ?? "?")")
+
         // PDF : une ligne de la première page.
         let pdfReader = PDFPageController(url: pdf.url)
         var pdfPassage: (anchor: ReaderAnchor, text: String)?
@@ -649,17 +661,24 @@ struct SelfTest {
 
         // S-069 : taille et fond gardés (réglages partagés : remis comme avant).
         let defaults = UserDefaults.standard
-        let saved = (defaults.object(forKey: ReadingStore.scaleKey), defaults.object(forKey: ReadingStore.themeKey))
+        let saved = (defaults.object(forKey: ReadingStore.scaleKey), defaults.object(forKey: ReadingStore.themeKey),
+                     defaults.object(forKey: ReadingStore.fontKey))
         store.textScale = 1
         store.enlarge(); store.enlarge()
         store.theme = .sepia
+        store.font = .iowan
         let relaunched = ReadingStore(directories: directories)
         check("taille du texte et fond gardés", relaunched.textScale == 1.25 && relaunched.theme == .sepia,
               "\(relaunched.textScale) \(relaunched.theme)")
+        // S-095 : police gardée ; une valeur inconnue revient à celle du livre.
+        check("police gardée", relaunched.font == .iowan, "\(relaunched.font)")
+        defaults.set("police-disparue", forKey: ReadingStore.fontKey)
+        check("police inconnue : celle du livre", ReadingStore(directories: directories).font == .book)
         for _ in 0..<20 { store.enlarge() }
         check("taille du texte bornée", !store.canEnlarge && store.textScale == ReadingStore.scales.last)
         defaults.set(saved.0, forKey: ReadingStore.scaleKey)
         defaults.set(saved.1, forKey: ReadingStore.themeKey)
+        defaults.set(saved.2, forKey: ReadingStore.fontKey)
     }
 
     /// PDF pour la Kindle (S-064, S-065) : copie rognée, texte redimensionnable, scan sans texte.

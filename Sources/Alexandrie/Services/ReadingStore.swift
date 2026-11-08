@@ -46,7 +46,7 @@ final class ReadingStore {
 
     // MARK: Réglages du texte (valables pour tous les livres)
 
-    static let scaleKey = "readerTextScale", themeKey = "readerTheme"
+    static let scaleKey = "readerTextScale", themeKey = "readerTheme", fontKey = "readerFont"
     static let scales: [Double] = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6, 1.8, 2]
 
     var textScale: Double {
@@ -64,6 +64,15 @@ final class ReadingStore {
             return UserDefaults.standard.string(forKey: Self.themeKey).flatMap(ReaderTheme.init(rawValue:)) ?? .light
         }
         set { withMutation(keyPath: \.theme) { UserDefaults.standard.set(newValue.rawValue, forKey: Self.themeKey) } }
+    }
+
+    /// Police des livres (S-095) ; par défaut, celle de chaque livre.
+    var font: ReaderFont {
+        get {
+            access(keyPath: \.font)
+            return UserDefaults.standard.string(forKey: Self.fontKey).flatMap(ReaderFont.init(rawValue:)) ?? .book
+        }
+        set { withMutation(keyPath: \.font) { UserDefaults.standard.set(newValue.rawValue, forKey: Self.fontKey) } }
     }
 
     var canEnlarge: Bool { textScale < Self.scales.last! - 0.001 }

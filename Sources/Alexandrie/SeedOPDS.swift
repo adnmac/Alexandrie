@@ -11,6 +11,7 @@ extension SeedData {
         var author: String
         var summary: String
         var color: NSColor
+        var language = "fr"
     }
 
     static let opdsBooks: [OPDSBook] = [
@@ -26,6 +27,9 @@ extension SeedData {
         OPDSBook(id: "bel-ami", title: "Bel-Ami", author: "Guy de Maupassant",
                  summary: "L'ascension de Georges Duroy dans la presse et la société parisiennes.",
                  color: .systemRed),
+        OPDSBook(id: "treasure-island", title: "Treasure Island", author: "Robert Louis Stevenson",
+                 summary: "Young Jim Hawkins finds a map that leads to a pirate's buried treasure.",
+                 color: .systemGreen, language: "en"),
     ]
 
     /// Flux d'accueil : deux sous-catalogues, puis les livres (EPUB, et MOBI pour le premier).
@@ -33,7 +37,7 @@ extension SeedData {
         let entries = opdsBooks.enumerated().map { i, b in
             """
             <entry><title>\(b.title)</title><id>urn:exemple:\(b.id)</id>
-            <author><name>\(b.author)</name></author><dcterms:language>fr</dcterms:language>
+            <author><name>\(b.author)</name></author><dcterms:language>\(b.language)</dcterms:language>
             <summary>\(b.summary)</summary>
             <link rel="http://opds-spec.org/image/thumbnail" type="image/png" href="/covers/\(b.id).png"/>
             <link rel="http://opds-spec.org/acquisition" type="application/epub+zip" length="\(240_000 + i * 31_000)" href="/books/\(b.id).epub"/>

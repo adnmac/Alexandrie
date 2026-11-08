@@ -650,6 +650,17 @@ Acceptance:
 - [snap] La feuille « Catalogues en ligne ».
 Status: done
 
+### S-090 Chercher par langue dans un catalogue
+Sur la page d'un catalogue multilingue, un menu « Langue » (Toutes les langues, Français, Anglais…) ne garde que les livres de cette langue ; chez Project Gutenberg, les recherches et les listes (populaires, récents) sont restreintes par le serveur, et les autres pages (auteurs) filtrées d'après le titre (« (French) », sans mention : anglais). Le choix est retenu par catalogue.
+Depends: S-087
+Acceptance:
+- [unit] `fre`, `fra`, `fr-FR` valent `fr` ; un livre d'une autre langue est masqué, un livre sans langue indiquée et les rubriques restent ; Gutenberg reçoit « verne l.fr », les autres catalogues les mots seuls ; un `opds.json` d'avant le choix se relit.
+- [self] Anglais choisi : la recherche porte `l.en`, les livres français sont masqués et comptés ; le choix est enregistré ; « Toutes les langues » les rend.
+- [snap] La page du catalogue avec « Langue : Français » et « 1 livre dans une autre langue masqué ».
+- [unit] Chez Gutenberg, un lien vers la fiche d'un livre compte comme un livre ; sa langue vient du titre ; les rubriques restent ; les pages `search.opds` reçoivent `l.fr` une seule fois, les pages d'auteur non.
+- [manual] Les catalogues tout en français (Ebooks libres et gratuits, BNR) n'ont pas le menu ; en français, « Popular » de Gutenberg ne montre que des livres en français, et la page d'un auteur masque ses autres langues.
+Status: done
+
 ## Later
 
 - Catalogues OPDS avec compte (Calibre-Web, Kavita, Komga) et OPDS 2 (JSON).

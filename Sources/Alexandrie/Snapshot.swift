@@ -91,6 +91,8 @@ enum Snapshot {
                 if page.catalogBook, case .catalog(let id) = page.item {
                     let opds = AppServices.shared.opds
                     await opds.open(id)
+                    // Langue choisie (S-090) : le livre anglais du catalogue d'exemple est masqué.
+                    await opds.setLanguage(id, "fr")
                     opds.selection[id] = opds.current(id)?.feed?.entries.first(where: \.isBook)?.id
                 }
                 try? await Task.sleep(for: .seconds(0.8))

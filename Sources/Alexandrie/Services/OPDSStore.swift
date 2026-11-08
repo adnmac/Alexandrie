@@ -90,7 +90,7 @@ final class OPDSStore {
         guard let page = current(id), let next = page.feed?.nextURL, !page.loadingMore else { return }
         update(id, page.id) { $0.loadingMore = true }
         do {
-            let more = try await client.feed(at: next)
+            let more = try await client.feed(at: listURL(next, in: id))
             update(id, page.id) { p in
                 let known = Set(p.feed?.entries.map(\.id) ?? [])
                 p.feed?.entries += more.entries.filter { !known.contains($0.id) }
@@ -105,7 +105,7 @@ final class OPDSStore {
     private func load(_ id: String, page: UUID) async {
         guard let url = stacks[id]?.first(where: { $0.id == page })?.url else { return }
         do {
-            let feed = try await client.feed(at: url)
+            let feed = try await client.feed(at: listURL(url, in: id))
             update(id, page) { p in
                 p.feed = feed
                 if p.terms == nil, p.title.isEmpty { p.title = feed.title }
@@ -140,7 +140,8 @@ final class OPDSStore {
                 template = try await client.searchTemplate(link)
                 templates[id] = template
             }
-            guard let url = template.url(for: trimmed) else { throw OPDSError.noSearch }
+            let sent = catalog(id: id).map { OPDSLanguage.terms(trimmed, language: language(id), catalog: $0) } ?? trimmed
+            guard let url = template.url(for: sent) else { throw OPDSError.noSearch }
             // Une nouvelle recherche remplace la précédente plutôt que de s'empiler.
             if current(id)?.terms != nil { stacks[id]?.removeLast() }
             await push(id, url: url, title: title, terms: trimmed)
@@ -150,6 +151,46 @@ final class OPDSStore {
             page.error = OPDSClient.describe(error)
             stacks[id, default: []].append(page)
         }
+    }
+
+    // MARK: - Langue (S-090)
+
+    /// Le catalogue a des livres en plusieurs langues (les catalogues tout en français n'ont pas de choix).
+    func offersLanguages(_ id: String) -> Bool { catalog(id: id).map { $0.onlyLanguage == nil } ?? false }
+
+    /// Langue choisie (code ISO 639-1) ; nil : toutes les langues.
+    func language(_ id: String) -> String? { offersLanguages(id) ? list.languages[id] : nil }
+
+    /// Change la langue ; la page affichée est rechargée avec elle (recherche relancée, liste restreinte).
+    func setLanguage(_ id: String, _ code: String?) async {
+        guard code != language(id) else { return }
+        list.languages[id] = code
+        save()
+        if let selected = selection[id], let entry = current(id)?.feed?.entries.first(where: { $0.id == selected }),
+           !OPDSLanguage.keeps(entry, language: code, in: catalog(id: id)) {
+            selection[id] = nil
+        }
+        if let terms = current(id)?.terms {
+            await search(id, terms: terms)
+        } else if let catalog = catalog(id: id), let url = current(id)?.url,
+                  OPDSLanguage.restrictsOnServer(url, catalog: catalog) {
+            // Liste que le serveur sait restreindre : rechargée, pour avoir des pages entières dans la langue.
+            await reload(id)
+        }
+    }
+
+    /// Adresse d'une liste, restreinte à la langue choisie quand le serveur le permet.
+    private func listURL(_ url: URL, in id: String) -> URL {
+        guard let catalog = catalog(id: id) else { return url }
+        return OPDSLanguage.url(url, language: language(id), catalog: catalog)
+    }
+
+    /// Entrées affichées de la page : les livres d'une autre langue sont écartés, et comptés.
+    func visibleEntries(_ id: String) -> (entries: [OPDSEntry], hidden: Int) {
+        let all = current(id)?.feed?.entries ?? []
+        let catalog = catalog(id: id)
+        let shown = all.filter { OPDSLanguage.keeps($0, language: language(id), in: catalog) }
+        return (shown, all.count - shown.count)
     }
 
     // MARK: - Téléchargement (S-088)

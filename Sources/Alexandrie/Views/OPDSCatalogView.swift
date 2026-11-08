@@ -3,14 +3,15 @@ import SwiftUI
 
 /// Page d'un catalogue OPDS (S-086) : chemin parcouru, puis les entrées de la page ouverte.
 /// Une entrée de navigation ouvre son sous-catalogue ; un livre montre sa fiche à droite.
-/// La recherche du catalogue (S-087) passe par le champ de recherche de la barre d'outils.
+/// La recherche du catalogue (S-087) passe par le champ de recherche de la barre d'outils ;
+/// le menu « Langue » (S-090) la restreint et masque les livres d'une autre langue.
 struct OPDSCatalogView: View {
     @Environment(OPDSStore.self) private var opds
     let catalogID: String
 
     var body: some View {
         VStack(spacing: 0) {
-            if opds.path(catalogID).count > 1 {
+            if opds.path(catalogID).count > 1 || opds.offersLanguages(catalogID) {
                 pathBar
                 Divider()
             }
@@ -33,7 +34,11 @@ struct OPDSCatalogView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let feed = page.feed {
-                if feed.entries.isEmpty {
+                let visible = opds.visibleEntries(catalogID)
+                if !feed.entries.isEmpty && visible.entries.isEmpty {
+                    ContentUnavailableView("Aucun livre en \(languageName.lowercased())", systemImage: "character.book.closed",
+                                           description: Text("Les \(visible.hidden) livres de cette page sont dans une autre langue. Choisissez « Toutes les langues » dans le menu Langue pour les voir."))
+                } else if feed.entries.isEmpty {
                     ContentUnavailableView(page.terms.map { "Aucun livre pour « \($0) »" } ?? "Page vide",
                                            systemImage: "books.vertical",
                                            description: Text(page.terms == nil ? "Le catalogue n'a rien à montrer ici."
@@ -61,6 +66,7 @@ struct OPDSCatalogView: View {
             }
             .buttonStyle(.borderless)
             .keyboardShortcut("[", modifiers: .command)
+            .disabled(path.count < 2)
             .help("Page précédente (⌘[)")
             .accessibilityLabel("Page précédente")
             ScrollView(.horizontal, showsIndicators: false) {
@@ -79,11 +85,35 @@ struct OPDSCatalogView: View {
                     }
                 }
             }
+            if opds.offersLanguages(catalogID) { languageMenu }
         }
         .font(.callout)
         .padding(.horizontal, Space.lg)
         .padding(.vertical, Space.sm)
         .background(.bar)
+    }
+
+    private var languageName: String {
+        opds.language(catalogID).map(OPDSLanguage.name) ?? "Toutes les langues"
+    }
+
+    /// Langue des livres (S-090) : envoyée à la recherche quand le catalogue sait filtrer, et appliquée aux livres
+    /// dont le catalogue indique la langue.
+    private var languageMenu: some View {
+        Picker("Langue", selection: Binding(get: { opds.language(catalogID) },
+                                            set: { code in Task { await opds.setLanguage(catalogID, code) } })) {
+            Text("Toutes les langues").tag(String?.none)
+            Divider()
+            ForEach(OPDSLanguage.choices, id: \.self) { code in
+                Text(OPDSLanguage.name(code)).tag(String?.some(code))
+            }
+        }
+        .pickerStyle(.menu)
+        .fixedSize()
+        .controlSize(.small)
+        .help(opds.catalog(id: catalogID)?.languageQuery != nil
+              ? "Langue des livres : la recherche ne rend que cette langue, et les livres d'une autre langue sont masqués"
+              : "Langue des livres : les livres d'une autre langue sont masqués (ceux dont la langue n'est pas indiquée restent)")
     }
 
     private func entries(_ feed: OPDSFeed) -> some View {
@@ -101,7 +131,14 @@ struct OPDSCatalogView: View {
             if let subtitle = feed.subtitle, opds.path(catalogID).count == 1 {
                 Text(subtitle).font(.callout).foregroundStyle(.secondary)
             }
-            ForEach(feed.entries) { entry in
+            let visible = opds.visibleEntries(catalogID)
+            if visible.hidden > 0 {
+                Label("\(visible.hidden) livre\(visible.hidden > 1 ? "s" : "") dans une autre langue masqué\(visible.hidden > 1 ? "s" : "")",
+                      systemImage: "line.3.horizontal.decrease.circle")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            ForEach(visible.entries) { entry in
                 OPDSEntryRow(entry: entry, inLibrary: opds.libraryBook(for: entry) != nil)
                     .tag(entry.id)
             }

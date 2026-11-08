@@ -7,22 +7,41 @@ public struct OPDSCatalog: Codable, Hashable, Sendable, Identifiable {
     public var url: URL
     /// Proposé d'office (peut être masqué, puis rétabli).
     public var isSuggested: Bool
+    /// Syntaxe de recherche qui filtre la langue côté serveur (`l.{lang}` chez Gutenberg), si le catalogue en a une.
+    public var languageQuery: String?
+    /// Toutes les entrées sont dans cette langue (le choix de langue n'a pas lieu d'être).
+    public var onlyLanguage: String?
+    /// Listes restreintes à la langue côté serveur : adresses dont le chemin contient ceci (`/search.opds`).
+    public var languageListPath: String?
+    /// Lien vers la fiche d'un livre (expression régulière) : ces entrées de navigation sont des livres.
+    public var bookLinkPattern: String?
+    /// Langue des livres dont le titre ne mentionne aucune langue (l'anglais chez Gutenberg).
+    public var unmarkedLanguage: String?
 
-    public init(id: String = UUID().uuidString, name: String, url: URL, isSuggested: Bool = false) {
+    public init(id: String = UUID().uuidString, name: String, url: URL, isSuggested: Bool = false,
+                languageQuery: String? = nil, onlyLanguage: String? = nil, languageListPath: String? = nil,
+                bookLinkPattern: String? = nil, unmarkedLanguage: String? = nil) {
         self.id = id
         self.name = name
         self.url = url
         self.isSuggested = isSuggested
+        self.languageQuery = languageQuery
+        self.onlyLanguage = onlyLanguage
+        self.languageListPath = languageListPath
+        self.bookLinkPattern = bookLinkPattern
+        self.unmarkedLanguage = unmarkedLanguage
     }
 
     /// Catalogues publics, gratuits et sans compte, vérifiés le 8 novembre 2026.
     public static let suggested: [OPDSCatalog] = [
         OPDSCatalog(id: "gutenberg", name: "Project Gutenberg",
-                    url: URL(string: "https://www.gutenberg.org/ebooks.opds/")!, isSuggested: true),
+                    url: URL(string: "https://www.gutenberg.org/ebooks.opds/")!, isSuggested: true,
+                    languageQuery: "l.{lang}", languageListPath: "/search.opds",
+                    bookLinkPattern: "/ebooks/[0-9]+\\.opds$", unmarkedLanguage: "en"),
         OPDSCatalog(id: "ebooksgratuits", name: "Ebooks libres et gratuits",
-                    url: URL(string: "https://www.ebooksgratuits.com/opds/")!, isSuggested: true),
+                    url: URL(string: "https://www.ebooksgratuits.com/opds/")!, isSuggested: true, onlyLanguage: "fr"),
         OPDSCatalog(id: "bnr", name: "Bibliothèque numérique romande",
-                    url: URL(string: "https://ebooks-bnr.com/opds/")!, isSuggested: true),
+                    url: URL(string: "https://ebooks-bnr.com/opds/")!, isSuggested: true, onlyLanguage: "fr"),
     ]
 }
 
@@ -36,8 +55,22 @@ public struct OPDSCatalogList: Codable, Equatable, Sendable {
     public var renamed: [String: String] = [:]
     /// Livres téléchargés : identifiant de l'entrée OPDS → chemin du fichier dans la bibliothèque.
     public var downloads: [String: String] = [:]
+    /// Langue choisie par catalogue (code ISO 639-1) ; absente : toutes les langues.
+    public var languages: [String: String] = [:]
 
     public init() {}
+
+    enum CodingKeys: String, CodingKey { case added, hiddenSuggestions, renamed, downloads, languages }
+
+    /// Les fichiers d'avant le choix de langue n'ont pas `languages`.
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        added = try c.decodeIfPresent([OPDSCatalog].self, forKey: .added) ?? []
+        hiddenSuggestions = try c.decodeIfPresent(Set<String>.self, forKey: .hiddenSuggestions) ?? []
+        renamed = try c.decodeIfPresent([String: String].self, forKey: .renamed) ?? [:]
+        downloads = try c.decodeIfPresent([String: String].self, forKey: .downloads) ?? [:]
+        languages = try c.decodeIfPresent([String: String].self, forKey: .languages) ?? [:]
+    }
 
     /// Catalogues affichés : les proposés encore visibles, puis ceux de l'utilisateur.
     public var catalogs: [OPDSCatalog] {

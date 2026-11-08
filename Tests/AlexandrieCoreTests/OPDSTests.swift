@@ -257,6 +257,70 @@ let gutenbergOSD = Data("""
     }
 }
 
+@Suite struct OPDSLanguageTests {
+    @Test func normalizesAndFilters() {
+        #expect(["fr", "fre", "fra", "fr-FR", "FR", "fr_BE"].allSatisfy { OPDSLanguage.normalized($0) == "fr" })
+        #expect(OPDSLanguage.normalized("eng") == "en")
+        #expect(OPDSLanguage.name("fr") == "Français")
+        let acq = [OPDSAcquisition(url: URL(string: "https://x.org/a.epub")!, format: .epub)]
+        let english = OPDSEntry(id: "1", title: "Treasure Island", language: "eng", acquisitions: acq)
+        let unknown = OPDSEntry(id: "2", title: "Sans langue", acquisitions: acq)
+        let section = OPDSEntry(id: "3", title: "Authors", language: "en", navigationURL: URL(string: "https://x.org/a")!)
+        #expect(!OPDSLanguage.keeps(english, language: "fr"))
+        #expect(OPDSLanguage.keeps(english, language: "en"))
+        #expect(OPDSLanguage.keeps(english, language: nil))
+        #expect(OPDSLanguage.keeps(unknown, language: "fr"), "langue non indiquée : le livre reste")
+        #expect(OPDSLanguage.keeps(section, language: "fr"), "les rubriques restent")
+    }
+
+    @Test func readsGutenbergBookLinks() throws {
+        let gutenberg = try #require(OPDSCatalog.suggested.first { $0.id == "gutenberg" })
+        func link(_ title: String, _ path: String) -> OPDSEntry {
+            OPDSEntry(id: path, title: title, navigationURL: URL(string: "https://www.gutenberg.org" + path)!)
+        }
+        let french = link("Le tour du monde en quatre-vingts jours (French)", "/ebooks/800.opds")
+        let english = link("Around the World in Eighty Days", "/ebooks/103.opds")
+        let german = link("Die Verwandlung (German)", "/ebooks/22367.opds")
+        let authors = link("Authors", "/ebooks/authors/search.opds/?query=verne")
+        let parenthesis = link("Poems (Selected)", "/ebooks/42.opds")
+        #expect(OPDSLanguage.language(of: french, in: gutenberg) == "fr")
+        #expect(OPDSLanguage.language(of: english, in: gutenberg) == "en", "titre sans mention : anglais chez Gutenberg")
+        #expect(OPDSLanguage.language(of: parenthesis, in: gutenberg) == "en", "parenthèse qui n'est pas une langue")
+        #expect([french, english, german, authors].filter { OPDSLanguage.keeps($0, language: "fr", in: gutenberg) }
+                .map(\.title) == [french.title, "Authors"], "livres d'une autre langue écartés, rubriques gardées")
+        #expect(!OPDSLanguage.isBook(authors, in: gutenberg))
+        // Ailleurs, un lien de navigation sans langue connue n'est pas un livre : il reste.
+        let other = OPDSCatalog(name: "Autre", url: URL(string: "https://x.org/opds")!)
+        #expect(OPDSLanguage.keeps(link("Around the World", "/ebooks/103.opds"), language: "fr", in: other))
+    }
+
+    @Test func restrictsGutenbergListsOnServer() throws {
+        let gutenberg = try #require(OPDSCatalog.suggested.first { $0.id == "gutenberg" })
+        let popular = URL(string: "https://www.gutenberg.org/ebooks/search.opds/?sort_order=downloads")!
+        #expect(OPDSLanguage.url(popular, language: "fr", catalog: gutenberg).absoluteString
+                == "https://www.gutenberg.org/ebooks/search.opds/?sort_order=downloads&query=l.fr")
+        let next = URL(string: "https://www.gutenberg.org/ebooks/search.opds/?query=verne%20l.fr&start_index=26")!
+        #expect(OPDSLanguage.url(next, language: "fr", catalog: gutenberg) == next, "pas de doublon")
+        let search = URL(string: "https://www.gutenberg.org/ebooks/search.opds/?query=verne")!
+        #expect(OPDSLanguage.url(search, language: "de", catalog: gutenberg).absoluteString.hasSuffix("query=verne%20l.de"))
+        let author = URL(string: "https://www.gutenberg.org/ebooks/author/60.opds")!
+        #expect(OPDSLanguage.url(author, language: "fr", catalog: gutenberg) == author)
+        #expect(!OPDSLanguage.restrictsOnServer(author, catalog: gutenberg))
+        #expect(OPDSLanguage.url(popular, language: nil, catalog: gutenberg) == popular)
+        let bnr = try #require(OPDSCatalog.suggested.first { $0.id == "bnr" })
+        #expect(OPDSLanguage.url(popular, language: "fr", catalog: bnr) == popular)
+    }
+
+    @Test func addsServerSyntax() throws {
+        let gutenberg = try #require(OPDSCatalog.suggested.first { $0.id == "gutenberg" })
+        let bnr = try #require(OPDSCatalog.suggested.first { $0.id == "bnr" })
+        #expect(OPDSLanguage.terms("verne", language: "fr", catalog: gutenberg) == "verne l.fr")
+        #expect(OPDSLanguage.terms("verne", language: nil, catalog: gutenberg) == "verne")
+        #expect(OPDSLanguage.terms("verne", language: "fr", catalog: bnr) == "verne")
+        #expect(bnr.onlyLanguage == "fr" && gutenberg.onlyLanguage == nil)
+    }
+}
+
 @Suite struct OPDSCatalogListTests {
     @Test func managesCatalogs() throws {
         var list = OPDSCatalogList()
@@ -280,5 +344,15 @@ let gutenbergOSD = Data("""
         try list.save(to: file)
         #expect(OPDSCatalogList.load(file) == list)
         #expect(OPDSCatalogList.load(file.appendingPathExtension("absent")) == OPDSCatalogList())
+    }
+
+    @Test func readsFilesFromBeforeLanguages() throws {
+        let old = Data(#"{"added":[],"downloads":{"urn:a":"/tmp/a.epub"},"hiddenSuggestions":["bnr"],"renamed":{}}"#.utf8)
+        let list = try JSONDecoder().decode(OPDSCatalogList.self, from: old)
+        #expect(list.downloads["urn:a"] == "/tmp/a.epub" && list.hiddenSuggestions == ["bnr"] && list.languages.isEmpty)
+        var withLanguage = list
+        withLanguage.languages["gutenberg"] = "fr"
+        let again = try JSONDecoder().decode(OPDSCatalogList.self, from: JSONEncoder().encode(withLanguage))
+        #expect(again == withLanguage)
     }
 }

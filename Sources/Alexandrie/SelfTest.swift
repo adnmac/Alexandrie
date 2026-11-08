@@ -790,6 +790,18 @@ struct SelfTest {
               && opds.current("gutenberg")?.feed != nil && opds.canSearch("gutenberg"),
               opds.current("gutenberg")?.error ?? "")
 
+        // S-090 : langue choisie, envoyée à la recherche de Gutenberg (`l.en`), livres d'une autre langue masqués.
+        await opds.setLanguage("gutenberg", "en")
+        let english = opds.visibleEntries("gutenberg")
+        check("langue : recherche restreinte", opds.current("gutenberg")?.url.absoluteString.contains("l.en") == true,
+              opds.current("gutenberg")?.url.absoluteString ?? "")
+        check("langue : livres d'une autre langue masqués", english.entries.filter(\.isBook).count == 1
+              && english.hidden == SeedData.opdsBooks.count - 1, "\(english.entries.count) affichées, \(english.hidden) masquées")
+        check("langue retenue", OPDSCatalogList.load(library.directories.opds).languages["gutenberg"] == "en"
+              && !opds.offersLanguages("ebooksgratuits") && opds.language("ebooksgratuits") == nil)
+        await opds.setLanguage("gutenberg", nil)
+        check("toutes les langues", opds.visibleEntries("gutenberg").hidden == 0)
+
         guard let entry = feed?.entries.first(where: \.isBook), let epub = entry.acquisitions.first else {
             check("livre du catalogue", false)
             return

@@ -36,7 +36,58 @@ struct ContentView: View {
     /// Fichier montré par Coup d'œil (Espace, ou Livre > Coup d'œil).
     @State private var quickLookURL: URL?
 
+    // La chaîne de modificateurs est coupée en trois propriétés : d'un seul tenant, le Swift de la CI
+    // (macos-15) n'arrivait plus à la typer à temps.
     var body: some View {
+        withNavigation
+            .onChange(of: undoManager) { _, manager in library.undoManager = manager }
+            // Kindle inconnue : on lui donne un nom, une fois pour toutes.
+            .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {
+                NameReaderSheet()
+            }
+            // Résultat d'un envoi à Zotero (S-093, S-094).
+            .alert("Zotero", isPresented: Binding(get: { zotero.message != nil }, set: { if !$0 { zotero.message = nil } })) {
+                Button("OK") { zotero.message = nil }
+            } message: {
+                Text(zotero.message ?? "")
+            }
+            .alert("Erreur", isPresented: errorBinding) {
+                Button("OK") { library.lastError = nil; kindle.lastError = nil }
+            } message: {
+                Text(library.lastError ?? kindle.lastError ?? "")
+            }
+    }
+
+    /// Page, sélection, demandes venues des autres vues (notes, catalogues) et tâches de fond.
+    private var withNavigation: some View {
+        withSheets
+        // Texte des livres indexé en arrière-plan (S-081), après chaque analyse du dossier ou ajout.
+        .onChange(of: library.isScanning, initial: true) { _, scanning in
+            if !scanning { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+        }
+        .onChange(of: library.visibleBooks.count) { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+        // Catalogue en ligne (S-088) : « Afficher dans la bibliothèque » montre le livre téléchargé.
+        .onChange(of: opds.showRequest) { _, id in
+            guard let id else { return }
+            search = ""
+            sidebar = .all
+            selection = [id]
+            opds.showRequest = nil
+        }
+        .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
+        .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
+        .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
+        // Sauvegarde du jour dans le dossier choisi (jamais pendant les captures).
+        .onAppear { if Snapshot.directory == nil { AppServices.shared.backups.start() } }
+        .task {
+            guard Snapshot.directory != nil else { return }
+            await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
+                               search: $search, searchScope: $searchScope, openSettings: openSettings)
+        }
+    }
+
+    /// Fenêtre principale ou accueil, et les feuilles qui s'ouvrent d'elles-mêmes.
+    private var withSheets: some View {
         Group {
             if library.hasLibrary {
                 main
@@ -66,45 +117,6 @@ struct ContentView: View {
         .onAppear {
             library.undoManager = undoManager
             restorePage()
-        }
-        // Texte des livres indexé en arrière-plan (S-081), après chaque analyse du dossier ou ajout.
-        .onChange(of: library.isScanning, initial: true) { _, scanning in
-            if !scanning { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
-        }
-        .onChange(of: library.visibleBooks.count) { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
-        // Catalogue en ligne (S-088) : « Afficher dans la bibliothèque » montre le livre téléchargé.
-        .onChange(of: opds.showRequest) { _, id in
-            guard let id else { return }
-            search = ""
-            sidebar = .all
-            selection = [id]
-            opds.showRequest = nil
-        }
-        .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
-        .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
-        .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
-        // Sauvegarde du jour dans le dossier choisi (jamais pendant les captures).
-        .onAppear { if Snapshot.directory == nil { AppServices.shared.backups.start() } }
-        .task {
-            guard Snapshot.directory != nil else { return }
-            await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
-                               search: $search, searchScope: $searchScope, openSettings: openSettings)
-        }
-        .onChange(of: undoManager) { _, manager in library.undoManager = manager }
-        // Kindle inconnue : on lui donne un nom, une fois pour toutes.
-        .sheet(isPresented: Binding(get: { kindle.needsNaming }, set: { if !$0 { kindle.postponeNaming() } })) {
-            NameReaderSheet()
-        }
-        // Résultat d'un envoi à Zotero (S-093, S-094).
-        .alert("Zotero", isPresented: Binding(get: { zotero.message != nil }, set: { if !$0 { zotero.message = nil } })) {
-            Button("OK") { zotero.message = nil }
-        } message: {
-            Text(zotero.message ?? "")
-        }
-        .alert("Erreur", isPresented: errorBinding) {
-            Button("OK") { library.lastError = nil; kindle.lastError = nil }
-        } message: {
-            Text(library.lastError ?? kindle.lastError ?? "")
         }
     }
 

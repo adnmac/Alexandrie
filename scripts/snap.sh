@@ -33,6 +33,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>CFBundleName</key><string>Foluna</string>
+  <key>CFBundleShortVersionString</key><string>$(cat VERSION)</string>
   <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleExecutable</key><string>Alexandrie</string>
   <key>CFBundlePackageType</key><string>APPL</string>

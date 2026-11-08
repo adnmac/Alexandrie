@@ -10,8 +10,9 @@ enum Layout {
     static let sheetWide: CGFloat = 640
     /// Réglages Mac : chaque onglet est un `Form` groupé de cette largeur.
     static let settingsWidth: CGFloat = 520
-    /// Hauteur au-delà de laquelle une feuille ou un onglet des réglages défile.
-    static let maxPanelHeight: CGFloat = 640
+    /// Hauteur au-delà de laquelle une feuille ou un onglet des réglages défile. Les captures du site
+    /// (`ALEXANDRIE_SNAPSHOT_TALL=1`) montrent les onglets en entier, sans partie cachée à faire défiler.
+    static let maxPanelHeight: CGFloat = ProcessInfo.processInfo.environment["ALEXANDRIE_SNAPSHOT_TALL"] == "1" ? 1600 : 640
     /// Bulle de la note d'un surlignage, dans la fenêtre de lecture (S-071).
     static let notePopover: CGFloat = 320
     /// Pastille d'une couleur de surlignage (S-073).

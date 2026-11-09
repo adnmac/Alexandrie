@@ -11,7 +11,9 @@ public enum StorageMaintenance {
     /// (livre disparu, ou copie faite avant une correction des informations).
     @discardableResult
     public static func purge(keeping books: [Book], directories: AppDirectories) -> Report {
-        let covers = Set(books.map { CoverStore(directory: directories.covers).url(for: $0.fingerprint).lastPathComponent })
+        // Les livres d'un format inconnu de cette version (gardés dans l'index) conservent leur couverture.
+        let fingerprints = Set(books.map(\.fingerprint)).union(LibraryIndex.otherFormatFingerprints(directories.index))
+        let covers = Set(fingerprints.map { CoverStore(directory: directories.covers).url(for: $0).lastPathComponent })
         let conversions = Set(books.flatMap { b in
             [KindleTransfer.cachedCopy(of: b, directories: directories),
              KindleTransfer.exportedEPUB(of: b, directories: directories)].map(\.lastPathComponent)
@@ -52,7 +54,7 @@ public enum StorageMaintenance {
 extension StorageMaintenance {
     /// Livres préparés pour la lecture dont le fichier a disparu ou changé (empreinte inconnue).
     public static func purgeReading(keeping books: [Book], directories: AppDirectories) {
-        let keep = Set(books.map(\.fingerprint))
+        let keep = Set(books.map(\.fingerprint)).union(LibraryIndex.otherFormatFingerprints(directories.index))
         let folders = (try? FileManager.default.contentsOfDirectory(at: directories.reading, includingPropertiesForKeys: nil,
                                                                      options: [.skipsHiddenFiles])) ?? []
         for folder in folders where !keep.contains(folder.lastPathComponent) {

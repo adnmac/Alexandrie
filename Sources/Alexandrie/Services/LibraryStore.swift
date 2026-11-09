@@ -629,6 +629,10 @@ final class LibraryStore {
                 .timeSeparator(.omitted))
             let aside = directories.backups.appendingPathComponent("library-avant-restauration-\(stamp).json")
             try? FileManager.default.copyItem(at: directories.index, to: aside)
+            // La sauvegarde remplace l'index avant l'enregistrement : ses livres d'un format inconnu de cette
+            // version (que `save` recopie depuis le fichier) sont ainsi gardés.
+            try? FileManager.default.removeItem(at: directories.index)
+            try? FileManager.default.copyItem(at: backup.url, to: directories.index)
             books = restored
             saveNow()
             write(sync: true)

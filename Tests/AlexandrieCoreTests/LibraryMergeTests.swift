@@ -27,6 +27,41 @@ import Testing
         try LibraryIndex.save([book], to: url)
         #expect(try LibraryIndex.load(url) == [book])
     }
+
+    /// Index écrit par une version plus récente (format inconnu ici) : lisible, et l'entrée inconnue survit
+    /// aux enregistrements, pour revenir intacte avec la version qui la connaît.
+    @Test func unknownFormatIsKeptAside() throws {
+        let lib = SampleLibrary()
+        var book = try lib.index("Candide.epub")
+        let url = lib.dir.appendingPathComponent("library.json")
+        try LibraryIndex.save([book], to: url)
+        // Entrée ajoutée au texte tel quel : l'entrée connue n'est pas réécrite.
+        let future = #"{"path":"/Livres/Futur.xyz","format":"xyz","fingerprint":"futur-1","fileSize":123456789012,"#
+            + #""modifiedAt":784111777.25,"champNouveau":{"a":1},"tags":["x"],"hasCover":true}"#
+        let text = String(decoding: try Data(contentsOf: url), as: UTF8.self)
+        try Data((text.dropLast() + "," + future + "]").utf8).write(to: url)
+
+        #expect(try LibraryIndex.load(url) == [book])
+        #expect(LibraryIndex.otherFormatFingerprints(url) == ["futur-1"])
+
+        book.title = "Candide corrigé"
+        try LibraryIndex.save([book], to: url)
+        #expect(try LibraryIndex.load(url) == [book])
+        let saved = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [[String: Any]])
+        let kept = try #require(saved.first { $0["format"] as? String == "xyz" })
+        #expect(kept["path"] as? String == "/Livres/Futur.xyz")
+        #expect((kept["champNouveau"] as? [String: Any])?["a"] as? Int == 1)
+        #expect(kept["fileSize"] as? Int == 123_456_789_012)
+        #expect(kept["modifiedAt"] as? Double == 784111777.25)
+        #expect(kept["hasCover"] as? Bool == true)
+    }
+
+    /// Une entrée abîmée d'un format connu rend toujours l'index illisible (il sera mis de côté).
+    @Test func damagedKnownEntryStillThrows() throws {
+        let url = tempDirectory().appendingPathComponent("library.json")
+        try Data(#"[{"path": "/a.epub", "format": "epub"}]"#.utf8).write(to: url)
+        #expect(throws: (any Error).self) { try LibraryIndex.load(url) }
+    }
 }
 
 @Suite struct LibraryMergeTests {

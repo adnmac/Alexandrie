@@ -260,15 +260,71 @@ public struct CoverStore: Sendable {
 /// Persistance de l'index en JSON.
 public enum LibraryIndex {
     /// Index absent : bibliothèque vide. Index illisible : erreur, pour ne jamais l'écraser par une liste vide.
+    /// Les livres d'un format que cette version ne connaît pas (index écrit par une version plus récente, ou
+    /// sauvegarde restaurée) sont laissés de côté, sans rendre l'index illisible ; `save` les garde dans le fichier.
     public static func load(_ url: URL) throws -> [Book] {
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
-        return try JSONDecoder().decode([Book].self, from: Data(contentsOf: url))
+        let data = try Data(contentsOf: url)
+        do {
+            return try JSONDecoder().decode([Book].self, from: data)
+        } catch {
+            // Lecture entrée par entrée seulement si l'index contient des formats inconnus ; sinon, l'erreur d'origine.
+            guard let entries = try? JSONDecoder().decode([Entry].self, from: data),
+                  entries.contains(where: \.hasUnknownFormat) else { throw error }
+            return try entries.filter { !$0.hasUnknownFormat }.map { try JSONDecoder().decode(Book.self, from: $0.data) }
+        }
     }
 
+    /// Enregistre l'index en gardant, à la fin, les entrées de formats inconnus déjà présentes dans le fichier.
     public static func save(_ books: [Book], to url: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
-        try encoder.encode(books).write(to: url, options: .atomic)
+        let others = otherFormatEntries(url).filter { !Set(books.map(\.path)).contains($0.path ?? "") }
+        guard !others.isEmpty else {
+            try encoder.encode(books).write(to: url, options: .atomic)
+            return
+        }
+        let known = try books.map { try encoder.encode($0) }
+        let body = (known + others.map(\.data)).map { String(decoding: $0, as: UTF8.self) }.joined(separator: ",")
+        try Data("[\(body)]".utf8).write(to: url, options: .atomic)
+    }
+
+    /// Empreintes des livres de formats inconnus : leurs couvertures et copies de lecture ne sont pas supprimées.
+    public static func otherFormatFingerprints(_ url: URL) -> Set<String> {
+        Set(otherFormatEntries(url).compactMap(\.fingerprint))
+    }
+
+    static func otherFormatEntries(_ url: URL) -> [Entry] {
+        guard let data = try? Data(contentsOf: url),
+              let entries = try? JSONDecoder().decode([Entry].self, from: data) else { return [] }
+        return entries.filter(\.hasUnknownFormat)
+    }
+
+    /// Entrée brute de l'index : son JSON tel quel, et les quelques champs utiles pour la reconnaître.
+    struct Entry: Decodable {
+        let data: Data
+        let path: String?
+        let format: String?
+        let fingerprint: String?
+
+        var hasUnknownFormat: Bool { format.map { BookFormat(rawValue: $0) == nil } ?? false }
+
+        private struct Fields: Decodable {
+            let path: String?
+            let format: String?
+            let fingerprint: String?
+        }
+
+        init(from decoder: any Decoder) throws {
+            let value = try decoder.singleValueContainer().decode(JSONValue.self)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            data = try encoder.encode(value)
+            let fields = try? JSONDecoder().decode(Fields.self, from: data)
+            path = fields?.path
+            format = fields?.format
+            fingerprint = fields?.fingerprint
+        }
     }
 
     /// Met de côté un index illisible (library.corrupt-AAAAMMJJ-HHMMSS.json) et renvoie son nouvel emplacement.
@@ -281,5 +337,40 @@ public enum LibraryIndex {
             .appendingPathComponent("\(url.deletingPathExtension().lastPathComponent).corrupt-\(f.string(from: now)).json")
         try FileManager.default.moveItem(at: url, to: target)
         return target
+    }
+}
+
+/// Valeur JSON quelconque, pour recopier sans la comprendre une entrée de l'index.
+enum JSONValue: Codable, Equatable {
+    case null
+    case bool(Bool)
+    case integer(Int64)
+    case number(Double)
+    case string(String)
+    case array([JSONValue])
+    case object([String: JSONValue])
+
+    init(from decoder: any Decoder) throws {
+        let c = try decoder.singleValueContainer()
+        if c.decodeNil() { self = .null }
+        else if let b = try? c.decode(Bool.self) { self = .bool(b) }
+        else if let i = try? c.decode(Int64.self) { self = .integer(i) }
+        else if let n = try? c.decode(Double.self) { self = .number(n) }
+        else if let s = try? c.decode(String.self) { self = .string(s) }
+        else if let a = try? c.decode([JSONValue].self) { self = .array(a) }
+        else { self = .object(try c.decode([String: JSONValue].self)) }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var c = encoder.singleValueContainer()
+        switch self {
+        case .null: try c.encodeNil()
+        case .bool(let b): try c.encode(b)
+        case .integer(let i): try c.encode(i)
+        case .number(let n): try c.encode(n)
+        case .string(let s): try c.encode(s)
+        case .array(let a): try c.encode(a)
+        case .object(let o): try c.encode(o)
+        }
     }
 }

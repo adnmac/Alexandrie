@@ -51,7 +51,7 @@ public enum CBZImporter: BookImporter {
         let files = zip.files
         guard files.count <= ImportLimits.maxArchiveEntries,
               files.reduce(Int64(0), { $0 + $1.size }) <= ImportLimits.maxArchiveSize else { throw ImportLimits.tooLarge }
-        let pages = files.map(\.path).filter { path in
+        let pages = files.map { $0.path }.filter { path in
             let parts = path.split(separator: "/")
             return !parts.contains { $0.hasPrefix(".") || $0 == "__MACOSX" }
                 && imageExtensions.contains((path as NSString).pathExtension.lowercased())

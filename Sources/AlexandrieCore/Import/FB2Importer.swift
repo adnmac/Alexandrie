@@ -95,7 +95,7 @@ public enum FB2Importer: BookImporter {
             for notes in bodies where notes !== main {
                 chapterIndex = chapters.count
                 let title = notes.firstChild(named: "title").map(Self.plainText) ?? String(localized: "Notes")
-                let body = "<h2>\(ImportedDocument.xhtml(title))</h2>\n" + notes.children(named: "section").map(note).joined(separator: "\n")
+                let body = "<h2>\(ImportedDocument.xhtml(title))</h2>\n" + notes.children(named: "section").map { note($0) }.joined(separator: "\n")
                 chapters.append(.init(title: title, body: body))
             }
             chapters = chapters.map { c in

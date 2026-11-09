@@ -20,7 +20,7 @@ public enum ImportLimits {
     public static let pageMaxPixelSize = 2_400
 
     static func checkFileSize(_ url: URL) throws {
-        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
+        let size = (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize).map { Int64($0) } ?? 0
         if size > maxFileSize { throw tooLarge }
     }
 

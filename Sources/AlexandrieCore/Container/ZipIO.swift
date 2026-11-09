@@ -30,6 +30,26 @@ final class ZipReader {
         return data
     }
 
+    /// Fichiers de l'archive et leur taille décompressée annoncée.
+    var files: [(path: String, size: Int64)] {
+        archive.filter { $0.type == .file }.map { ($0.path, Int64(clamping: $0.uncompressedSize)) }
+    }
+
+    /// Contenu d'une entrée, refusé au-delà de `limit` octets réellement décompressés (la taille annoncée
+    /// par l'archive peut mentir).
+    func data(_ path: String, limit: Int) throws -> Data {
+        guard let entry = archive[path] ?? caseInsensitiveEntry(path) else {
+            throw BookError.unreadable(String(localized: "fichier absent de l'archive : \(path)"))
+        }
+        guard entry.uncompressedSize <= UInt64(limit) else { throw ImportLimits.tooLarge }
+        var data = Data()
+        _ = try archive.extract(entry, skipCRC32: true) { chunk in
+            guard data.count + chunk.count <= limit else { throw ImportLimits.tooLarge }
+            data.append(chunk)
+        }
+        return data
+    }
+
     private func caseInsensitiveEntry(_ path: String) -> Entry? {
         let lower = path.lowercased()
         return archive.first { $0.path.lowercased() == lower }

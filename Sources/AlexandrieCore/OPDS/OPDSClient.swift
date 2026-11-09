@@ -99,6 +99,9 @@ public struct OPDSClient: Sendable {
         case .epub: return bytes.starts(with: [0x50, 0x4B, 0x03, 0x04])
         case .pdf: return bytes.starts(with: Array("%PDF".utf8))
         case .mobi, .azw3, .azw: return bytes.count >= 68 && Array(bytes[60..<68]) == Array("BOOKMOBI".utf8)
+        case .prc:
+            return bytes.count >= 68 && [Array("BOOKMOBI".utf8), Array("TEXtREAd".utf8)].contains(Array(bytes[60..<68]))
+        case .fb2, .cbz, .txt: return format.importer?.detect(data) ?? false
         }
     }
 

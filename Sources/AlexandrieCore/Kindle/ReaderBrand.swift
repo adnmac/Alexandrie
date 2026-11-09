@@ -70,14 +70,21 @@ extension Book {
     /// Kindle : AZW3 pour un EPUB ou un PDF en texte redimensionnable. Autres : EPUB pour un livre Kindle
     /// (MOBI, AZW3, AZW) ou un PDF en texte redimensionnable ; le reste tel quel.
     public func sentExtension(for brand: ReaderBrand) -> String {
-        guard brand.readsEPUB else { return becomesAZW3 ? "azw3" : format.rawValue }
+        guard brand.readsEPUB else { return becomesAZW3 ? "azw3" : becomesPDF ? "pdf" : format.rawValue }
         if format == .pdf { return pdfMode == .reflowable ? "epub" : "pdf" }
+        if sentAsIs(to: brand) { return format.rawValue }
         return "epub"
+    }
+
+    /// Pages en images (CBZ) pour une liseuse qui lit ce format : envoyées telles quelles, sans conversion.
+    func sentAsIs(to brand: ReaderBrand) -> Bool {
+        brand.readsEPUB && becomesPDF && brand.bookExtensions.contains(format.rawValue)
     }
 
     /// Une conversion ou une copie corrigée précède l'envoi.
     public func needsConversion(for brand: ReaderBrand) -> Bool {
         guard brand.readsEPUB else { return needsConversion }
+        if sentAsIs(to: brand) { return false }
         return format != .pdf || pdfMode == .cropped || pdfMode == .reflowable
     }
 

@@ -172,8 +172,12 @@ public enum BookGroups {
         case .azw3: 0
         case .mobi: 1
         case .azw: 2
-        case .epub: 3
-        case .pdf: 4
+        case .prc: 3
+        case .epub: 4
+        case .fb2: 5
+        case .pdf: 6
+        case .cbz: 7
+        case .txt: 8
         }
     }
 }

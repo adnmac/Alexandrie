@@ -1,7 +1,7 @@
 import Foundation
 
-/// Livre prêt pour la fenêtre de lecture (S-066) : EPUB extrait dans les données de l'app, MOBI et AZW3
-/// convertis en EPUB d'abord. Le fichier du dossier de livres n'est jamais modifié.
+/// Livre prêt pour la fenêtre de lecture (S-066) : EPUB extrait dans les données de l'app, MOBI, AZW3, PRC
+/// et formats des importeurs (FB2, TXT, CBZ) convertis en EPUB d'abord. Le fichier du dossier de livres n'est jamais modifié.
 public struct ReaderBook: Sendable {
     /// Une entrée de la table des matières, rattachée à un chapitre (fichier du spine).
     public struct Entry: Codable, Sendable, Equatable, Identifiable {
@@ -48,7 +48,13 @@ public struct ReaderBook: Sendable {
         var epubURL = book.url
         if book.format != .epub {
             epubURL = root.appendingPathComponent("livre.epub")
-            try MobiToEPUB.convert(input: book.url, output: epubURL)
+            // Copie de lecture faite une fois : une nouvelle version d'un importeur ne la refait pas, et les
+            // surlignages gardent leur place (le dossier n'est supprimé que si le livre disparaît).
+            if book.format.importer != nil {
+                try Importers.writeEPUB(book.url, format: book.format, to: epubURL, edits: nil)
+            } else {
+                try MobiToEPUB.convert(input: book.url, output: epubURL)
+            }
         }
         let epub = try EPUBReader(url: epubURL)
         try extract(epub, to: root)

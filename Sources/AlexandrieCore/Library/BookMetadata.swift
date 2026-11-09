@@ -2,15 +2,39 @@ import Foundation
 
 public enum BookFormat: String, Codable, CaseIterable, Sendable {
     case epub, mobi, azw3, azw, pdf
+    /// Formats ajoutés par les importeurs (voir `Importers`) : PRC est lu comme un MOBI ; FB2, CBZ et TXT
+    /// sont convertis en EPUB (ou en PDF pour le CBZ envoyé à une Kindle).
+    case prc, fb2, cbz, txt
 
     public init?(url: URL) {
+        // « Livre.fb2.zip » : FictionBook compressé.
+        if url.lastPathComponent.lowercased().hasSuffix(".fb2.zip") {
+            self = .fb2
+            return
+        }
         self.init(rawValue: url.pathExtension.lowercased())
     }
 
     public var label: String { rawValue.uppercased() }
 
     /// Formats lisibles par une Kindle chargée par USB.
-    public var isKindleNative: Bool { self != .epub }
+    public var isKindleNative: Bool { [.mobi, .azw3, .azw, .pdf, .prc].contains(self) }
+
+    /// Formats Mobipocket, lus par `MobiBook` et convertis en EPUB par `MobiToEPUB`.
+    public var isMobi: Bool { [.mobi, .azw3, .azw, .prc].contains(self) }
+
+    /// Format pris en charge par un importeur (désactivable dans les réglages), et non par le cœur de l'app.
+    public var isOptional: Bool { [.prc, .fb2, .cbz, .txt].contains(self) }
+
+    /// Importeur qui convertit ce format en EPUB (nil pour EPUB, PDF et les formats Mobipocket).
+    public var importer: (any BookImporter.Type)? { Importers.importer(for: self) }
+
+    /// Trouvé en parcourant les dossiers de livres. Un TXT n'est ajouté que par import (glisser-déposer,
+    /// Fichier › Importer) : les dossiers en contiennent beaucoup qui ne sont pas des livres (README, licences).
+    public var isScannedInFolders: Bool { self != .txt }
+
+    /// Extensions des fichiers de ce format.
+    public var fileExtensions: [String] { self == .fb2 ? ["fb2", "fb2.zip"] : [rawValue] }
 }
 
 public enum BookError: LocalizedError, Equatable {
@@ -85,8 +109,11 @@ public enum MetadataExtractor {
         var meta: BookMetadata
         switch format {
         case .epub: meta = try EPUBReader(url: url).bookMetadata()
-        case .mobi, .azw3, .azw: meta = try MobiBook(url: url).metadata()
+        case .mobi, .azw3, .azw, .prc: meta = try MobiBook(url: url).metadata()
         case .pdf: meta = try PDFMetadata.extract(from: url)
+        case .fb2, .cbz, .txt:
+            guard let importer = format.importer else { throw BookError.unsupported("format \(format.label)") }
+            meta = try importer.metadata(of: url)
         }
         if meta.title.trimmingCharacters(in: .whitespaces).isEmpty {
             meta.title = url.deletingPathExtension().lastPathComponent

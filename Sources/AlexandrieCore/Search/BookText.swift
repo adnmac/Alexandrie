@@ -13,13 +13,14 @@ public struct BookText: Equatable, Sendable {
 
     /// Formats dont le texte est lu (un livre protégé ne l'est pas).
     public static func canExtract(_ book: Book) -> Bool {
-        !book.isDRMProtected && [.epub, .mobi, .azw3, .pdf].contains(book.format)
+        !book.isDRMProtected && ([.epub, .mobi, .azw3, .prc, .pdf].contains(book.format)
+            || book.format.importer?.output == .reflowable)
     }
 
     /// Un seul fichier par livre (S-081) : parmi les fichiers lisibles d'un même livre, l'EPUB d'abord
-    /// (pas de conversion), puis AZW3, MOBI et PDF. Les livres sans fichier lisible n'en donnent aucun.
+    /// (pas de conversion), puis AZW3, MOBI, PRC, FB2, PDF et TXT. Les livres sans fichier lisible n'en donnent aucun.
     public static func filesToIndex(_ books: [Book], identities: [Book.ID: String]) -> [Book] {
-        let rank: [BookFormat: Int] = [.epub: 0, .azw3: 1, .mobi: 2, .pdf: 3]
+        let rank: [BookFormat: Int] = [.epub: 0, .azw3: 1, .mobi: 2, .prc: 3, .fb2: 4, .pdf: 5, .txt: 6]
         return BookGroups.make(books, identities: identities).compactMap { group in
             group.books.filter(canExtract).min { (rank[$0.format] ?? 9, $0.path) < (rank[$1.format] ?? 9, $1.path) }
         }
@@ -29,6 +30,9 @@ public struct BookText: Equatable, Sendable {
     public static func extract(_ book: Book) throws -> BookText {
         guard canExtract(book) else {
             throw book.isDRMProtected ? BookError.drmProtected : BookError.unsupported("format \(book.format.label)")
+        }
+        if book.format.importer != nil {
+            return BookText(sections: try Importers.text(book.url, format: book.format))
         }
         if book.format == .pdf {
             guard let document = PDFDocument(url: book.url) else { throw BookError.unsupported("PDF illisible") }

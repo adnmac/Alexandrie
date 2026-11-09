@@ -141,6 +141,9 @@ public enum OPDSParser {
         case "application/x-mobipocket-ebook", "application/x-mobi8-ebook": .mobi
         case "application/vnd.amazon.ebook", "application/x-mobi8": .azw3
         case "application/pdf": .pdf
+        case "application/x-fictionbook+xml", "application/fb2+xml", "application/x-fb2", "application/fb2+zip",
+             "application/x-zip-compressed-fb2": .fb2
+        case "application/vnd.comicbook+zip", "application/x-cbz": .cbz
         default: nil
         }
     }
@@ -151,7 +154,11 @@ public enum OPDSParser {
         case .azw3: 1
         case .mobi: 2
         case .azw: 3
-        case .pdf: 4
+        case .prc: 4
+        case .fb2: 5
+        case .pdf: 6
+        case .cbz: 7
+        case .txt: 8
         }
     }
 

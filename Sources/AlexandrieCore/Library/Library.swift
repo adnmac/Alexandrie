@@ -111,14 +111,18 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
         }
     }
 
-    /// La Kindle reçoit un AZW3 produit par Alexandrie (EPUB, PDF en texte redimensionnable).
-    public var becomesAZW3: Bool { format == .epub || (format == .pdf && pdfMode == .reflowable) }
-    /// Une conversion précède l'envoi (AZW3 produit ou PDF rogné).
-    public var needsConversion: Bool { becomesAZW3 || (format == .pdf && pdfMode == .cropped) }
+    /// La Kindle reçoit un AZW3 produit par Alexandrie (EPUB, PDF en texte redimensionnable, FB2, TXT).
+    public var becomesAZW3: Bool {
+        format == .epub || (format == .pdf && pdfMode == .reflowable) || format.importer?.output == .reflowable
+    }
+    /// La Kindle reçoit un PDF d'une page par image (bande dessinée CBZ).
+    public var becomesPDF: Bool { format.importer?.output == .pages }
+    /// Une conversion précède l'envoi (AZW3 ou PDF produit, PDF rogné).
+    public var needsConversion: Bool { becomesAZW3 || becomesPDF || (format == .pdf && pdfMode == .cropped) }
 
     /// Nom proposé pour la copie sur la Kindle.
     public var kindleFilename: String {
-        let ext = becomesAZW3 ? "azw3" : format.rawValue
+        let ext = becomesAZW3 ? "azw3" : becomesPDF ? "pdf" : format.rawValue
         let author = authors.first.map { " - \($0)" } ?? ""
         return "\(title)\(author)".safeFilename + ".\(ext)"
     }
@@ -134,17 +138,19 @@ public struct ScannedFile: Sendable {
 }
 
 public enum FolderScanner {
-    /// Parcours récursif, sans suivre les paquets ni les fichiers cachés.
-    public static func scan(_ roots: [URL]) -> [ScannedFile] {
+    /// Parcours récursif, sans suivre les paquets ni les fichiers cachés. Les formats qui ne sont pas cherchés
+    /// dans les dossiers de livres (TXT, voir `BookFormat.isScannedInFolders`) le sont dans `imports`.
+    public static func scan(_ roots: [URL], allFormatsIn imports: URL? = nil) -> [ScannedFile] {
         var out: [ScannedFile] = []
         let keys: [URLResourceKey] = [.isRegularFileKey, .fileSizeKey, .contentModificationDateKey,
                                       .addedToDirectoryDateKey, .creationDateKey]
         for root in roots {
+            let everyFormat = imports.map { $0.standardizedFileURL.path == root.standardizedFileURL.path } ?? false
             guard let e = FileManager.default.enumerator(
                 at: root, includingPropertiesForKeys: keys,
                 options: [.skipsHiddenFiles, .skipsPackageDescendants]) else { continue }
             for case let url as URL in e {
-                guard BookFormat(url: url) != nil,
+                guard let format = BookFormat(url: url), everyFormat || format.isScannedInFolders,
                       let v = try? url.resourceValues(forKeys: Set(keys)), v.isRegularFile == true else { continue }
                 out.append(ScannedFile(url: url.standardizedFileURL, size: Int64(v.fileSize ?? 0),
                                        modifiedAt: v.contentModificationDate ?? .distantPast,

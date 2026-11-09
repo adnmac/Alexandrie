@@ -424,9 +424,22 @@ public enum KindleTransfer {
     public static func prepare(_ book: Book, directories: AppDirectories, brand: ReaderBrand = .kindle) throws -> URL {
         if book.isDRMProtected { return book.url }
         if book.format == .pdf && (book.pdfMode ?? .asIs) == .asIs { return book.url }
+        if book.sentAsIs(to: brand) { return book.url }
         let out = cachedCopy(of: book, directories: directories, brand: brand)
         if !FileManager.default.fileExists(atPath: out.path) {
-            if book.format == .pdf, book.pdfMode == .cropped {
+            if book.format.importer != nil {
+                // FB2, TXT : EPUB (puis AZW3 pour la Kindle). CBZ : PDF pour la Kindle, EPUB sinon.
+                if !brand.readsEPUB && book.becomesPDF {
+                    try Importers.writePDF(book.url, format: book.format, to: out, edits: book.edits)
+                } else if brand.readsEPUB {
+                    try Importers.writeEPUB(book.url, format: book.format, to: out, edits: book.edits)
+                } else {
+                    let epub = directories.conversions.appendingPathComponent("\(book.fingerprint)-import.epub")
+                    defer { try? FileManager.default.removeItem(at: epub) }
+                    try Importers.writeEPUB(book.url, format: book.format, to: epub, edits: book.edits)
+                    try EPUBToAZW3.convert(input: epub, output: out, edits: book.edits, asin: book.asin)
+                }
+            } else if book.format == .pdf, book.pdfMode == .cropped {
                 try PDFCrop.write(book.url, to: out, edits: book.edits)
             } else if book.format == .pdf {
                 if brand.readsEPUB {
@@ -462,6 +475,8 @@ public enum KindleTransfer {
         if book.format == .pdf, let mode = book.pdfMode, mode != .asIs {
             key += Data("\(mode.rawValue)-\(mode == .cropped ? PDFCrop.version : PDFReflow.version)".utf8)
         }
+        // Format d'un importeur : une nouvelle version de la conversion refait la copie.
+        if let importer = book.format.importer { key += Data("\(importer.id)-\(importer.version)".utf8) }
         // Copie pour une liseuse EPUB : distincte de celle de la Kindle (la clé de la Kindle ne change pas).
         if brand.readsEPUB { key += Data("liseuse-epub".utf8) }
         let variant = SHA256.hash(data: key).prefix(4).map { String(format: "%02x", $0) }.joined()
@@ -472,10 +487,14 @@ public enum KindleTransfer {
         directories.conversions.appendingPathComponent("\(book.fingerprint).epub")
     }
 
-    /// Conversion MOBI/AZW3 → EPUB vers un fichier temporaire du cache.
+    /// Conversion MOBI/AZW3 (ou d'un format d'importeur : FB2, TXT, CBZ) → EPUB vers un fichier temporaire du cache.
     public static func exportEPUB(_ book: Book, directories: AppDirectories) throws -> URL {
         let out = exportedEPUB(of: book, directories: directories)
-        try MobiToEPUB.convert(input: book.url, output: out, edits: book.edits)
+        if book.format.importer != nil {
+            try Importers.writeEPUB(book.url, format: book.format, to: out, edits: book.edits)
+        } else {
+            try MobiToEPUB.convert(input: book.url, output: out, edits: book.edits)
+        }
         return out
     }
 }

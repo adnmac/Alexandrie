@@ -13,7 +13,8 @@ public enum ExternalBackup {
     /// Nom d'avant Foluna : un dossier existant est renommé à la première sauvegarde.
     public static let legacyFolderName = "Sauvegarde Alexandrie"
     /// Fichiers de données copiés chaque jour (ceux qui manquent sont ignorés).
-    public static let dataFiles = ["library.json", "folders.json", "readers.json", "reading.json",
+    /// `library.formats.json` : livres des formats ajoutés après la 0.6.0 (voir `LibraryIndex.formatsFile`).
+    public static let dataFiles = ["library.json", "library.formats.json", "folders.json", "readers.json", "reading.json",
                                    "clippings.json", "researches.json", "opds.json", "zotero.json"]
     /// Dossiers tenus à jour (fichiers nouveaux ou modifiés copiés, fichiers disparus retirés).
     public static let mirroredFolders = ["Imports", "Covers"]

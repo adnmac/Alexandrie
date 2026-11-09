@@ -367,7 +367,23 @@ final class LibraryStore {
         // Une copie en double d'un livre déjà connu n'est pas revérifiée en ligne.
         let duplicates = hiddenDuplicates
         checkCatalog(newBooks.filter { !duplicates.contains($0) })
+        await restoreMissingCovers()
         if unreachable.isEmpty { await purgeStorage() }
+    }
+
+    /// Couvertures des livres des formats récents effacées pendant un retour à la 0.6.0 (qui ne connaît pas ces
+    /// livres et range leurs couvertures parmi les fichiers inutiles) : relues dans les livres.
+    private func restoreMissingCovers() async {
+        let covers = self.covers
+        let missing = books.filter {
+            $0.format.isOptional && $0.hasCover && !FileManager.default.fileExists(atPath: covers.url(for: $0.fingerprint).path)
+        }
+        guard !missing.isEmpty else { return }
+        await Task.detached(priority: .utility) {
+            for book in missing {
+                if let data = try? MetadataExtractor.extract(from: book.url).coverData { covers.store(data, key: book.fingerprint) }
+            }
+        }.value
     }
 
     // MARK: - Stockage de l'app
@@ -651,10 +667,16 @@ final class LibraryStore {
                 .timeSeparator(.omitted))
             let aside = directories.backups.appendingPathComponent("library-avant-restauration-\(stamp).json")
             try? FileManager.default.copyItem(at: directories.index, to: aside)
+            try? FileManager.default.copyItem(at: LibraryIndex.formatsFile(of: directories.index),
+                                              to: LibraryIndex.formatsFile(of: aside))
             // La sauvegarde remplace l'index avant l'enregistrement : ses livres d'un format inconnu de cette
             // version (que `save` recopie depuis le fichier) sont ainsi gardés.
             try? FileManager.default.removeItem(at: directories.index)
             try? FileManager.default.copyItem(at: backup.url, to: directories.index)
+            // Livres des formats récents : ceux de la sauvegarde (aucun pour une sauvegarde de la 0.6.0).
+            let side = LibraryIndex.formatsFile(of: directories.index)
+            try? FileManager.default.removeItem(at: side)
+            try? FileManager.default.copyItem(at: LibraryIndex.formatsFile(of: backup.url), to: side)
             books = restored
             saveNow()
             write(sync: true)

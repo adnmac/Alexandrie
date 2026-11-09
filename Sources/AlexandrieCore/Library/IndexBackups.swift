@@ -26,7 +26,15 @@ public enum IndexBackups {
         let target = dir.appendingPathComponent(name + "-" + dayFormat.string(from: now) + ".json")
         guard !FileManager.default.fileExists(atPath: target.path) else { return nil }
         try FileManager.default.copyItem(at: index, to: target)
-        for old in list(dir, name: name).dropFirst(keep) { try? FileManager.default.removeItem(at: old.url) }
+        // Livres des formats récents (`library.formats.json`), copiés avec l'index du même jour.
+        let side = LibraryIndex.formatsFile(of: index)
+        if FileManager.default.fileExists(atPath: side.path) {
+            try FileManager.default.copyItem(at: side, to: LibraryIndex.formatsFile(of: target))
+        }
+        for old in list(dir, name: name).dropFirst(keep) {
+            try? FileManager.default.removeItem(at: old.url)
+            try? FileManager.default.removeItem(at: LibraryIndex.formatsFile(of: old.url))
+        }
         return target
     }
 

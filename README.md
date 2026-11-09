@@ -89,6 +89,7 @@ Everything the app produces is in `~/Library/Application Support/Alexandrie/`:
 | Item | Purpose |
 |---|---|
 | `library.json` | library index |
+| `library.formats.json` | index of the books in formats added after version 0.6.0 (PRC, FB2, CBZ, TXT): kept apart so that `library.json` stays readable by 0.6.0 if you go back to it |
 | `Covers/` | scaled-down covers |
 | `Conversions/` | converted AZW3 and EPUB files (cache) |
 | `Imports/` | books added by drag and drop, “Import”, or downloaded from an online catalogue |

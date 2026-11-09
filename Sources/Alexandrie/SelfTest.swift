@@ -1047,7 +1047,14 @@ struct SelfTest {
         check("TXT ignoré dans un dossier de livres", !library.books.contains { $0.path.hasSuffix("/LISEZMOI.txt") })
         guard let book else { return }
 
+        // Retour possible à la 0.6.0 : l'index principal ne contient que des formats qu'elle sait lire.
+        library.saveNow()
         let directories = library.directories
+        let main = (try? Data(contentsOf: directories.index)).flatMap { try? JSONSerialization.jsonObject(with: $0) as? [[String: Any]] } ?? []
+        let formatsOf060: Set<String> = ["epub", "mobi", "azw3", "azw", "pdf"]
+        check("index lisible par la 0.6.0", !main.isEmpty && main.allSatisfy { formatsOf060.contains($0["format"] as? String ?? "") }
+              && ((try? LibraryIndex.load(LibraryIndex.formatsFile(of: directories.index))) ?? []).contains { $0.id == book.id })
+
         let prepared = await Task.detached {
             Result { try EPUBReader(url: KindleTransfer.prepare(book, directories: directories, brand: .kobo)).bookMetadata().title }
         }.value

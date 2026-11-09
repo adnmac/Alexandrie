@@ -56,6 +56,54 @@ import Testing
         #expect(kept["hasCover"] as? Bool == true)
     }
 
+    /// Retour possible à la 0.6.0 : `library.json` ne contient que les formats qu'elle sait lire ; les autres
+    /// livres sont dans `library.formats.json`, relus avec l'index.
+    @Test func recentFormatsStayOutOfMainIndex() throws {
+        let lib = SampleLibrary()
+        let epub = try lib.index("Candide.epub")
+        let fb2 = try lib.index("Fleuve.fb2")
+        let cbz = try lib.index("Album.cbz")
+        let url = lib.dir.appendingPathComponent("library.json")
+        try LibraryIndex.save([epub, fb2, cbz], to: url)
+
+        let formatsOf060: Set<String> = ["epub", "mobi", "azw3", "azw", "pdf"]
+        let main = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [[String: Any]])
+        #expect(main.allSatisfy { formatsOf060.contains($0["format"] as? String ?? "") })
+        #expect(main.count == 1)
+        let side = LibraryIndex.formatsFile(of: url)
+        #expect(side.lastPathComponent == "library.formats.json")
+        #expect(Set(try LibraryIndex.load(url).map(\.id)) == [epub.id, fb2.id, cbz.id])
+
+        // Plus aucun livre d'un format récent : le fichier voisin disparaît.
+        try LibraryIndex.save([epub], to: url)
+        #expect(!FileManager.default.fileExists(atPath: side.path))
+        #expect(try LibraryIndex.load(url) == [epub])
+    }
+
+    /// Fichier voisin abîmé : mis de côté seul, l'index principal reste lu.
+    @Test func damagedFormatsFileKeepsMainIndex() throws {
+        let lib = SampleLibrary()
+        let epub = try lib.index("Candide.epub")
+        let url = lib.dir.appendingPathComponent("library.json")
+        try LibraryIndex.save([epub], to: url)
+        let side = LibraryIndex.formatsFile(of: url)
+        try Data("[{\"path\": 1".utf8).write(to: side)
+        #expect(try LibraryIndex.load(url) == [epub])
+        #expect(!FileManager.default.fileExists(atPath: side.path))
+        #expect(FileManager.default.fileExists(atPath: url.path))
+    }
+
+    /// La copie du jour garde aussi les livres des formats récents ; elle n'apparaît qu'une fois dans la liste.
+    @Test func dailyBackupCopiesFormatsFile() throws {
+        let lib = SampleLibrary()
+        let url = lib.dir.appendingPathComponent("library.json")
+        try LibraryIndex.save([try lib.index("Candide.epub"), try lib.index("Fleuve.fb2")], to: url)
+        let dir = lib.dir.appendingPathComponent("Sauvegardes")
+        let copy = try #require(try IndexBackups.backUpToday(url, to: dir, now: Date(timeIntervalSince1970: 0)))
+        #expect(IndexBackups.list(dir).map(\.url.lastPathComponent) == [copy.lastPathComponent])
+        #expect(try LibraryIndex.load(copy).count == 2)
+    }
+
     /// Une entrée abîmée d'un format connu rend toujours l'index illisible (il sera mis de côté).
     @Test func damagedKnownEntryStillThrows() throws {
         let url = tempDirectory().appendingPathComponent("library.json")

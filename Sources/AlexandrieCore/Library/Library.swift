@@ -265,10 +265,46 @@ public struct CoverStore: Sendable {
 
 /// Persistance de l'index en JSON.
 public enum LibraryIndex {
+    /// Fichier voisin de l'index (`library.formats.json`) : livres des formats ajoutés après la version 0.6.0
+    /// (PRC, FB2, CBZ, TXT, voir `BookFormat.isOptional`). `library.json` ne contient ainsi que des formats que
+    /// la 0.6.0 sait lire : revenir à cette version ne rend pas l'index illisible (elle le mettrait de côté et
+    /// réindexerait la bibliothèque, sans les corrections). Elle ignore ce fichier, qui resservira au retour
+    /// à une version récente.
+    public static func formatsFile(of url: URL) -> URL {
+        url.deletingPathExtension().appendingPathExtension("formats.json")
+    }
+
     /// Index absent : bibliothèque vide. Index illisible : erreur, pour ne jamais l'écraser par une liste vide.
     /// Les livres d'un format que cette version ne connaît pas (index écrit par une version plus récente, ou
     /// sauvegarde restaurée) sont laissés de côté, sans rendre l'index illisible ; `save` les garde dans le fichier.
+    /// Un fichier voisin illisible est mis de côté seul : l'index principal reste lu.
     public static func load(_ url: URL) throws -> [Book] {
+        let main = try loadFile(url)
+        let side = formatsFile(of: url)
+        var extra: [Book] = []
+        do {
+            extra = try loadFile(side)
+        } catch {
+            try? quarantine(side)
+        }
+        let paths = Set(main.map(\.path))
+        return main + extra.filter { !paths.contains($0.path) }
+    }
+
+    /// Enregistre l'index : les formats de la 0.6.0 dans `url`, les autres dans `formatsFile(of:)`.
+    /// Le fichier voisin est écrit d'abord : une interruption entre les deux ne perd aucun livre.
+    public static func save(_ books: [Book], to url: URL) throws {
+        let side = formatsFile(of: url)
+        let extra = books.filter(\.format.isOptional)
+        if extra.isEmpty && otherFormatEntries(side).isEmpty {
+            if FileManager.default.fileExists(atPath: side.path) { try FileManager.default.removeItem(at: side) }
+        } else {
+            try saveFile(extra, to: side)
+        }
+        try saveFile(books.filter { !$0.format.isOptional }, to: url)
+    }
+
+    static func loadFile(_ url: URL) throws -> [Book] {
         guard FileManager.default.fileExists(atPath: url.path) else { return [] }
         let data = try Data(contentsOf: url)
         do {
@@ -281,8 +317,8 @@ public enum LibraryIndex {
         }
     }
 
-    /// Enregistre l'index en gardant, à la fin, les entrées de formats inconnus déjà présentes dans le fichier.
-    public static func save(_ books: [Book], to url: URL) throws {
+    /// Écrit un fichier de l'index en gardant, à la fin, les entrées de formats inconnus déjà présentes.
+    static func saveFile(_ books: [Book], to url: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = .sortedKeys
         let others = otherFormatEntries(url).filter { !Set(books.map(\.path)).contains($0.path ?? "") }
@@ -297,7 +333,7 @@ public enum LibraryIndex {
 
     /// Empreintes des livres de formats inconnus : leurs couvertures et copies de lecture ne sont pas supprimées.
     public static func otherFormatFingerprints(_ url: URL) -> Set<String> {
-        Set(otherFormatEntries(url).compactMap(\.fingerprint))
+        Set((otherFormatEntries(url) + otherFormatEntries(formatsFile(of: url))).compactMap(\.fingerprint))
     }
 
     static func otherFormatEntries(_ url: URL) -> [Entry] {

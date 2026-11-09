@@ -174,7 +174,10 @@ enum Panels {
     static func importBooks(into library: LibraryStore) {
         let panel = NSOpenPanel()
         panel.title = String(localized: "Importer des livres")
-        panel.allowedContentTypes = BookFormat.allCases.compactMap { .init(filenameExtension: $0.rawValue) }
+        // Formats activés ; « zip » pour les FictionBook compressés (« Livre.fb2.zip »), les autres ZIP sont ignorés.
+        let formats = BookFormat.allCases.filter { !library.disabledFormats.contains($0) }
+        let extensions = formats.map(\.rawValue) + (formats.contains(.fb2) ? ["zip"] : [])
+        panel.allowedContentTypes = extensions.compactMap { .init(filenameExtension: $0) }
         panel.allowsMultipleSelection = true
         if panel.runModal() == .OK { library.importFiles(panel.urls) }
     }
@@ -206,7 +209,7 @@ enum Panels {
         return alert.runModal() == .alertFirstButtonReturn
     }
 
-    /// Convertit un MOBI/AZW3 en EPUB puis propose où l'enregistrer.
+    /// Convertit un MOBI/AZW3 (ou un FB2, CBZ, TXT) en EPUB puis propose où l'enregistrer.
     static func exportEPUB(_ book: Book, library: LibraryStore) async {
         let directories = library.directories
         do {

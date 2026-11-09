@@ -387,11 +387,18 @@ final class KindleMonitor {
             return
         }
         // Livre d'un dossier débranché (S-062) : il reste en attente, il partira quand le disque reviendra.
-        let unavailable = books.filter { library.isUnavailable($0) }
+        let unavailable = books.filter { library.isUnavailable($0) && !library.isFormatDisabled($0) }
         if let first = unavailable.first {
             lastError = unavailable.count == 1
                 ? String(localized: "« \(first.title) » est indisponible : son dossier de livres est introuvable (disque débranché ?).")
                 : String(localized: "\(unavailable.count) livres sont indisponibles : leur dossier de livres est introuvable (disque débranché ?).")
+        }
+        // Format désactivé dans les réglages : le livre n'est pas envoyé.
+        let disabled = books.filter { library.isFormatDisabled($0) }
+        if let first = disabled.first {
+            lastError = disabled.count == 1
+                ? String(localized: "« \(first.title) » n'est pas envoyé : le format \(first.format.label) est désactivé (Réglages › Formats).")
+                : String(localized: "\(disabled.count) livres ne sont pas envoyés : leur format est désactivé (Réglages › Formats).")
         }
         let brand = device.brand
         let refused = books.filter { !$0.canSend(to: brand) }

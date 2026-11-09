@@ -15,6 +15,8 @@ final class LibraryStore {
     private(set) var folders: [LibraryFolders.Entry] = []
     /// Dossiers introuvables au dernier parcours (disque débranché) : leurs livres restent, indisponibles.
     private(set) var unavailableFolders: Set<String> = []
+    /// Formats désactivés dans Réglages › Formats : leurs livres restent, indisponibles, et aucun nouveau n'est ajouté.
+    private(set) var disabledFormats: Set<BookFormat> = Importers.disabledFormats()
     private(set) var isScanning = false
     private(set) var progress: (done: Int, total: Int)?
     /// Taille des couvertures et des conversions, calculée à la demande (réglages).
@@ -275,8 +277,21 @@ final class LibraryStore {
 
     /// Livre d'un dossier débranché : affiché, mais ni envoyé ni lu tant que le disque manque.
     func isUnavailable(_ book: Book) -> Bool {
+        if isFormatDisabled(book) { return true }
         guard !unavailableFolders.isEmpty, let folder = folder(of: book) else { return false }
         return unavailableFolders.contains(folder)
+    }
+
+    /// Livre d'un format désactivé (Réglages › Formats) : gardé avec ses corrections et ses notes, ni lu ni envoyé.
+    func isFormatDisabled(_ book: Book) -> Bool {
+        disabledFormats.contains(book.format)
+    }
+
+    /// Active ou désactive un format (FB2, CBZ, TXT, PRC) ; appliqué tout de suite par un nouveau parcours.
+    func setFormat(_ format: BookFormat, enabled: Bool) {
+        Importers.setEnabled(format, enabled)
+        disabledFormats = Importers.disabledFormats()
+        Task { await rescan() }
     }
 
     private var roots: [URL] {
@@ -314,8 +329,15 @@ final class LibraryStore {
         let offline = books.filter(isOffline)
         let known = books.filter { !isOffline($0) }
         let importsPath = directories.imports.path
+        let imports = directories.imports
+        // Format désactivé : ses livres déjà connus restent, ses nouveaux fichiers ne sont pas ajoutés.
+        let disabled = disabledFormats
+        let knownPaths = Set(known.map(\.path))
         let plan = await Task.detached {
-            LibraryMerge.plan(files: FolderScanner.scan(roots), known: known, importsPath: importsPath)
+            let files = FolderScanner.scan(roots, allFormatsIn: imports).filter { f in
+                (BookFormat(url: f.url).map { !disabled.contains($0) } ?? false) || knownPaths.contains(f.url.path)
+            }
+            return LibraryMerge.plan(files: files, known: known, importsPath: importsPath)
         }.value
         // Publie tout de suite les livres connus (avec les retouches faites pendant le parcours), puis complète au fil de l'extraction.
         let current = Dictionary(books.map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
@@ -832,12 +854,17 @@ final class LibraryStore {
     @discardableResult
     private func copyIntoImports(_ urls: [URL]) -> [URL] {
         var imported: [URL] = []
-        for url in urls where BookFormat(url: url) != nil {
+        for url in urls {
+            guard let format = BookFormat(url: url), !disabledFormats.contains(format) else { continue }
             var target = directories.imports.appendingPathComponent(url.lastPathComponent)
             var n = 2
+            // « Livre.fb2.zip » : le numéro va avant les deux extensions.
+            let name = url.lastPathComponent
+            let ext = format.fileExtensions.filter { name.lowercased().hasSuffix("." + $0) }.max { $0.count < $1.count }
+                ?? url.pathExtension
+            let base = String(name.dropLast(ext.count + 1))
             while FileManager.default.fileExists(atPath: target.path) {
-                let base = url.deletingPathExtension().lastPathComponent
-                target = directories.imports.appendingPathComponent("\(base) (\(n)).\(url.pathExtension)")
+                target = directories.imports.appendingPathComponent("\(base) (\(n)).\(ext)")
                 n += 1
             }
             do {
@@ -848,7 +875,8 @@ final class LibraryStore {
             }
         }
         if imported.isEmpty && lastError == nil {
-            lastError = String(localized: "Aucun fichier pris en charge (EPUB, MOBI, AZW3, AZW, PDF).")
+            let formats = BookFormat.allCases.filter { !disabledFormats.contains($0) }.map(\.label).joined(separator: ", ")
+            lastError = String(localized: "Aucun fichier pris en charge (\(formats)).")
         }
         return imported
     }

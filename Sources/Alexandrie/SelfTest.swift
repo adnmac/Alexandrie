@@ -791,6 +791,7 @@ struct SelfTest {
         await checkReaders(library: library)
         await checkZotero(library: library)
         await checkExternalBackup(library: library)
+        await checkFormats(library: library, folder: folder, outside: outside)
     }
 
     /// S-096 à S-098 : une Kobo et une liseuse USB simulées par des dossiers (envoi en EPUB, notes, dossier choisi).
@@ -1006,6 +1007,65 @@ struct SelfTest {
         opds.remove("bnr")
         check("catalogue retiré, puis rétabli", !opds.catalogs.contains { $0.id == "bnr" }
               && { opds.restoreSuggestions(); return opds.catalogs.count == OPDSCatalog.suggested.count }())
+    }
+
+    /// Formats des importeurs (FB2, TXT) : import, TXT ignoré dans les dossiers de livres, envoi préparé,
+    /// format désactivé puis réactivé (Réglages › Formats) sans perdre le livre.
+    private mutating func checkFormats(library: LibraryStore, folder: URL, outside: URL) async {
+        // Les réglages (UserDefaults) sont partagés avec l'app : l'état d'origine est rétabli à la fin.
+        let before = library.disabledFormats
+        defer { for f in BookFormat.allCases where f.isOptional { Importers.setEnabled(f, !before.contains(f)) } }
+        for f in BookFormat.allCases where f.isOptional { library.setFormat(f, enabled: true) }
+        await Self.wait { !library.isScanning }
+
+        let fb2 = """
+            <?xml version="1.0" encoding="utf-8"?>
+            <FictionBook xmlns="http://www.gribuser.ru/xml/fictionbook/2.0">
+            <description><title-info><author><first-name>Ada</first-name><last-name>Lovelace</last-name></author>
+            <book-title>Le Fleuve d'essai</book-title><lang>fr</lang></title-info></description>
+            <body><section><title><p>Premier chapitre</p></title><p>Il était une fois.</p></section></body>
+            </FictionBook>
+            """
+        let text = "Premier paragraphe du texte.\nSecond paragraphe du texte."
+        let fb2URL = outside.appendingPathComponent("fleuve.fb2")
+        let txtURL = outside.appendingPathComponent("Notes de lecture - Ada Lovelace.txt")
+        let ignored = folder.appendingPathComponent("LISEZMOI.txt")
+        do {
+            try Data(fb2.utf8).write(to: fb2URL)
+            try Data(text.utf8).write(to: txtURL)
+            try Data(text.utf8).write(to: ignored)
+        } catch {
+            check("formats : fichiers de test écrits", false, error.localizedDescription)
+            return
+        }
+        library.importFiles([fb2URL, txtURL])
+        await Self.wait { !library.isScanning && library.books.contains { $0.format == .txt } && library.books.contains { $0.format == .fb2 } }
+        let book = library.books.first { $0.format == .fb2 }
+        check("import d'un FB2", book?.title == "Le Fleuve d'essai" && book?.authors == ["Ada Lovelace"], book?.title ?? "absent")
+        let note = library.books.first { $0.format == .txt }
+        check("import d'un TXT", note?.title == "Notes de lecture" && note?.isImported == true, note?.title ?? "absent")
+        check("TXT ignoré dans un dossier de livres", !library.books.contains { $0.path.hasSuffix("/LISEZMOI.txt") })
+        guard let book else { return }
+
+        let directories = library.directories
+        let prepared = await Task.detached {
+            Result { try EPUBReader(url: KindleTransfer.prepare(book, directories: directories, brand: .kobo)).bookMetadata().title }
+        }.value
+        check("FB2 converti en EPUB pour la Kobo", (try? prepared.get()) == "Le Fleuve d'essai", "\(prepared)")
+
+        library.setFormat(.fb2, enabled: false)
+        await Self.wait { !library.isScanning }
+        check("format désactivé : livre gardé, indisponible", library.books.contains { $0.id == book.id }
+              && library.book(id: book.id).map(library.isUnavailable) == true)
+        let count = library.books.count
+        let other = outside.appendingPathComponent("autre.fb2")
+        try? Data(fb2.utf8).write(to: other)
+        library.importFiles([other])
+        await Self.wait { !library.isScanning }
+        check("format désactivé : rien de nouveau importé", library.books.count == count, "\(library.books.count) au lieu de \(count)")
+        library.setFormat(.fb2, enabled: true)
+        await Self.wait { !library.isScanning }
+        check("format réactivé : livre de nouveau disponible", library.book(id: book.id).map(library.isUnavailable) == false)
     }
 
     /// Attend une condition (au plus `timeout` secondes) en laissant tourner les tâches de l'app.

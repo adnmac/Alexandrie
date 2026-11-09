@@ -448,9 +448,9 @@ struct BookActions: View {
                 library.undoable(String(localized: "Retirer des envoyés")) { library.forgetSent(book) }
             }
         }
-        if [.mobi, .azw3, .azw].contains(book.format) {
+        if book.format.isMobi || book.format.importer != nil {
             Button("Exporter en EPUB…") { Task { await Panels.exportEPUB(book, library: library) } }
-                .disabled(book.isDRMProtected)
+                .disabled(book.isDRMProtected || library.isFormatDisabled(book))
         }
         Divider()
         Button("Afficher dans le Finder") { NSWorkspace.shared.activateFileViewerSelecting([book.url]) }

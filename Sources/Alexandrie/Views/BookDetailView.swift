@@ -78,11 +78,21 @@ struct BookDetailView: View {
                 } else if !kindle.isConnected {
                     Text("Liseuse non branchée : le livre peut être mis en attente et partira dès sa connexion.")
                         .font(.caption).foregroundStyle(.secondary)
+                } else if library.isFormatDisabled(draft) {
+                    Label("Format \(draft.format.label) désactivé (Réglages › Formats) : le livre est gardé, mais ni lu ni envoyé.",
+                          systemImage: "puzzlepiece.extension")
+                        .font(.caption).foregroundStyle(.secondary)
                 } else if let brand = kindle.brand, !draft.canSend(to: brand) {
                     Text("Protégé par DRM : il ne peut pas être lu sur cette \(brand.label).")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if kindle.brand == .kindle && draft.format == .epub {
                     Text("Sera converti en AZW3 avant l'envoi (la Kindle ne lit pas l'EPUB par USB).")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if kindle.brand == .kindle && draft.format.importer != nil && draft.becomesAZW3 {
+                    Text("Sera converti en AZW3 avant l'envoi (la Kindle ne lit pas le \(draft.format.label) par USB).")
+                        .font(.caption).foregroundStyle(.secondary)
+                } else if kindle.brand == .kindle && draft.becomesPDF {
+                    Text("Sera envoyé en PDF, une page par image (la Kindle ne lit pas le CBZ).")
                         .font(.caption).foregroundStyle(.secondary)
                 } else if let brand = kindle.brand, brand.readsEPUB, !draft.isDRMProtected,
                           draft.sentExtension(for: brand) != draft.format.rawValue {
@@ -103,6 +113,10 @@ struct BookDetailView: View {
                         .font(.callout).foregroundStyle(Palette.warning)
                 } else if draft.format == .pdf && !isTrashed {
                     PDFKindlePicker(mode: $draft.pdfMode, url: draft.url)
+                } else if draft.format == .txt && !isTrashed {
+                    Label("Texte brut : paragraphes et chapitres sont reconstitués, la mise en page peut être approximative.",
+                          systemImage: "text.alignleft")
+                        .font(.caption).foregroundStyle(.secondary)
                 }
 
                 Form {

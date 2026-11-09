@@ -1392,6 +1392,34 @@
         }
       }
     },
+    "%lld livres ne sont pas envoyés : leur format est désactivé (Réglages › Formats)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld Bücher werden nicht gesendet: Ihr Format ist deaktiviert (Einstellungen › Formate)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld books are not sent: their format is turned off (Settings › Formats)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld libros no se envían: su formato está desactivado (Ajustes › Formatos)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld boeken worden niet verstuurd: hun formaat is uitgeschakeld (Instellingen › Formaten)."
+          }
+        }
+      }
+    },
     "%lld livres quittent la bibliothèque, avec leur place sur les étagères et dans l'attente d'envoi. Les fichiers restent sur le disque." : {
       "localizations" : {
         "de" : {
@@ -3804,6 +3832,34 @@
         }
       }
     },
+    "Ajoutés par import ou glisser-déposer seulement, pas en parcourant les dossiers. Convertis en EPUB, ou en AZW3 pour la Kindle." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur per Import oder Drag & Drop hinzugefügt, nicht beim Durchsuchen der Ordner. In EPUB umgewandelt, für den Kindle in AZW3."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Added only by importing or drag and drop, not when scanning folders. Converted to EPUB, or to AZW3 for the Kindle."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se añaden importándolos o arrastrándolos, no al recorrer las carpetas. Se convierten a EPUB, o a AZW3 para el Kindle."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen toegevoegd via importeren of slepen, niet bij het doorzoeken van mappen. Omgezet naar EPUB, of naar AZW3 voor de Kindle."
+          }
+        }
+      }
+    },
     "Ajoutés récemment" : {
       "localizations" : {
         "de" : {
@@ -3828,6 +3884,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Recent toegevoegd"
+          }
+        }
+      }
+    },
+    "Anciens livres Kindle et Mobipocket, lus comme un MOBI." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ältere Kindle- und Mobipocket-Bücher, wie ein MOBI gelesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Older Kindle and Mobipocket books, read like a MOBI."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libros antiguos de Kindle y Mobipocket, leídos como un MOBI."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Oudere Kindle- en Mobipocket-boeken, gelezen als een MOBI."
           }
         }
       }
@@ -4056,30 +4140,30 @@
         }
       }
     },
-    "Aucun fichier pris en charge (EPUB, MOBI, AZW3, AZW, PDF)." : {
+    "Aucun fichier pris en charge (%@)." : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Keine unterstützte Datei (EPUB, MOBI, AZW3, AZW, PDF)."
+            "value" : "Keine unterstützte Datei (%@)."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No supported file (EPUB, MOBI, AZW3, AZW, PDF)."
+            "value" : "No supported file (%@)."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ningún archivo compatible (EPUB, MOBI, AZW3, AZW, PDF)."
+            "value" : "Ningún archivo compatible (%@)."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Geen ondersteund bestand (EPUB, MOBI, AZW3, AZW, PDF)."
+            "value" : "Geen ondersteund bestand (%@)."
           }
         }
       }
@@ -5032,6 +5116,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Andere formaten"
+          }
+        }
+      }
+    },
+    "Bandes dessinées (CBZ)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comics (CBZ)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comics (CBZ)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cómics (CBZ)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Strips (CBZ)"
           }
         }
       }
@@ -8256,6 +8368,34 @@
         }
       }
     },
+    "EPUB, MOBI, AZW3, AZW et PDF sont toujours pris en charge. Désactiver un format ne supprime rien : ses livres restent dans la bibliothèque avec leurs corrections et leurs notes, sans être lus ni envoyés, et reviennent dès qu'il est réactivé." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EPUB, MOBI, AZW3, AZW und PDF werden immer unterstützt. Das Deaktivieren eines Formats löscht nichts: Seine Bücher bleiben mit ihren Korrekturen und Notizen in der Bibliothek, werden weder gelesen noch gesendet und kommen zurück, sobald es wieder aktiviert ist."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EPUB, MOBI, AZW3, AZW and PDF are always supported. Turning a format off deletes nothing: its books stay in the library with their corrections and notes, neither read nor sent, and come back as soon as it is turned on again."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EPUB, MOBI, AZW3, AZW y PDF siempre son compatibles. Desactivar un formato no elimina nada: sus libros permanecen en la biblioteca con sus correcciones y notas, sin leerse ni enviarse, y vuelven en cuanto se reactiva."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "EPUB, MOBI, AZW3, AZW en PDF worden altijd ondersteund. Een formaat uitschakelen verwijdert niets: de boeken blijven in de bibliotheek met hun correcties en notities, zonder te worden gelezen of verstuurd, en komen terug zodra het weer is ingeschakeld."
+          }
+        }
+      }
+    },
     "Elle a été supprimée." : {
       "localizations" : {
         "de" : {
@@ -9666,6 +9806,34 @@
         }
       }
     },
+    "Fichiers .fb2 et .fb2.zip, convertis en EPUB, ou en AZW3 pour la Kindle." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ".fb2- und .fb2.zip-Dateien, in EPUB umgewandelt, für den Kindle in AZW3."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ".fb2 and .fb2.zip files, converted to EPUB, or to AZW3 for the Kindle."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Archivos .fb2 y .fb2.zip, convertidos a EPUB, o a AZW3 para el Kindle."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : ".fb2- en .fb2.zip-bestanden, omgezet naar EPUB, of naar AZW3 voor de Kindle."
+          }
+        }
+      }
+    },
     "Fichiers et dossiers › Foluna › Volumes amovibles, puis cliquez sur « Actualiser »." : {
       "localizations" : {
         "de" : {
@@ -9718,6 +9886,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geïndexeerde bestanden"
+          }
+        }
+      }
+    },
+    "FictionBook (FB2)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FictionBook (FB2)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FictionBook (FB2)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FictionBook (FB2)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "FictionBook (FB2)"
           }
         }
       }
@@ -10036,6 +10232,34 @@
         }
       }
     },
+    "Format %@ désactivé (Réglages › Formats) : le livre est gardé, mais ni lu ni envoyé." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format %@ deaktiviert (Einstellungen › Formate): Das Buch bleibt erhalten, wird aber weder gelesen noch gesendet."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ format turned off (Settings › Formats): the book is kept, but neither read nor sent."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formato %@ desactivado (Ajustes › Formatos): el libro se conserva, pero no se lee ni se envía."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formaat %@ uitgeschakeld (Instellingen › Formaten): het boek blijft bewaard, maar wordt niet gelezen of verstuurd."
+          }
+        }
+      }
+    },
     "Format %@ non analysable : titre déduit du nom de fichier." : {
       "localizations" : {
         "de" : {
@@ -10088,6 +10312,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Formaten"
+          }
+        }
+      }
+    },
+    "Formats supplémentaires" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Weitere Formate"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Additional formats"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formatos adicionales"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Extra formaten"
           }
         }
       }
@@ -15100,6 +15352,62 @@
         }
       }
     },
+    "PDF non écrit" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF nicht geschrieben"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF not written"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF no escrito"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PDF niet geschreven"
+          }
+        }
+      }
+    },
+    "PRC (Mobipocket)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRC (Mobipocket)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRC (Mobipocket)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRC (Mobipocket)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "PRC (Mobipocket)"
+          }
+        }
+      }
+    },
     "Page %lld" : {
       "localizations" : {
         "de" : {
@@ -18336,6 +18644,34 @@
         }
       }
     },
+    "Sera converti en AZW3 avant l'envoi (la Kindle ne lit pas le %@ par USB)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird vor dem Senden in AZW3 umgewandelt (der Kindle liest %@ nicht über USB)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Will be converted to AZW3 before sending (the Kindle does not read %@ over USB)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se convertirá a AZW3 antes del envío (el Kindle no lee %@ por USB)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wordt vóór verzending omgezet naar AZW3 (de Kindle leest geen %@ via USB)."
+          }
+        }
+      }
+    },
     "Sera converti en EPUB avant l'envoi : la %@ le lit mieux." : {
       "localizations" : {
         "de" : {
@@ -18360,6 +18696,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wordt vóór verzending omgezet naar EPUB: de %@ leest dat beter."
+          }
+        }
+      }
+    },
+    "Sera envoyé en PDF, une page par image (la Kindle ne lit pas le CBZ)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wird als PDF gesendet, eine Seite pro Bild (der Kindle liest kein CBZ)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Will be sent as a PDF, one page per image (the Kindle does not read CBZ)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Se enviará en PDF, una página por imagen (el Kindle no lee CBZ)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wordt als pdf verstuurd, één pagina per afbeelding (de Kindle leest geen CBZ)."
           }
         }
       }
@@ -19578,6 +19942,62 @@
         }
       }
     },
+    "Texte brut (TXT)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiner Text (TXT)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plain text (TXT)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texto sin formato (TXT)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platte tekst (TXT)"
+          }
+        }
+      }
+    },
+    "Texte brut : paragraphes et chapitres sont reconstitués, la mise en page peut être approximative." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reiner Text: Absätze und Kapitel werden rekonstruiert, das Layout kann ungenau sein."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Plain text: paragraphs and chapters are rebuilt, so the layout may be approximate."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texto sin formato: los párrafos y capítulos se reconstruyen, la maquetación puede ser aproximada."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Platte tekst: alinea’s en hoofdstukken worden opnieuw opgebouwd, de opmaak kan bij benadering zijn."
+          }
+        }
+      }
+    },
     "Texte d'origine : « %@ »" : {
       "localizations" : {
         "de" : {
@@ -20558,6 +20978,34 @@
         }
       }
     },
+    "Une image par page : envoyées telles quelles à la Kobo, en PDF à la Kindle." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ein Bild pro Seite: unverändert an den Kobo gesendet, als PDF an den Kindle."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One image per page: sent as is to the Kobo, as a PDF to the Kindle."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Una imagen por página: se envían tal cual al Kobo, en PDF al Kindle."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eén afbeelding per pagina: ongewijzigd naar de Kobo verstuurd, als pdf naar de Kindle."
+          }
+        }
+      }
+    },
     "Une mise à jour de Foluna est disponible sur GitHub" : {
       "localizations" : {
         "de" : {
@@ -21398,6 +21846,62 @@
         }
       }
     },
+    "XML invalide" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ungültiges XML"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "invalid XML"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XML no válido"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ongeldige XML"
+          }
+        }
+      }
+    },
+    "XML non pris en charge (entités déclarées)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "nicht unterstütztes XML (deklarierte Entitäten)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "unsupported XML (declared entities)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "XML no compatible (entidades declaradas)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "niet-ondersteunde XML (gedeclareerde entiteiten)"
+          }
+        }
+      }
+    },
     "Zotero" : {
       "localizations" : {
         "de" : {
@@ -21622,6 +22126,34 @@
         }
       }
     },
+    "aucun fichier FB2 dans l'archive" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keine FB2-Datei im Archiv"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no FB2 file in the archive"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ningún archivo FB2 en el archivo comprimido"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geen FB2-bestand in het archief"
+          }
+        }
+      }
+    },
     "aucune" : {
       "localizations" : {
         "de" : {
@@ -21646,6 +22178,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "geen"
+          }
+        }
+      }
+    },
+    "aucune image dans l'archive" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "kein Bild im Archiv"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no image in the archive"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ninguna imagen en el archivo comprimido"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geen afbeelding in het archief"
+          }
+        }
+      }
+    },
+    "aucune page lisible" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "keine lesbare Seite"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no readable page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ninguna página legible"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "geen leesbare pagina"
           }
         }
       }
@@ -21702,6 +22290,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "deze PDF bevat geen tekst"
+          }
+        }
+      }
+    },
+    "ce fichier n'est pas du texte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "diese Datei ist kein Text"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this file is not text"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "este archivo no es texto"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dit bestand is geen tekst"
+          }
+        }
+      }
+    },
+    "ce n'est pas un livre FictionBook" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "das ist kein FictionBook-Buch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "this is not a FictionBook book"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "no es un libro FictionBook"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "dit is geen FictionBook-boek"
           }
         }
       }
@@ -22276,6 +22920,34 @@
         }
       }
     },
+    "fichier trop volumineux" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Datei zu groß"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "file too large"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "archivo demasiado grande"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "bestand te groot"
+          }
+        }
+      }
+    },
     "fr, en, de…" : {
       "localizations" : {
         "de" : {
@@ -22580,6 +23252,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "libmtp geladen"
+          }
+        }
+      }
+    },
+    "livre vide" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "leeres Buch"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "empty book"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "libro vacío"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "leeg boek"
           }
         }
       }
@@ -23012,6 +23712,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "‘%1$@’ is met DRM beveiligd: het kan niet gelezen worden op deze %2$@."
+          }
+        }
+      }
+    },
+    "« %@ » n'est pas envoyé : le format %@ est désactivé (Réglages › Formats)." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%1$@“ wird nicht gesendet: Das Format %2$@ ist deaktiviert (Einstellungen › Formate)."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“%1$@” is not sent: the %2$@ format is turned off (Settings › Formats)."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "«%1$@» no se envía: el formato %2$@ está desactivado (Ajustes › Formatos)."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "« %1$@ » n'est pas envoyé : le format %2$@ est désactivé (Réglages › Formats)."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "‘%1$@’ wordt niet verstuurd: het formaat %2$@ is uitgeschakeld (Instellingen › Formaten)."
           }
         }
       }

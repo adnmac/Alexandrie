@@ -113,7 +113,7 @@ struct ReaderRow: View {
 
 /// Onglets des réglages, dans l'ordre des réglages Mac.
 enum SettingsTab: String, CaseIterable {
-    case general, library, backup, kindle
+    case general, library, formats, backup, kindle
 
     static let storageKey = "settingsTab"
 
@@ -121,6 +121,7 @@ enum SettingsTab: String, CaseIterable {
         switch self {
         case .general: String(localized: "Général")
         case .library: String(localized: "Bibliothèque")
+        case .formats: String(localized: "Formats")
         case .backup: String(localized: "Sauvegarde")
         case .kindle: String(localized: "Liseuses")
         }
@@ -130,6 +131,7 @@ enum SettingsTab: String, CaseIterable {
         switch self {
         case .general: "gearshape"
         case .library: "books.vertical"
+        case .formats: "puzzlepiece.extension"
         case .backup: "externaldrive.badge.icloud"
         case .kindle: "ipad.landscape"
         }
@@ -236,6 +238,14 @@ struct SettingsView: View {
             .tabItem { Label(SettingsTab.library.title, systemImage: SettingsTab.library.symbol) }
             .tag(SettingsTab.library)
 
+            Form {
+                FormatsSection()
+            }
+            .formStyle(.grouped)
+            .fitsContent()
+            .tabItem { Label(SettingsTab.formats.title, systemImage: SettingsTab.formats.symbol) }
+            .tag(SettingsTab.formats)
+
             // Sauvegardes : copie hors du Mac (iCloud Drive, disque externe) d'abord, copies locales ensuite.
             Form {
                 ExternalBackupSection()
@@ -305,5 +315,49 @@ struct SettingsView: View {
 
     private func size(_ bytes: Int64) -> String {
         ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+    }
+}
+
+/// Formats pris en charge par les importeurs, activables un par un. Tous le sont à l'installation.
+struct FormatsSection: View {
+    @Environment(LibraryStore.self) private var library
+
+    var body: some View {
+        Section {
+            ForEach(BookFormat.allCases.filter(\.isOptional), id: \.self) { format in
+                Toggle(isOn: Binding(get: { !library.disabledFormats.contains(format) },
+                                     set: { library.setFormat(format, enabled: $0) })) {
+                    VStack(alignment: .leading, spacing: Space.xs) {
+                        Text(Self.name(format))
+                        Text(Self.detail(format)).font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        } header: {
+            Text("Formats supplémentaires")
+        } footer: {
+            Text("EPUB, MOBI, AZW3, AZW et PDF sont toujours pris en charge. Désactiver un format ne supprime rien : ses livres restent dans la bibliothèque avec leurs corrections et leurs notes, sans être lus ni envoyés, et reviennent dès qu'il est réactivé.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    static func name(_ format: BookFormat) -> String {
+        switch format {
+        case .prc: String(localized: "PRC (Mobipocket)")
+        case .fb2: String(localized: "FictionBook (FB2)")
+        case .cbz: String(localized: "Bandes dessinées (CBZ)")
+        case .txt: String(localized: "Texte brut (TXT)")
+        default: format.label
+        }
+    }
+
+    static func detail(_ format: BookFormat) -> String {
+        switch format {
+        case .prc: String(localized: "Anciens livres Kindle et Mobipocket, lus comme un MOBI.")
+        case .fb2: String(localized: "Fichiers .fb2 et .fb2.zip, convertis en EPUB, ou en AZW3 pour la Kindle.")
+        case .cbz: String(localized: "Une image par page : envoyées telles quelles à la Kobo, en PDF à la Kindle.")
+        case .txt: String(localized: "Ajoutés par import ou glisser-déposer seulement, pas en parcourant les dossiers. Convertis en EPUB, ou en AZW3 pour la Kindle.")
+        default: ""
+        }
     }
 }

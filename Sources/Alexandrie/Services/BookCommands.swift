@@ -99,10 +99,10 @@ extension BookCommands {
         NSWorkspace.shared.open(book.url)
     }
 
-    /// Un seul MOBI, AZW3 ou AZW sans DRM.
+    /// Un seul MOBI, AZW3, AZW, PRC, FB2, CBZ ou TXT sans DRM, d'un format activé.
     var canExportEPUB: Bool {
         guard books.count == 1, let book = books.first else { return false }
-        return [.mobi, .azw3, .azw].contains(book.format) && !book.isDRMProtected
+        return (book.format.isMobi || book.format.importer != nil) && !book.isDRMProtected && !library.isFormatDisabled(book)
     }
 
     func exportEPUB() {

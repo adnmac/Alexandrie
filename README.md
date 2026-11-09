@@ -8,7 +8,7 @@ Requires macOS 14 Sonoma or later on a Mac with Apple silicon. Free and open sou
 
 ## Features
 
-- Indexes one or more existing book folders (EPUB, MOBI, AZW3, AZW, PDF) **without ever modifying them**; a folder on an unplugged disk keeps its books, shown as unavailable until the disk is back.
+- Indexes one or more existing book folders (EPUB, MOBI, AZW3, AZW, PDF, and PRC, FB2, CBZ) **without ever modifying them**; a folder on an unplugged disk keeps its books, shown as unavailable until the disk is back.
 - Reads title, authors, language, publisher, summary and cover; search, sorting, filters by format and author.
 - Title, authors, publisher, publication date, ISBN, language, summary and tags can be corrected in the app;
   corrections are applied to the copies sent to the Kindle (the source file stays untouched).
@@ -20,6 +20,12 @@ Requires macOS 14 Sonoma or later on a Mac with Apple silicon. Free and open sou
 - **Search inside books**: the search field looks in titles, authors… or in the text of the books (EPUB, MOBI, AZW3, PDF), indexed in the background, one file per book, with an “Exact Spelling” option (case and accents); each matching book shows its excerpts, and an excerpt opens the reading window at the passage, with the list of matches in the left column and ⌘G / ⇧⌘G to move between them.
 - PDF: as is, **with cropped margins** (the text looks bigger) or as **resizable text** (text extracted to AZW3, chapters taken from the PDF's outline); the original is never modified.
 - **MOBI/AZW3 → EPUB conversion** (KF7, KF8 and hybrid files).
+- **More formats**, each one can be turned off in Settings › Formats (its books stay in the library, neither read nor sent):
+  **PRC** (old Mobipocket books, read like a MOBI), **FictionBook** (`.fb2`, `.fb2.zip`) and **plain text** (`.txt`, with
+  the Project Gutenberg header read and chapters found by their titles), converted to EPUB, or to AZW3 for the Kindle;
+  **comics** (`.cbz`, one image per page, `ComicInfo.xml` read), sent as is to the Kobo and as a PDF to the Kindle.
+  TXT files are added only by import or drag and drop, never by scanning a book folder (too many README files).
+  FB2, CBZ and TXT are read by importers (`Sources/AlexandrieCore/Import/`) with limits on file, archive and image sizes.
 - **Zotero**: “Send to Zotero” (Export menu of a book's or a topic's notes) copies passages, notes, colours and locations into a note attached to the book's item, found by ISBN or title and author, or created from the book's details. Sending again updates the note, without duplicates; a topic gives one note per book. Notes stay in Foluna: changes made in Zotero do not come back. Requires Zotero 10 or later, open, with Settings › Advanced › “Allow other applications on this computer to communicate with Zotero”, and “Always Allow” on the first send.
 - **Online catalogues (OPDS)**: Project Gutenberg, Ebooks libres et gratuits and the Bibliothèque numérique romande are offered in the sidebar; you can add the address of any public OPDS 1.2 catalogue (https, no account). Browse its sections, search it from the search field (Return key), keep only books in one language with the “Language” menu (at Gutenberg, searches and lists are filtered by the server), and “Download” adds the book to the library like an import; it is then sent to the e-reader from its details. Paid or DRM-protected books are skipped.
 - Kindle as a **USB disk** (models up to 2023) and over **MTP** (models from late 2024, via libmtp).
@@ -107,6 +113,7 @@ and can empty the conversions. An unreadable `library.json` is never overwritten
   - `Conversion/` `MobiToEPUB` (inspired by KindleUnpack) and `EPUBToAZW3` (inspired by calibre's KF8 writer)
   - `Library/` scanner, fingerprints, covers, JSON index
   - `Kindle/` detection and transfer (mounted disk, MTP)
+  - `Import/` importers for FB2, CBZ and TXT (`BookImporter`), converted through `ImportedDocument` (PRC is read by `Mobi/`)
 - `Sources/CMTPShim`: C bridge to libmtp (dlopen)
 - `Sources/Alexandrie`: SwiftUI app
   - `Views/` one view per file (`ContentView`: the main window; `Navigation`: sidebar pages)

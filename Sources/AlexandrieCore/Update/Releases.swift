@@ -5,7 +5,7 @@ import Security
 public struct ReleaseInfo: Equatable, Sendable {
     public var version: String
     public var notes: String
-    /// Image disque de l'app signée (Alexandrie-X.Y.Z.dmg), sinon son archive (.zip, anciennes versions).
+    /// Image disque de l'app signée (Foluna-X.Y.Z.dmg), sinon son archive (.zip, anciennes versions).
     public var downloadURL: URL
     public var pageURL: URL?
 

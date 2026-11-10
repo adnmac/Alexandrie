@@ -37,8 +37,19 @@ STAGE="$ROOT/build/dmg"
 rm -rf "$STAGE" "$DMG" && mkdir -p "$STAGE"
 ditto "$APP" "$STAGE/Foluna.app"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -quiet -volname "Foluna $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDZO "$DMG"
-rm -rf "$STAGE"
+# La 0.6.0 installée ne cherche que « Alexandrie.app » dans l'image : un lien vers Foluna.app lui suffit
+# (ditto suit le lien et copie l'app). hdiutil -srcfolder perd le drapeau « caché » : on le pose sur
+# l'image montée en écriture, puis on la compresse.
+ln -s Foluna.app "$STAGE/Alexandrie.app"
+RW="$ROOT/build/dmg-rw.dmg"
+MNT="$ROOT/build/dmg-mnt"
+rm -rf "$RW" "$MNT"
+hdiutil create -quiet -volname "Foluna $VERSION" -srcfolder "$STAGE" -fs HFS+ -format UDRW "$RW"
+hdiutil attach -quiet -nobrowse -noautoopen -mountpoint "$MNT" "$RW"
+chflags -h hidden "$MNT/Alexandrie.app"
+hdiutil detach -quiet "$MNT"
+hdiutil convert -quiet "$RW" -format UDZO -o "$DMG"
+rm -rf "$STAGE" "$RW" "$MNT"
 hdiutil verify -quiet "$DMG"
 
 PREVIOUS="$(git describe --tags --abbrev=0 2>/dev/null || true)"

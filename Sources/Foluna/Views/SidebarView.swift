@@ -23,6 +23,7 @@ struct SidebarView: View {
             Section("Bibliothèque") {
                 let books = library.visibleBooks
                 row(String(localized: "Tous les livres"), "books.vertical", .all, count: count(books))
+                row(String(localized: "Favoris"), "star", .favorites, count: count(books.filter(\.isFavorite)))
                 row(String(localized: "Ajoutés récemment"), "clock", .recent)
                 row(String(localized: "Envoyés à la liseuse"), "checkmark.circle", .sent,
                     count: count(books.filter { $0.lastSentAt != nil }))

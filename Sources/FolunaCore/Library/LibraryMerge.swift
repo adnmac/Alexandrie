@@ -66,5 +66,6 @@ public enum LibraryMerge {
         book.sentTo = previous.sentTo
         book.trashedAt = previous.trashedAt
         book.shelves = previous.shelves
+        book.favoritedAt = previous.favoritedAt
     }
 }

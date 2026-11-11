@@ -202,8 +202,35 @@ struct SelfTest {
             }
         }
 
+        // Favoris (S-107) : tout le livre, menu Livre (⌘D), ⌘Z, gardés à la relecture de l'index.
+        if let book = library.visibleBooks.first {
+            let command = BookCommands(books: [book], list: .all, library: library, kindle: kindle)
+            check("Livre > Ajouter aux favoris actif", command.canFavorite && command.favoriteTitle == String(localized: "Ajouter aux favoris"))
+            command.toggleFavorite()
+            let files = library.books.filter { (library.identities[$0.id] ?? BookGroups.key($0)) == (library.identities[book.id] ?? BookGroups.key(book)) }
+            check("favori : tous les fichiers du livre", !files.isEmpty && files.allSatisfy { library.book(id: $0.id)?.isFavorite == true })
+            let favorites = library.visibleBooks.filter(\.isFavorite)
+            check("page Favoris : le livre", favorites.contains { $0.id == book.id })
+            check("Livre > Retirer des favoris ensuite",
+                  BookCommands(books: [book], list: .favorites, library: library, kindle: kindle).favoriteTitle == String(localized: "Retirer des favoris"))
+            let date = library.book(id: book.id)?.favoritedAt
+            var edited = library.book(id: book.id)!
+            edited.favoritedAt = nil
+            library.update(edited)
+            check("fiche enregistrée : le favori reste", library.book(id: book.id)?.favoritedAt == date)
+            undo.undo()
+            check("⌘Z retire le favori", library.book(id: book.id)?.isFavorite == false)
+            undo.redo()
+            library.saveNow()
+            check("favori gardé dans l'index", (try? LibraryIndex.load(directories.index))?.first { $0.id == book.id }?.isFavorite == true)
+            check("Favoris grisé dans la corbeille", !BookCommands(books: [book], list: .trash, library: library, kindle: kindle).canFavorite
+                  && !BookCommands(books: [], list: .all, library: library, kindle: kindle).canFavorite)
+            library.toggleFavorite([book])
+            check("Retirer des favoris", library.book(id: book.id)?.isFavorite == false)
+        }
+
         // Page de la barre latérale gardée d'un lancement à l'autre (@SceneStorage) : aller-retour en texte.
-        let pages: [SidebarItem] = [.all, .recent, .sent, .toReview, .kindle, .pending, .trash, .notes, .shelf("A1B2"),
+        let pages: [SidebarItem] = [.all, .recent, .favorites, .sent, .toReview, .kindle, .pending, .trash, .notes, .shelf("A1B2"),
                                     .format(.azw3), .author("dupont jeanne"), .series("commissaire: vidal"), .genre("policier"),
                                     .folder("/Volumes/Disque: livres/Romans")]
         let lost = pages.filter { SidebarItem(storageKey: $0.storageKey) != $0 }

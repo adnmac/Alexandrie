@@ -116,6 +116,10 @@ struct LibraryView: View {
                                 .background(.quaternary, in: Capsule())
                         }
                     }
+                    if !r.isFile, r.book.isFavorite {
+                        Image(systemName: "star.fill").foregroundStyle(Palette.favorite)
+                            .accessibilityLabel(Text("Favori")).help("Favori")
+                    }
                     if (r.group?.books ?? [r.book]).contains(where: kindle.isOnDevice) {
                         Image(systemName: "checkmark.circle.fill").foregroundStyle(Palette.success).help("Sur la liseuse")
                     }
@@ -168,6 +172,8 @@ struct BookCard: View {
     var fileCount = 1
     var onDevice = false
     let isSelected: Bool
+    /// Étoile proposée au survol (S-107) ; toujours visible sur un favori.
+    @State private var isHovered = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.sm) {
@@ -175,6 +181,7 @@ struct BookCard: View {
                 RoundedRectangle(cornerRadius: Radius.cover)
                     .strokeBorder(isSelected ? Palette.accent : .clear, lineWidth: 3)  // grid: ok épaisseur de trait, pas un espacement
                     .overlay(alignment: .topTrailing) { badges }
+                    .overlay(alignment: .topLeading) { favoriteStar }
             }
             .frame(height: 200)
             formatRow
@@ -187,6 +194,18 @@ struct BookCard: View {
                 .lineLimit(1)
         }
         .contentShape(Rectangle())
+        .onHover { isHovered = $0 }
+    }
+
+    /// Favori (S-107) : étoile pleine toujours visible, étoile vide au survol ; un clic bascule, sans changer la sélection.
+    @ViewBuilder private var favoriteStar: some View {
+        if book.isFavorite || isHovered {
+            FavoriteButton(books: [book])
+                .buttonStyle(.plain)
+                .font(.caption)
+                .padding(Space.xs).background(.ultraThinMaterial, in: Circle())
+                .padding(Space.sm)
+        }
     }
 
     /// Formats disponibles, entre la couverture et le titre.
@@ -430,6 +449,8 @@ struct BookActions: View {
         let isPending = library.book(id: book.id)?.isPendingSend == true
         Button("Lire") { ReaderWindows.open(book.id) }
             .disabled(!book.canRead || library.isUnavailable(book))
+        let isFavorite = library.areFavorites([book])
+        Button(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris") { library.toggleFavorite([book]) }
         Divider()
         // Déjà en attente et Kindle débranchée : le remettre en attente n'aurait aucun effet.
         if !(isPending && !kindle.isConnected) {
@@ -463,5 +484,21 @@ struct BookActions: View {
             Divider()
             Button(String(localized: "Mettre à la corbeille")) { library.undoable("Mettre à la corbeille") { library.moveToTrash(book) } }
         }
+    }
+}
+
+/// Étoile qui ajoute aux favoris ou en retire (S-107) : carte de la grille et fiche.
+struct FavoriteButton: View {
+    @Environment(LibraryStore.self) private var library
+    let books: [Book]
+
+    var body: some View {
+        let isFavorite = library.areFavorites(books)
+        Button { library.toggleFavorite(books) } label: {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .foregroundStyle(isFavorite ? AnyShapeStyle(Palette.favorite) : AnyShapeStyle(.secondary))
+        }
+        .accessibilityLabel(Text(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"))
+        .help(isFavorite ? String(localized: "Retirer des favoris (⌘D)") : String(localized: "Ajouter aux favoris (⌘D)"))
     }
 }

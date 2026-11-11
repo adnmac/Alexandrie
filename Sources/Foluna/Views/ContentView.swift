@@ -257,6 +257,7 @@ struct ContentView: View {
         switch sidebar {
         case .all, nil: String(localized: "Tous les livres")
         case .recent: String(localized: "Ajoutés récemment")
+        case .favorites: String(localized: "Favoris")
         case .sent: String(localized: "Envoyés à la liseuse")
         case .toReview: String(localized: "À vérifier")
         case .notes: String(localized: "Notes et surlignages")
@@ -421,6 +422,7 @@ struct ContentView: View {
             let limit = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast
             list = list.filter { $0.addedAt >= limit }
         case .sent: list = list.filter { $0.lastSentAt != nil }
+        case .favorites: list = list.filter(\.isFavorite)
         case .pending: list = list.filter(\.isPendingSend)
         case .shelf(let reader): list = list.filter { $0.shelfIDs.contains(reader) }
         case .genre(let key): list = list.filter { $0.genre.map(GenreNames.key) == key }

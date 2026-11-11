@@ -3,6 +3,8 @@ import SwiftUI
 
 enum SidebarItem: Hashable {
     case all, recent, sent, toReview, kindle
+    /// Livres favoris (S-107).
+    case favorites
     /// Livres en attente d'envoi (Kindle débranchée).
     case pending
     /// Corbeille de Foluna.
@@ -53,7 +55,7 @@ extension SidebarItem {
     /// Pages où « Mettre à la corbeille » est proposé (menu du livre, menu Livre, touche Supprimer).
     var allowsTrash: Bool {
         switch self {
-        case .all, .recent, .toReview, .format, .author, .series, .genre, .folder: true
+        case .all, .recent, .favorites, .toReview, .format, .author, .series, .genre, .folder: true
         case .sent, .pending, .shelf, .trash, .kindle, .notes, .thematic, .catalog: false
         }
     }
@@ -65,6 +67,7 @@ extension SidebarItem {
         switch self {
         case .all: "all"
         case .recent: "recent"
+        case .favorites: "favorites"
         case .sent: "sent"
         case .toReview: "toReview"
         case .kindle: "kindle"
@@ -87,6 +90,7 @@ extension SidebarItem {
         switch (parts.first ?? "", parts.count > 1 ? parts[1] : nil) {
         case ("all", nil): self = .all
         case ("recent", nil): self = .recent
+        case ("favorites", nil): self = .favorites
         case ("sent", nil): self = .sent
         case ("toReview", nil): self = .toReview
         case ("kindle", nil): self = .kindle

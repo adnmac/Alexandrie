@@ -801,6 +801,17 @@ Acceptance:
 - [manual] Deux fenêtres de lecture ouvertes : agrandir l'une ne change pas l'autre ; ⌘0 est grisé pour un livre à la taille par défaut.
 Status: done
 
+### S-107 Garder mes livres favoris
+Je marque un livre comme favori : l'étoile au coin de sa couverture (visible au survol, toujours pleine sur un favori), le bouton étoile de la fiche, le menu du livre ou Livre › Ajouter aux favoris (⌘D). La page « Favoris » de la barre latérale les rassemble. Un favori concerne le livre entier, tous ses fichiers ; ⌘Z annule. Les favoris ne vont pas sur la liseuse.
+Screens: tous
+Depends: S-001
+Acceptance:
+- [unit] Le favori survit à la relecture d'un fichier ; un index plus ancien, sans favoris, se lit encore.
+- [self] ⌘D ajoute tous les fichiers du livre, la commande devient « Retirer des favoris » ; la fiche enregistrée ne l'efface pas ; ⌘Z l'annule ; l'index le garde ; grisé dans la corbeille ou sans sélection.
+- [snap] « Le Port des brumes » porte son étoile dans la grille ; la barre latérale montre « Favoris ».
+- [manual] Survoler une couverture montre l'étoile vide ; un clic l'ajoute sans changer la sélection ; la liste montre l'étoile à côté du titre.
+Status: done
+
 ## Later
 
 - Liseuses Android Boox (MTP) et reMarkable (page web locale) ; KEPUB pour la Kobo.

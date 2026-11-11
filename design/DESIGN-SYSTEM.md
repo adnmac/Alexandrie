@@ -17,8 +17,9 @@ L'app n'a donc pas de sélecteur d'accent ni de réglage clair/sombre : elle sui
 | `Palette.warning` | à vérifier, corrections proposées, échec partiel, livres à ranger |
 | `Palette.danger` | erreur qui bloque l'action |
 | `Palette.info` | en attente d'envoi, mise à jour disponible, livres à envoyer (suit l'accent) |
+| `Palette.favorite` | étoile pleine d'un livre favori (couverture, liste, fiche) ; l'étoile vide reste `.secondary` |
 
-- Jamais `.blue`, `.green`, `.orange`, `.red` ni un hexadécimal dans une vue : un jeton.
+- Jamais `.blue`, `.green`, `.orange`, `.red`, `.yellow` ni un hexadécimal dans une vue : un jeton.
 - Une couleur d'état va toujours avec un symbole ou un mot.
 - Texte : `.primary`, `.secondary`, `.tertiary`. Fonds : système. Jamais de blanc ou de noir fixe dans
   l'interface (seule exception : le texte des couvertures générées, qui sont du contenu).

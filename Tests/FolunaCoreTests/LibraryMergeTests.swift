@@ -208,6 +208,29 @@ func tempDirectory() -> URL {
     }
 }
 
+/// Favoris (S-107) : gardés à la relecture, absents des index plus anciens.
+@Suite struct FavoriteTests {
+    @Test func favoriteSurvivesReread() throws {
+        let lib = SampleLibrary()
+        var book = try lib.index("Candide.epub")
+        let date = Date(timeIntervalSince1970: 1_000)
+        book.favoritedAt = date
+        var fresh = try lib.index("Candide.epub")
+        #expect(!fresh.isFavorite)
+        LibraryMerge.carryOver(from: book, to: &fresh)
+        #expect(fresh.favoritedAt == date && fresh.isFavorite)
+    }
+
+    @Test func olderIndexWithoutFavoritesStillLoads() throws {
+        let lib = SampleLibrary()
+        let book = try lib.index("Candide.epub")
+        let url = lib.dir.appendingPathComponent("library.json")
+        try LibraryIndex.save([book], to: url)
+        #expect(!String(decoding: try Data(contentsOf: url), as: UTF8.self).contains("favoritedAt"))
+        #expect(try LibraryIndex.load(url).first?.isFavorite == false)
+    }
+}
+
 @Suite struct ReaderQueueTests {
     @Test func pendingDatePerReader() throws {
         var book = try SampleLibrary().index("Candide.epub")

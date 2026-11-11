@@ -677,6 +677,7 @@ final class LibraryStore {
         book.sentTo = books[i].sentTo
         book.trashedAt = books[i].trashedAt
         book.shelves = books[i].shelves
+        book.favoritedAt = books[i].favoritedAt
         books[i] = book
         for j in siblingPositions {
             books[j].edits = book.edits
@@ -728,6 +729,36 @@ final class LibraryStore {
             changed = true
         }
         if changed { save() }
+    }
+
+    // MARK: - Favoris (S-107)
+
+    /// Un favori concerne le livre entier : tous ses fichiers, copies masquées comprises.
+    /// La date d'ajout est gardée si le livre l'était déjà.
+    func setFavorite(_ selection: [Book], on: Bool) {
+        let ids = identities
+        let keys = Set(selection.map { ids[$0.id] ?? BookGroups.key($0) })
+        let now = Date()
+        var changed = false
+        for i in books.indices where keys.contains(ids[books[i].id] ?? BookGroups.key(books[i]))
+            && books[i].isFavorite != on {
+            books[i].favoritedAt = on ? now : nil
+            changed = true
+        }
+        if changed { save() }
+    }
+
+    /// Les livres choisis sont-ils tous favoris ? Sinon, la commande les y ajoute.
+    func areFavorites(_ selection: [Book]) -> Bool {
+        !selection.isEmpty && selection.allSatisfy { book(id: $0.id)?.isFavorite == true }
+    }
+
+    /// Ajoute aux favoris, ou retire si tous le sont déjà ; annulable (⌘Z).
+    func toggleFavorite(_ selection: [Book]) {
+        let on = !areFavorites(selection)
+        undoable(on ? String(localized: "Ajouter aux favoris") : String(localized: "Retirer des favoris")) {
+            setFavorite(selection, on: on)
+        }
     }
 
     // MARK: - File d'envoi (Kindle débranchée)

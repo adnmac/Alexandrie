@@ -116,6 +116,10 @@ enum SeedData {
         if let book = library.books.first(where: { $0.title == orbit }), book.pendingSendAt == nil {
             library.queueForKindle([book], reader: nil)
         }
+        // Favoris (S-107) : une étoile sur la couverture du « Port des brumes ».
+        if let book = library.books.first(where: { $0.title == harbour }), !book.isFavorite {
+            library.setFavorite([book], on: true)
+        }
         // Lecture commencée (S-068) : la fiche montre « 42 % lu ».
         if let book = library.books.first(where: { $0.title == slowHours }) {
             AppServices.shared.reading.record(ReadingPosition(chapter: 0, fraction: 0.42, percent: 0.42), for: book)

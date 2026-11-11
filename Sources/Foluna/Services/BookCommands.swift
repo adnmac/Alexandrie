@@ -62,6 +62,23 @@ extension BookCommands {
 }
 
 extension BookCommands {
+    // MARK: Favoris (S-107)
+
+    /// Hors de la corbeille, au moins un livre choisi.
+    var canFavorite: Bool { !books.isEmpty && list != .trash && books.allSatisfy { $0.trashedAt == nil } }
+
+    var favoriteTitle: String {
+        library.areFavorites(books) ? String(localized: "Retirer des favoris") : String(localized: "Ajouter aux favoris")
+    }
+
+    /// Ajoute aux favoris, ou en retire si tous les livres choisis le sont déjà (annulable).
+    func toggleFavorite() {
+        guard canFavorite else { return }
+        library.toggleFavorite(books)
+    }
+}
+
+extension BookCommands {
     // MARK: Coup d'œil
 
     var canQuickLook: Bool { !books.isEmpty }
@@ -126,6 +143,7 @@ final class MenuState: ObservableObject {
         var sendTitle = String(localized: "Envoyer à la liseuse")
         var canSend = false, canTrash = false, canQuickLook = false
         var canOpen = false, canReveal = false, canExportEPUB = false, canRead = false
+        var favoriteTitle = String(localized: "Ajouter aux favoris"), canFavorite = false
         var shareURLs: [URL] = []
 
         init() {}
@@ -139,6 +157,8 @@ final class MenuState: ObservableObject {
             canReveal = c.canReveal
             canExportEPUB = c.canExportEPUB
             canRead = c.canRead
+            favoriteTitle = c.favoriteTitle
+            canFavorite = c.canFavorite
             shareURLs = c.shareURLs
         }
     }

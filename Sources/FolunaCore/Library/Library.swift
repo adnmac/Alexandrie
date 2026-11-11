@@ -52,6 +52,10 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var shelves: Set<String>?
 
     public var shelfIDs: Set<String> { shelves ?? [] }
+    /// Ajouté aux favoris (S-107) le… ; nil : pas favori. Facultatif : les index plus anciens n'en ont pas.
+    public var favoritedAt: Date?
+
+    public var isFavorite: Bool { favoritedAt != nil }
     /// PDF : ce que la Kindle reçoit (nil : tel quel). Facultatif : les index plus anciens n'en ont pas.
     public var pdfMode: PDFKindleMode?
     /// Version de l'extraction : un livre indexé par une version antérieure est relu.

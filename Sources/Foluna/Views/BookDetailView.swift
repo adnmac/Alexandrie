@@ -58,6 +58,11 @@ struct BookDetailView: View {
                         .controlSize(.large)
                         .disabled(kindle.isBusy || !kindle.canSend(draft))
                     }
+                    if !isTrashed {
+                        FavoriteButton(books: [draft])
+                            .buttonStyle(.bordered)
+                            .controlSize(.large)
+                    }
                     Menu {
                         BookActions(book: draft)
                     } label: {

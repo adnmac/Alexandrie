@@ -21,6 +21,8 @@ enum Palette {
     static let danger = Color.red
     /// En attente, information, mise à jour : suit l'accent.
     static let info = Color.accentColor
+    /// Étoile d'un livre favori (S-107), toujours avec le symbole `star.fill`.
+    static let favorite = Color.yellow
 }
 
 /// Fonds de la fenêtre de lecture (S-069) : papier et encre, passés en CSS au livre affiché.

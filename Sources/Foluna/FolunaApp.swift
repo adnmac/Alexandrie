@@ -91,6 +91,10 @@ struct BookMenuCommands: Commands {
             Button("Coup d'œil") { books?.toggleQuickLook() }
                 .keyboardShortcut("y")
                 .disabled(!state.canQuickLook)
+            // ⌘D comme les signets de Safari (S-107) ; ⌥⌘D reste « Rassembler les doublons ».
+            Button(state.favoriteTitle) { books?.toggleFavorite() }
+                .keyboardShortcut("d")
+                .disabled(!state.canFavorite)
             // Pas de ⌘↓ : il déplacerait le curseur en fin de texte dans les champs.
             Button("Ouvrir") { books?.open() }
                 .disabled(!state.canOpen)

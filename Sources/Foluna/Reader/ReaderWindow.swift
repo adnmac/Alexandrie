@@ -95,6 +95,9 @@ struct ReaderView: View {
     /// Livre lu en face (S-104) ; il prend la place du panneau des notes.
     @State private var compare: CompareSession?
     @State private var choosesCompanion = false
+    /// Fenêtre au premier plan : elle remplit le menu Lecture.
+    @Environment(\.controlActiveState) private var activeState
+    @State private var menuOwner = UUID()
 
     enum SidebarMode: Hashable { case contents, hits }
 
@@ -129,8 +132,14 @@ struct ReaderView: View {
             CompanionPickerSheet(book: book) { startCompare(with: $0) }
         }
         .onChange(of: showsNotes) { if showsNotes { refreshNotes(reload: true) } }
+        .onAppear { publishMenu() }
+        .onChange(of: activeState) { publishMenu() }
+        .onChange(of: menuValues) { publishMenu() }
         .onChange(of: ReaderLaunch.shared.targets[book.id]) { jumpToTarget() }
-        .onDisappear { reading.saveNow() }
+        .onDisappear {
+            reading.saveNow()
+            ReaderMenuState.shared.clear(owner: menuOwner)
+        }
     }
 
     // MARK: Page
@@ -312,6 +321,27 @@ struct ReaderView: View {
         if locked, let main = epub { compare.moved(main, main: main) }
     }
 
+    // MARK: Menu Lecture
+
+    private var menuValues: ReaderMenuState.Values {
+        ReaderMenuState.Values(canRead: epub != nil, showsNotes: showsNotes, isComparing: compare != nil,
+                               isLocked: compare?.isLocked ?? true)
+    }
+
+    /// Remplit le menu Lecture si cette fenêtre est au premier plan, sinon le lui rend.
+    private func publishMenu() {
+        guard activeState == .key else {
+            ReaderMenuState.shared.clear(owner: menuOwner)
+            return
+        }
+        ReaderMenuState.shared.update(owner: menuOwner, values: menuValues, actions: ReaderMenuState.Actions(
+            toggleNotes: { showsNotes.toggle() },
+            chooseCompanion: { choosesCompanion = true },
+            toggleLock: { setLocked(!(compare?.isLocked ?? true)) },
+            swapSides: { compare?.isSwapped.toggle() },
+            stopComparing: { stopCompare() }))
+    }
+
     private var compareMenu: some View {
         Menu {
             if let compare {
@@ -321,7 +351,6 @@ struct ReaderView: View {
                 Button("Arrêter la comparaison") { stopCompare() }
             } else {
                 Button("Comparer avec un autre livre…") { choosesCompanion = true }
-                    .keyboardShortcut("c", modifiers: [.command, .option])
             }
         } label: {
             // Le symbole porte le nom : dans la barre d'outils, VoiceOver lit celui du symbole sinon.
@@ -483,8 +512,8 @@ struct ReaderView: View {
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
         ToolbarItemGroup(placement: .primaryAction) {
+            // ⌥⌘N et ⌥⌘C sont dans le menu Lecture.
             Toggle(isOn: $showsNotes) { Label("Notes de bas de page", systemImage: "list.number") }
-                .keyboardShortcut("n", modifiers: [.command, .option])
                 .disabled(epub == nil || compare != nil)
                 .help(compare != nil ? String(localized: "Pendant une comparaison, les notes s'ouvrent en bulle sur leur appel")
                       : String(localized: "Panneau des notes de bas de page du chapitre (⌥⌘N)"))

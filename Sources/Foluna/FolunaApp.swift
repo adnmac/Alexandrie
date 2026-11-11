@@ -16,6 +16,8 @@ struct FolunaApp: App {
     @State private var zotero = AppServices.shared.zotero
     /// Observé ici : l'App reconstruit les menus Livre et Kindle quand la sélection change.
     @ObservedObject private var menu = MenuState.shared
+    /// Observé ici : le menu Lecture suit la fenêtre de lecture au premier plan.
+    @ObservedObject private var readerMenu = ReaderMenuState.shared
 
     var body: some Scene {
         WindowGroup("Foluna", id: "main") {
@@ -44,6 +46,7 @@ struct FolunaApp: App {
             }
             LibraryViewCommands()
             BookMenuCommands(state: menu.values)
+            ReaderCommands(state: readerMenu.values)
             KindleCommands(kindle: kindle, state: menu.values)
         }
 

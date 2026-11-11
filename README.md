@@ -44,9 +44,8 @@ open build/Foluna.app
 
 Other scripts: `scripts/build.sh [release]`, `scripts/test.sh`, `scripts/selftest.sh` (the app's self-test on test data in `/tmp`), `scripts/snap.sh` (screenshots of every page in light and dark mode, with sample books).
 
-Internal names (Swift targets `Alexandrie` and `AlexandrieCore`, the executable, `ALEXANDRIE_*` environment variables,
-the bundle identifier `be.adnmac.alexandrie` and the data folder) keep the project's original code name, because
-permissions, settings, the Keychain and update checks depend on them.
+The bundle identifier `be.adnmac.alexandrie` and the data folder keep the project's original code name, because
+permissions, settings, the Keychain, update checks and the library index depend on them.
 
 ### Signing and releases
 
@@ -101,14 +100,14 @@ and can empty the conversions. An unreadable `library.json` is never overwritten
 
 ## Architecture
 
-- `Sources/AlexandrieCore`: logic without UI (testable)
+- `Sources/FolunaCore`: logic without UI (testable)
   - `EPUB/` EPUB reading (OPF, nav, NCX) and EPUB 3 writing
   - `Mobi/` PalmDB, MOBI/EXTH headers, PalmDoc, HUFF/CDIC, INDX/TAGX/CNCX indexes
   - `Conversion/` `MobiToEPUB` (inspired by KindleUnpack) and `EPUBToAZW3` (inspired by calibre's KF8 writer)
   - `Library/` scanner, fingerprints, covers, JSON index
   - `Kindle/` detection and transfer (mounted disk, MTP)
 - `Sources/CMTPShim`: C bridge to libmtp (dlopen)
-- `Sources/Alexandrie`: SwiftUI app
+- `Sources/Foluna`: SwiftUI app
   - `Views/` one view per file (`ContentView`: the main window; `Navigation`: sidebar pages)
   - `Services/` app state (`LibraryStore`, `KindleMonitor`, `UpdateMonitor`) and `BookCommands`, the commands on the
     selection shared by the menu bar and the self-test
@@ -120,7 +119,7 @@ Code comments and internal documents (`docs/`, `design/`) are written in French.
 
 ```bash
 scripts/test.sh
-ALEXANDRIE_FIXTURES=/path/to/books scripts/test.sh   # + conversions on real files
+FOLUNA_FIXTURES=/path/to/books scripts/test.sh   # + conversions on real files
 ```
 
 ## Limitations

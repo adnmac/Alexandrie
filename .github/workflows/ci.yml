@@ -14,7 +14,7 @@ jobs:
         with:
           path: .build
           # Le chemin du dépôt fait partie de la clé : .build garde des chemins absolus, et un cache fait
-          # sous un autre nom de dépôt (Alexandrie) casse la compilation.
+          # sous l'ancien nom du dépôt casse la compilation.
           key: spm-${{ runner.os }}-${{ github.event.repository.name }}-${{ hashFiles('Package.resolved') }}
       - name: Compiler
         run: scripts/build.sh

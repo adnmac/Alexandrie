@@ -7,7 +7,7 @@ Aucune copie dérivée de `private struct`. Pas encore de `docs/FIXLOG.md`.
 
 ## Fenêtre principale réduite à la fenêtre  [Strong]
 
-Files: Sources/Alexandrie/Views/ContentView.swift (586 lignes, 7 types)
+Files: Sources/Foluna/Views/ContentView.swift (586 lignes, 7 types)
 Signal: fichier le plus modifié ; « unable to type-check this expression » pendant S-042.
 Problem: le fichier mêle la fenêtre principale, la navigation (`SidebarItem`, `SortOrder`), la feuille
 « Nouvelle liseuse », le bouton d'envoi, deux bandeaux de mise à jour et l'écran d'accueil. Changer un
@@ -30,7 +30,7 @@ Plan: un commit (déplacements seuls). **Fait** : `ContentView.swift` passe de 5
 Files: ContentView.swift (`filteredBooks`, 40 lignes), Navigation
 Signal: logique pure dans une vue `@MainActor`, que les tests ne peuvent pas compiler seuls.
 Problem: « Ajoutés récemment », tri par série, recherche dans les notes : aucune de ces règles n'a de test.
-Proposal: `LibraryPage` (ex-`SidebarItem`) dans `AlexandrieCore`, et
+Proposal: `LibraryPage` (ex-`SidebarItem`) dans `FolunaCore`, et
 `LibraryFilter.books(_ books: [Book], page: LibraryPage, query: String, sort: SortOrder, noteTitles: Set<String>, now: Date) -> [Book]`.
 Benefits: tests de table sur chaque page ; la vue ne fait plus que lire.
 Proof of same behavior: tests écrits contre l'ancien comportement avant le déplacement, captures identiques.
@@ -74,6 +74,6 @@ points chauds : `LibraryStore.swift` reste à 752 lignes, `ContentView.swift` à
 - La carte « Actions du livre en un seul endroit » gagne un argument : Partager s'est écrit deux fois
   (menu du livre et menu Livre), comme la corbeille en M5.
 - Nouvelle carte [Speculative] : `bundle.sh` dépend du chemin interne de SwiftPM
-  (`.build/out/Intermediates.noindex/…/Alexandrie-primary.swiftconstvalues`). Si une version de SwiftPM
+  (`.build/out/Intermediates.noindex/…/Foluna-primary.swiftconstvalues`). Si une version de SwiftPM
   le change, l'action Raccourcis disparaît avec un simple avertissement. À surveiller à chaque mise à jour
   des outils plutôt qu'à corriger maintenant.

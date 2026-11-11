@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Compile Alexandrie (debug par défaut ; « release » en argument).
+# Compile Foluna (debug par défaut ; « release » en argument).
 set -e
 source "${0:A:h}/env.sh"
 cd "$ROOT"

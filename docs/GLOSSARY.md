@@ -1,4 +1,4 @@
-# Glossaire d'Alexandrie
+# Glossaire de Foluna
 
 Un seul nom par chose, partout : boutons, menus, titres, bulles d'aide, messages.
 L'interface est en français ; menus et boutons suivent la casse d'Apple en français
@@ -8,10 +8,10 @@ L'interface est en français ; menus et boutons suivent la casse d'Apple en fran
 
 | Terme | Sens | Pas |
 | --- | --- | --- |
-| Bibliothèque | Tous les livres connus d'Alexandrie : le dossier de livres plus les imports | collection, catalogue |
+| Bibliothèque | Tous les livres connus de Foluna : le dossier de livres plus les imports | collection, catalogue |
 | Dossier de livres | Un dossier choisi par la personne (il peut y en avoir plusieurs) ; lu, jamais modifié | source, racine |
 | Indisponible | Livre d'un dossier de livres introuvable (disque débranché) ; reste dans la bibliothèque | hors ligne, manquant |
-| Fenêtre de lecture | La fenêtre où on lit un livre dans Alexandrie | liseuse (réservé aux Kindle), lecteur, visionneuse |
+| Fenêtre de lecture | La fenêtre où on lit un livre dans Foluna | liseuse (réservé aux Kindle), lecteur, visionneuse |
 | Position de lecture | L'endroit où la lecture s'est arrêtée dans un livre ; montrée en « % lu » | signet, marque-page |
 | Sur la Kindle | Choix d'envoi d'un PDF : Tel quel, Marges rognées, Texte redimensionnable | format de sortie, mode |
 | Livre | Une œuvre, avec un ou plusieurs fichiers (formats) | titre, ouvrage, élément |

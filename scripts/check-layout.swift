@@ -1,6 +1,6 @@
 #!/usr/bin/env swift
 // Checks the layout files that snapshot mode writes next to each PNG.
-// Usage: swift scripts/check-layout.swift [--unit 4] /tmp/alexandrie-shots/*-layout.json
+// Usage: swift scripts/check-layout.swift [--unit 4] /tmp/foluna-shots/*-layout.json
 // --unit sets the grid step for rules 2 and 5. A design kit measured from
 // another app keeps that app's numbers: pass its step, or 0.5 to check only
 // edges, insets, and overlaps.

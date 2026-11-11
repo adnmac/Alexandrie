@@ -25,7 +25,7 @@ la relance avec le réglage macOS par défaut.
 ## 2026-11-06 Glisser vers le bureau sans fichier (S-050)
 
 Symptôme : une carte glissée sur le bureau ne donnait pas de copie du livre. Avec l'ancienne version,
-un fichier texte « alexandrie-livres:… » ; avec la `FileRepresentation` de S-050, toujours pas de fichier.
+un fichier texte « foluna-livres:… » ; avec la `FileRepresentation` de S-050, toujours pas de fichier.
 Cause : le Finder n'accepte pas la `FileRepresentation` d'un `Transferable` venu d'une autre app ;
 il attend l'adresse d'un fichier (`public.file-url`).
 Correction : `BookDragItem` exporte l'adresse d'une copie temporaire du livre (clone APFS), jamais le
@@ -46,7 +46,7 @@ Correction : `scripts/bundle.sh` signe d'abord avec un certificat Apple Developm
 Xcode). Le trousseau doit contenir l'intermédiaire Apple WWDR G3, sinon `codesign` échoue avec
 `errSecInternalComponent`.
 Rule: pour App Intents, vérifier `codesign -dv` (TeamIdentifier présent) et chercher « Registered
-process » dans `log show --predicate 'process == "Alexandrie"'` ; essayer l'action en l'exécutant,
+process » dans `log show --predicate 'process == "Foluna"'` ; essayer l'action en l'exécutant,
 pas seulement en la voyant dans Raccourcis.
 
 ## 2026-11-06 PDF rogné décentré, texte redimensionnable refusé (S-064, S-065)

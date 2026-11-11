@@ -82,7 +82,7 @@ Screens: tous, kindle
 Depends: S-002
 Acceptance:
 - [self] « conversion EPUB → AZW3 avec la retouche » : le titre corrigé arrive dans l'AZW3.
-- [unit] `RealBookTests` (avec `ALEXANDRIE_FIXTURES`) : conversions sur de vrais livres.
+- [unit] `RealBookTests` (avec `FOLUNA_FIXTURES`) : conversions sur de vrais livres.
 - [manual] Le livre apparaît sur une Kindle USB et sur une Kindle MTP.
 Status: done
 
@@ -750,7 +750,7 @@ Depends: S-001
 Acceptance:
 - [unit] Les tests du cœur gardent le français (pas de catalogue chargé) ; singulier et pluriel distincts dans le cœur.
 - [self] Le self-test passe en français.
-- [snap] Pages, réglages et feuilles en anglais (`ALEXANDRIE_SNAPSHOT_LANG=en`) : aucun texte d'interface resté en français, pluriels justes.
+- [snap] Pages, réglages et feuilles en anglais (`FOLUNA_SNAPSHOT_LANG=en`) : aucun texte d'interface resté en français, pluriels justes.
 - [manual] `scripts/l10n.sh check` : aucune traduction manquante.
 Status: done
 

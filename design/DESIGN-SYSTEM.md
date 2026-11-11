@@ -1,7 +1,7 @@
 # Système de design de Foluna
 
 Foluna garde l'apparence d'Apple. Les jetons ne couvrent que ce que le système ne fournit pas.
-Ils vivent dans `Sources/Alexandrie/UI/`. Les vues utilisent les jetons, jamais de valeurs brutes.
+Ils vivent dans `Sources/Foluna/UI/`. Les vues utilisent les jetons, jamais de valeurs brutes.
 Règles générales du Mac : skill `mac-design`. Espacements et alignement : skill `layout-grid`.
 
 ## Couleurs — `Theme.swift`
@@ -83,6 +83,6 @@ L'app n'a donc pas de sélecteur d'accent ni de réglage clair/sombre : elle sui
 
 ## Vérification
 
-Aucun résultat hors de `Sources/Alexandrie/UI/` :
+Aucun résultat hors de `Sources/Foluna/UI/` :
 
-    grep -rnE 'cornerRadius: [0-9]{1,2}\b|duration: [0-9]|\.spring\(response|\.snappy\b|\.easeInOut|\.easeOut\(|Color\(hex:|Color\(red:|\.(green|orange|red|blue)\b|accentColor' Sources/ | grep -v 'Sources/Alexandrie/UI/'
+    grep -rnE 'cornerRadius: [0-9]{1,2}\b|duration: [0-9]|\.spring\(response|\.snappy\b|\.easeInOut|\.easeOut\(|Color\(hex:|Color\(red:|\.(green|orange|red|blue)\b|accentColor' Sources/ | grep -v 'Sources/Foluna/UI/'

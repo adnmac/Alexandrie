@@ -102,6 +102,19 @@ public struct ReaderBook: Sendable {
     }
 }
 
+extension ReaderBook {
+    /// Entrée de la table des matières en cours (S-067) : la dernière commencée à la page affichée.
+    /// Un fichier peut porter plusieurs entrées (ancres) : `fragmentPages` donne la page de chaque ancre du
+    /// chapitre affiché ; une entrée sans ancre, ou dont l'ancre n'est pas placée, compte depuis le début du chapitre.
+    public static func currentEntry(in toc: [Entry], chapter: Int, page: Int, fragmentPages: [String: Int]) -> Entry.ID? {
+        toc.last { entry in
+            guard entry.chapter == chapter else { return entry.chapter < chapter }
+            guard let fragment = entry.fragment, let start = fragmentPages[fragment] else { return true }
+            return start <= page
+        }?.id
+    }
+}
+
 // MARK: - Position de lecture (S-068)
 
 /// Où la lecture s'est arrêtée : chapitre (ou page d'un PDF) et avancée dans ce chapitre.

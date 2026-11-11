@@ -60,3 +60,14 @@ interdits retirés ; en-tête courant, notes et appels de note séparés d'aprè
 Les versions `PDFCrop.version` et `PDFReflow.version` entrent dans le nom des copies en cache.
 Rule: essayer chaque conversion sur un vrai livre (copie dans le scratchpad, test provisoire supprimé
 ensuite), pas seulement sur des PDF générés ; changer la version quand le calcul change.
+
+## 2026-11-11 Flèches qui sautent de chapitre dans la fenêtre de lecture (S-067)
+
+Symptôme : après un clic dans la table des matières, ↑ et ↓ sautaient d'un chapitre à l'autre au lieu
+de tourner les pages ; dans un livre en un seul fichier, la table marquait une partie qui n'était pas affichée.
+Causes : le clavier restait à la liste de la table des matières, où les flèches changent la sélection, donc le
+chapitre ouvert ; l'entrée marquée ne dépendait que du fichier affiché, et c'était toujours sa dernière ancre.
+Corrections : après un clic dans la table, le clavier revient à la page ; la page relève la position de chaque
+ancre du chapitre (`fragmentPages`) et `ReaderBook.currentEntry` marque la dernière partie commencée.
+Rule: après un choix dans une colonne de navigation, rendre le clavier à la page ; essayer la table des
+matières sur un livre dont plusieurs parties partagent un fichier.

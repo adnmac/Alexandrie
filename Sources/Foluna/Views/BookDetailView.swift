@@ -113,7 +113,10 @@ struct BookDetailView: View {
                 Form {
                     Section {
                         MetadataFields(edits: $draft.edits)
-                        TextField("Étiquettes", text: tagsBinding, prompt: Text("Séparées par des virgules"))
+                        LabeledContent("Étiquettes") {
+                            TagTokenField(tags: tagsBinding,
+                                          suggestions: TagNames.groups(library.visibleBooks, identities: library.identities).map(\.name))
+                        }
                     } header: {
                         Text("Informations")
                     } footer: {
@@ -280,9 +283,10 @@ struct BookDetailView: View {
         }
     }
 
-    private var tagsBinding: Binding<String> {
-        Binding(get: { draft.labels.joined(separator: ", ") },
-                set: { let tags = TagNames.clean($0.split(separator: ",").map(String.init)); draft.userTags = tags.isEmpty ? nil : tags })
+    /// Étiquettes de l'utilisateur (S-106) ; aucune : le champ facultatif reste vide dans l'index.
+    private var tagsBinding: Binding<[String]> {
+        Binding(get: { draft.labels },
+                set: { let tags = TagNames.clean($0); draft.userTags = tags.isEmpty ? nil : tags })
     }
 }
 

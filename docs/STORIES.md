@@ -801,6 +801,17 @@ Acceptance:
 - [manual] Deux fenêtres de lecture ouvertes : agrandir l'une ne change pas l'autre ; ⌘0 est grisé pour un livre à la taille par défaut.
 Status: done
 
+### S-106 Ranger mes livres avec des étiquettes
+Je pose mes propres étiquettes sur un livre : dans la fiche, en jetons, avec les étiquettes existantes proposées pendant la frappe ; ou depuis le menu « Étiquettes » du livre, pour un livre ou une sélection. La section « Étiquettes » de la barre latérale les rassemble, chacune avec sa page ; un clic droit la renomme ou la supprime (les livres restent). Les sujets lus dans les fichiers restent à part : cherchables et montrés dans la fiche, jamais dans la barre latérale. Les étiquettes ne vont pas sur la liseuse ; ⌘Z annule.
+Screens: tous
+Depends: S-003
+Acceptance:
+- [unit] `TagNames` regroupe sans majuscules ni accents, garde la graphie la plus fréquente, compte les livres et non les fichiers, ignore les sujets ; une saisie vide ou en double est écartée.
+- [self] Ajouter en lot vaut pour tous les fichiers du livre, sans doublon ; retirer, renommer (nom vide refusé) et supprimer s'annulent avec ⌘Z ; l'index garde les étiquettes.
+- [snap] La barre latérale montre « À relire » et « Bretagne » ; la fiche du « Port des brumes » les montre en jetons.
+- [manual] Taper « bre » dans le champ propose « Bretagne » ; Retour ou une virgule crée le jeton ; Effacer le retire ; les lettres en cours de frappe n'apparaissent jamais dans la barre latérale.
+Status: done
+
 ### S-107 Garder mes livres favoris
 Je marque un livre comme favori : l'étoile au coin de sa couverture (visible au survol, toujours pleine sur un favori), le bouton étoile de la fiche, le menu du livre ou Livre › Ajouter aux favoris (⌘D). La page « Favoris » de la barre latérale les rassemble. Un favori concerne le livre entier, tous ses fichiers ; ⌘Z annule. Les favoris ne vont pas sur la liseuse.
 Screens: tous

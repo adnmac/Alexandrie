@@ -3710,6 +3710,34 @@
         }
       }
     },
+    "Ajouter une étiquette" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlagwort hinzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a Tag"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añadir una etiqueta"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag toevoegen"
+          }
+        }
+      }
+    },
     "Ajouter à l'étagère" : {
       "localizations" : {
         "de" : {
@@ -20722,34 +20750,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Teksten synchroon houden"
-          }
-        }
-      }
-    },
-    "Séparées par des virgules" : {
-      "localizations" : {
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Durch Kommas getrennt"
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Separated by commas"
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Separadas por comas"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gescheiden door komma's"
           }
         }
       }

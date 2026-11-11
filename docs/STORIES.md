@@ -455,7 +455,8 @@ Screens: lecture-epub
 Depends: S-066
 Acceptance:
 - [snap] La table des matières s'affiche dans une colonne repliable, chapitre courant marqué.
-- [manual] Flèches et Espace tournent les pages ; un clic sur un chapitre y va.
+- [manual] Flèches et Espace tournent les pages ; un clic sur un chapitre y va, et les flèches tournent ensuite les pages.
+- [unit] Dans un fichier qui porte plusieurs parties, la partie marquée suit la page affichée (`ReaderBook.currentEntry`).
 Status: done
 
 ### S-068 Reprendre sa lecture où je l'ai laissée

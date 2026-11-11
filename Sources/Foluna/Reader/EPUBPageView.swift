@@ -13,6 +13,9 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     private(set) var pageCount = 1
     /// Avancée dans le chapitre (0 à 1), relue après chaque page tournée.
     private(set) var fraction = 0.0
+    /// Page de chaque ancre de la table des matières dans le chapitre affiché : un fichier peut porter
+    /// plusieurs entrées, l'entrée marquée suit la page (S-067).
+    private(set) var fragmentPages: [String: Int] = [:]
     /// Appelé après chaque page tournée : la position est enregistrée.
     @ObservationIgnored var onMove: (ReadingPosition) -> Void = { _ in }
     /// Un passage est sélectionné : il peut être surligné (S-070).
@@ -251,7 +254,19 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         page = (state[0] as? NSNumber)?.intValue ?? 0
         pageCount = (state[1] as? NSNumber)?.intValue ?? 1
         fraction = (state[2] as? NSNumber)?.doubleValue ?? 0
+        fragmentPages = await anchorPages()
         onMove(ReadingPosition(chapter: chapter, fraction: fraction, percent: percent))
+    }
+
+    /// Pages des ancres de la table des matières du chapitre affiché (absentes : non placées).
+    private func anchorPages() async -> [String: Int] {
+        let ids = book.toc.filter { $0.chapter == chapter }.compactMap(\.fragment)
+        guard !ids.isEmpty, let json = try? JSONEncoder().encode(ids),
+              let pages = await js("alx.pagesOf(\(String(decoding: json, as: UTF8.self)))") as? [NSNumber],
+              pages.count == ids.count else { return [:] }
+        var found: [String: Int] = [:]
+        for (id, page) in zip(ids, pages) where page.intValue >= 0 { found[id] = page.intValue }
+        return found
     }
 
     /// Monde des scripts de Foluna, séparé de celui du livre.
@@ -314,6 +329,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         setFraction(f) { const n = this.pageCount(); this.goTo(Math.round(f * (n - 1))); },
         pageOf(el) { return Math.floor((el.getBoundingClientRect().left + root().scrollLeft) / this.width()); },
         show(id) { const el = document.getElementById(id); if (el) this.goTo(this.pageOf(el)); },
+        pagesOf(ids) { return ids.map(id => { const el = document.getElementById(id); return el ? this.pageOf(el) : -1; }); },
         // Surlignages (S-070) : un passage = ses positions dans le texte du corps (textContent).
         textPos(node, off) { const r = document.createRange(); r.setStart(document.body, 0); r.setEnd(node, off); return r.toString().length; },
         selection() {

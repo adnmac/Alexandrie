@@ -60,3 +60,35 @@ import Testing
         #expect(ReadingLog.load(url) == ["abc-123": position])
     }
 }
+
+/// Entrée en cours de la table des matières quand un fichier porte plusieurs parties (S-067).
+@Suite struct CurrentEntryTests {
+    let toc = [
+        ReaderBook.Entry(title: "Couverture", chapter: 0, fragment: nil, depth: 0),
+        ReaderBook.Entry(title: "Partie 1", chapter: 1, fragment: "p1", depth: 0),
+        ReaderBook.Entry(title: "Partie 2", chapter: 1, fragment: "p2", depth: 0),
+        ReaderBook.Entry(title: "Partie 3", chapter: 1, fragment: "p3", depth: 0),
+        ReaderBook.Entry(title: "Conclusion", chapter: 2, fragment: nil, depth: 0),
+    ]
+    let pages = ["p1": 0, "p2": 12, "p3": 30]
+
+    func current(chapter: Int, page: Int, pages: [String: Int]) -> String? {
+        let id = ReaderBook.currentEntry(in: toc, chapter: chapter, page: page, fragmentPages: pages)
+        return toc.first { $0.id == id }?.title
+    }
+
+    @Test func followsThePageInsideOneFile() {
+        #expect(current(chapter: 1, page: 0, pages: pages) == "Partie 1")
+        #expect(current(chapter: 1, page: 11, pages: pages) == "Partie 1")
+        #expect(current(chapter: 1, page: 12, pages: pages) == "Partie 2")
+        #expect(current(chapter: 1, page: 29, pages: pages) == "Partie 2")
+        #expect(current(chapter: 1, page: 44, pages: pages) == "Partie 3")
+    }
+
+    @Test func otherChaptersAndUnplacedAnchors() {
+        #expect(current(chapter: 0, page: 3, pages: [:]) == "Couverture")
+        #expect(current(chapter: 2, page: 0, pages: [:]) == "Conclusion")
+        // Pages pas encore relevées : comme avant, la dernière entrée du fichier.
+        #expect(current(chapter: 1, page: 0, pages: [:]) == "Partie 3")
+    }
+}

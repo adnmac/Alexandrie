@@ -376,12 +376,12 @@ struct ReaderView: View {
 
     /// Entrée en cours : la dernière qui commence au chapitre (ou à la page) affiché ou avant.
     private var currentEntry: ReaderBook.Entry.ID? {
-        let position: Int = switch content {
-        case .epub(let c): c.chapter
-        case .pdf(let c): c.page
-        case nil: -1
+        switch content {
+        case .epub(let c):
+            ReaderBook.currentEntry(in: entries, chapter: c.chapter, page: c.page, fragmentPages: c.fragmentPages)
+        case .pdf(let c): entries.last { $0.chapter <= c.page }?.id
+        case nil: nil
         }
-        return entries.last { $0.chapter <= position }?.id
     }
 
     @ViewBuilder private var contents: some View {
@@ -392,8 +392,12 @@ struct ReaderView: View {
             List(entries, selection: Binding(get: { currentEntry }, set: { id in
                 guard let entry = entries.first(where: { $0.id == id }) else { return }
                 switch content {
-                case .epub(let c): c.open(entry)
-                case .pdf(let c): c.go(to: entry.chapter)
+                case .epub(let c):
+                    c.open(entry)
+                    focusPage(c.webView)
+                case .pdf(let c):
+                    c.go(to: entry.chapter)
+                    focusPage(c.view)
                 case nil: break
                 }
             })) { entry in
@@ -403,6 +407,12 @@ struct ReaderView: View {
                     .tag(entry.id)
             }
         }
+    }
+
+    /// Après un clic dans la table des matières, le clavier revient à la page : les flèches et Espace tournent
+    /// les pages, au lieu de parcourir la liste et d'ouvrir chaque chapitre (Tab ramène dans la liste).
+    private func focusPage(_ view: NSView) {
+        DispatchQueue.main.async { view.window?.makeFirstResponder(view) }
     }
 
     // MARK: Renvois de la recherche (S-085)

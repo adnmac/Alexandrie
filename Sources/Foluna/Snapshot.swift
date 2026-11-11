@@ -230,16 +230,76 @@ enum Snapshot {
         reading.theme = .light
         reading.textScale = 1
         reading.font = .book
+        await captureReaderPanels(library: library, dir: dir)
+    }
+
+    /// Fenêtre divisée : le panneau des notes du premier chapitre (S-103), puis le livre en face de sa
+    /// traduction (S-104). La traduction n'est écrite dans le dossier de livres que le temps de sa capture.
+    private static func captureReaderPanels(library: LibraryStore, dir: String) async {
+        let reading = AppServices.shared.reading
+        guard let book = library.visibleBooks.first(where: { $0.title == SeedData.harbour }) else { return }
+        func shoot(_ name: String, width: CGFloat? = nil, script: String? = nil) async {
+            ReaderWindows.open(book.id)
+            try? await Task.sleep(for: .seconds(1))
+            let window = NSApp.windows.first { $0.title == book.title && $0.isVisible }
+            if let window, let width {
+                window.setFrame(NSRect(x: window.frame.minX, y: window.frame.minY, width: width, height: window.frame.height), display: true)
+            }
+            try? await Task.sleep(for: .seconds(2.5))
+            // Geste fait dans la page, comme un clic de la personne (appel de note).
+            if let script, let web = window?.contentView.flatMap({ findWebViews($0).first }) {
+                _ = try? await web.evaluateJavaScript(script, contentWorld: EPUBPageController.world)
+                try? await Task.sleep(for: .seconds(1.5))
+            }
+            for mode in ["light", "dark"] {
+                NSApp.appearance = NSAppearance(named: mode == "light" ? .aqua : .darkAqua)
+                try? await Task.sleep(for: .seconds(0.8))
+                capture(to: "\(dir)/\(name)-\(mode).png", window: window)
+                await drawWebPage(of: window, into: "\(dir)/\(name)-\(mode).png")
+            }
+            window?.close()
+            try? await Task.sleep(for: .seconds(0.5))
+        }
+        UserDefaults.standard.set(false, forKey: "readerContentsVisible")
+        reading.record(ReadingPosition(chapter: 0, fraction: 0, percent: 0), for: book)
+        UserDefaults.standard.set(true, forKey: "readerNotesVisible")
+        await shoot("lecture-notes")
+        UserDefaults.standard.set(false, forKey: "readerNotesVisible")
+        // Clic sur l'appel de la note longue, panneau fermé : le panneau s'ouvre sur elle.
+        await shoot("lecture-note-ouverte", script: "alx.refs()[2].click()")
+        UserDefaults.standard.set(false, forKey: "readerNotesVisible")
+
+        guard let folder = AppDirectories.testStore?.appendingPathComponent(SeedData.t("Livres", "Books"), isDirectory: true) else { return }
+        let english = !SeedData.english
+        var meta = BookMetadata(title: english ? "Harbour of Mists" : "Le Port des brumes", authors: ["Hugo Lambert"],
+                                language: english ? "en" : "fr", publisher: SeedData.publisher, summary: nil)
+        meta.series = english ? "Inspector Vidal" : "Commissaire Vidal"
+        guard let url = try? SeedData.makeEPUB(meta, cover: nil, chapters: 4, notes: true, english: english, in: folder) else { return }
+        await library.rescan()
+        if let translation = library.visibleBooks.first(where: { $0.path == url.standardizedFileURL.path }) {
+            reading.setCompanion(translation, for: book)
+            reading.record(ReadingPosition(chapter: 1, fraction: 0.5, percent: 0.375), for: book)
+            await shoot("lecture-comparaison", width: 1280)
+            reading.setCompanion(nil, for: book)
+        }
+        try? FileManager.default.removeItem(at: url)
+        await library.rescan()
+    }
+
+    /// Toutes les pages d'une fenêtre : deux pendant une comparaison (S-104).
+    private static func findWebViews(_ view: NSView) -> [ReaderWebView] {
+        (view as? ReaderWebView).map { [$0] } ?? view.subviews.flatMap(findWebViews)
     }
 
     /// WebKit dessine la page d'un EPUB dans un autre processus, que `screencapture` ne voit pas : l'image
     /// de la page, rendue par WebKit lui-même, est posée à sa place dans la capture.
     private static func drawWebPage(of window: NSWindow?, into path: String) async {
-        func find(_ view: NSView) -> ReaderWebView? {
-            (view as? ReaderWebView) ?? view.subviews.lazy.compactMap(find).first
+        guard let window, let root = window.contentView else { return }
+        var pages: [(NSImage, CGRect)] = []
+        for web in findWebViews(root) where web.window != nil {
+            if let image = try? await web.takeSnapshot(configuration: nil) { pages.append((image, web.convert(web.bounds, to: nil))) }
         }
-        guard let window, let root = window.contentView, let web = find(root),
-              let page = try? await web.takeSnapshot(configuration: nil),
+        guard !pages.isEmpty,
               let data = FileManager.default.contents(atPath: path), let shot = NSBitmapImageRep(data: data),
               // Image neuve : le PNG de screencapture (alpha non prémultiplié) refuse qu'on y dessine.
               let canvas = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: shot.pixelsWide, pixelsHigh: shot.pixelsHigh,
@@ -247,11 +307,12 @@ enum Snapshot {
                                             colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
               let context = NSGraphicsContext(bitmapImageRep: canvas) else { return }
         let scale = CGFloat(shot.pixelsWide) / window.frame.width
-        let frame = web.convert(web.bounds, to: nil)
         NSGraphicsContext.saveGraphicsState()
         NSGraphicsContext.current = context
         shot.draw(in: CGRect(x: 0, y: 0, width: shot.pixelsWide, height: shot.pixelsHigh))
-        page.draw(in: CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale))
+        for (page, frame) in pages {
+            page.draw(in: CGRect(x: frame.minX * scale, y: frame.minY * scale, width: frame.width * scale, height: frame.height * scale))
+        }
         NSGraphicsContext.restoreGraphicsState()
         try? canvas.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: path))
     }

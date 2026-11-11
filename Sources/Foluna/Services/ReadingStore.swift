@@ -44,6 +44,21 @@ final class ReadingStore {
         }
     }
 
+    // MARK: Comparaison (S-104)
+
+    static let companionsKey = "readerCompanions"
+
+    /// Livre ouvert en face de celui-ci lors de la dernière comparaison (empreintes) ; repris à l'ouverture.
+    func companion(of book: Book) -> String? {
+        (UserDefaults.standard.dictionary(forKey: Self.companionsKey) as? [String: String])?[book.fingerprint]
+    }
+
+    func setCompanion(_ companion: Book?, for book: Book) {
+        var all = UserDefaults.standard.dictionary(forKey: Self.companionsKey) as? [String: String] ?? [:]
+        all[book.fingerprint] = companion?.fingerprint
+        UserDefaults.standard.set(all, forKey: Self.companionsKey)
+    }
+
     // MARK: Réglages du texte (valables pour tous les livres)
 
     static let scaleKey = "readerTextScale", themeKey = "readerTheme", fontKey = "readerFont"

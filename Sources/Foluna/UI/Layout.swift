@@ -30,4 +30,18 @@ enum Layout {
     static let detailCover: CGFloat = 280
     /// Feuille « Catalogues en ligne » (S-089) : hauteur de la liste.
     static let catalogsList: CGFloat = 200
+    /// Fenêtre de lecture divisée (S-103, S-104) : en dessous de cette largeur, le second panneau passe sous la page.
+    static let readerSplitWidth: CGFloat = 720
+    /// Page la plus étroite (ou la plus basse) qu'on garde à côté d'un panneau.
+    static let readerPageMin: CGFloat = 320
+    static let readerPageMinHeight: CGFloat = 240
+    /// Panneau des notes de bas de page (S-103) : largeur minimale, à l'ouverture, maximale ; hauteur sous la page.
+    static let notesPanelMin: CGFloat = 220
+    static let notesPanel: CGFloat = 300
+    static let notesPanelMax: CGFloat = 480
+    static let notesPanelMinHeight: CGFloat = 160
+    /// Bulle d'une note longue (S-103) : au-delà, elle défile.
+    static let footnoteBubbleMax: CGFloat = 360
+    /// Feuille « Comparer avec un autre livre » (S-104) : hauteur de la liste.
+    static let companionList: CGFloat = 320
 }

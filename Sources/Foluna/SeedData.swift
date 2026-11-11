@@ -19,6 +19,8 @@ enum SeedData {
         var azw3 = false
         /// Plusieurs chapitres : un vrai livre à lire dans la fenêtre de lecture.
         var chapters = 1
+        /// Notes de bas de page au premier chapitre (S-103).
+        var notes = false
         /// Dans le second dossier de livres (« Disque externe ») plutôt que dans « Livres ».
         var external = false
     }
@@ -52,7 +54,7 @@ enum SeedData {
                genre: t("Roman", "Novel"), year: "2019", cover: .systemTeal),
         Sample(title: slowHours, authors: ["Claire Morel"], genre: t("Roman", "Novel"), year: "2022", cover: .systemIndigo),
         Sample(title: harbour, authors: ["Hugo Lambert"], genre: crime, series: vidalSeries,
-               index: 1, year: "2015", cover: .systemGray, chapters: 4),
+               index: 1, year: "2015", cover: .systemGray, chapters: 4, notes: true),
         Sample(title: lowTide, authors: ["Hugo Lambert"], genre: crime, series: vidalSeries,
                index: 2, year: "2016", cover: .systemBrown),
         Sample(title: t("Le Dernier Ferry", "The Last Ferry"), authors: ["Hugo Lambert"], genre: crime, series: vidalSeries,
@@ -146,7 +148,8 @@ enum SeedData {
         meta.seriesIndex = s.index
         meta.publishedDate = s.year
         meta.subjects = [s.genre]
-        let epub = try makeEPUB(meta, cover: s.cover.flatMap { coverPNG(title: s.title, color: $0) }, chapters: s.chapters, in: folder)
+        let epub = try makeEPUB(meta, cover: s.cover.flatMap { coverPNG(title: s.title, color: $0) }, chapters: s.chapters,
+                                notes: s.notes, in: folder)
         if s.azw3 {
             try EPUBToAZW3.convert(input: epub, output: epub.deletingPathExtension().appendingPathExtension("azw3"))
             try FileManager.default.removeItem(at: epub)
@@ -188,9 +191,26 @@ enum SeedData {
         return url
     }
 
-    static func chapterTitle(_ c: Int, of chapters: Int) -> String {
+    static func chapterTitle(_ c: Int, of chapters: Int, english: Bool = SeedData.english) -> String {
         let names = english ? ["The Quay", "The Mist", "The Lighthouse", "The Tide"] : ["Le quai", "La brume", "Le phare", "La marée"]
-        return chapters == 1 ? t("Chapitre 1", "Chapter 1") : "\(c). \(names[(c - 1) % names.count])"
+        return chapters == 1 ? (english ? "Chapter 1" : "Chapitre 1") : "\(c). \(names[(c - 1) % names.count])"
+    }
+
+    /// Notes de bas de page du premier chapitre (S-103) : deux courtes, en bulle, et une longue, dans le panneau.
+    static func footnotes(english: Bool = SeedData.english) -> [String] {
+        english
+            ? ["The harbour was rebuilt after the great storm of 1953.",
+               "The nickname the dockers gave the inspector, after his grey coat.",
+               "The last ferry left the island at a quarter past nine in winter and at ten in summer. The timetable, "
+                + "pinned up in the harbour office, had not changed for twenty years; everyone knew it by heart, and "
+                + "nobody ever checked it, which is precisely why the inspector went to read it on the evening of the "
+                + "disappearance. He noticed that someone had added, in pencil, a crossing that did not exist."]
+            : ["Le port a été reconstruit après la grande tempête de 1953.",
+               "Surnom donné au commissaire par les dockers, à cause de son manteau gris.",
+               "Le dernier ferry quittait l'île à neuf heures et quart en hiver, à dix heures en été. L'horaire, punaisé "
+                + "dans le bureau du port, n'avait pas changé depuis vingt ans ; tout le monde le connaissait par cœur, "
+                + "et personne ne le vérifiait jamais, ce qui explique que le commissaire soit allé le lire le soir de "
+                + "la disparition. Il remarqua qu'on y avait ajouté, au crayon, une traversée qui n'existait pas."]
     }
 
     /// Passages surlignés dans « Le Port des brumes » (fenêtre de lecture) : ils sont dans le texte des paragraphes.
@@ -199,14 +219,15 @@ enum SeedData {
     static let readerPinkPassage = t("on entendait seulement les haussières grincer", "all you could hear were the mooring lines creaking")
 
     /// Textes des paragraphes d'un chapitre (sans balises).
-    static func paragraphs(chapter c: Int, of chapters: Int, bookTitle: String) -> [String] {
+    static func paragraphs(chapter c: Int, of chapters: Int, bookTitle: String, english: Bool = SeedData.english) -> [String] {
         guard chapters > 1 else {
             return [english ? "A paragraph from “\(bookTitle)”." : "Un paragraphe de « \(bookTitle) », avec des accents : été, œuvre."]
         }
         return (1...18).map { p in
             english
-                ? "The mist rose from the harbour like a tide in reverse, and \(readerPassage). Nobody spoke; "
-                    + "\(readerPinkPassage) against the bollards and, further off, the lighthouse horn counting the minutes (\(c).\(p))."
+                ? "The mist rose from the harbour like a tide in reverse, and the inspector waited on the quay for the last ferry "
+                    + "to come in. Nobody spoke; all you could hear were the mooring lines creaking against the bollards and, "
+                    + "further off, the lighthouse horn counting the minutes (\(c).\(p))."
                 : "La brume montait du port comme une marée à l'envers, et le commissaire attendait sur le quai que "
                     + "le dernier ferry rentre. Personne ne parlait ; on entendait seulement les haussières grincer contre "
                     + "les bittes d'amarrage et, plus loin, la corne du phare qui comptait les minutes (\(c).\(p))."
@@ -294,18 +315,29 @@ enum SeedData {
 
     /// EPUB minimal (un chapitre), avec une couverture si `cover` est fourni. Titre sans & ni <.
     /// `chapters` > 1 : un livre de plusieurs pages, pour la fenêtre de lecture (S-066 à S-070).
-    static func makeEPUB(_ meta: BookMetadata, cover: Data?, chapters: Int = 1, in folder: URL) throws -> URL {
+    /// `english` : langue du texte des chapitres (la traduction de la comparaison est dans l'autre langue).
+    static func makeEPUB(_ meta: BookMetadata, cover: Data?, chapters: Int = 1, notes: Bool = false,
+                         english: Bool = SeedData.english, in folder: URL) throws -> URL {
         var epub = EPUBBuilder(metadata: meta)
         if let cover {
             epub.add("Images/cover.png", mediaType: "image/png", data: cover)
             epub.coverPath = "Images/cover.png"
         }
         for c in 1...chapters {
-            let title = chapterTitle(c, of: chapters)
-            let body = paragraphs(chapter: c, of: chapters, bookTitle: meta.title).map { "<p>\($0)</p>" }.joined(separator: "\n")
+            let title = chapterTitle(c, of: chapters, english: english)
+            let texts = paragraphs(chapter: c, of: chapters, bookTitle: meta.title, english: english)
+            // Appels de note EPUB 3 au bout des premiers paragraphes, notes en fin de chapitre.
+            let calls = notes && c == 1 ? footnotes(english: english) : []
+            var body = texts.enumerated().map { i, text in
+                let call = i < calls.count ? "<sup><a epub:type=\"noteref\" href=\"#n\(i + 1)\" id=\"r\(i + 1)\">\(i + 1)</a></sup>" : ""
+                return "<p>\(text)\(call)</p>"
+            }.joined(separator: "\n")
+            for (i, note) in calls.enumerated() {
+                body += "\n<aside epub:type=\"footnote\" id=\"n\(i + 1)\"><p><a href=\"#r\(i + 1)\">\(i + 1).</a> \(note)</p></aside>"
+            }
             let html = """
                 <?xml version="1.0" encoding="utf-8"?>
-                <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="\(meta.language ?? "fr")">
+                <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="\(meta.language ?? "fr")">
                 <head><title>\(meta.title)</title></head>
                 <body><h1>\(title)</h1>
                 \(body)

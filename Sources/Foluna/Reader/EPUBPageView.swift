@@ -26,6 +26,10 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     /// Clic sur un passage surligné (S-071) : sa note s'ouvre, posée sur ce rectangle de la page.
     @ObservationIgnored var onOpenNote: (Clipping.ID, CGRect) -> Void = { _, _ in }
     /// Surlignages faits dans l'app pour ce livre ; ceux du chapitre affiché sont dessinés.
+    /// Clic sur un appel de note (S-103) : adresse absolue de la note, appel affiché, rectangle de l'appel dans la page.
+    @ObservationIgnored var onNoteReference: (URL, String, CGRect) -> Void = { _, _, _ in }
+    /// Faux pour le livre d'en face d'une comparaison (S-104) : il se lit, on n'y surligne pas.
+    @ObservationIgnored var editable = true
     @ObservationIgnored var highlights: [Clipping] = [] {
         didSet { if highlights != oldValue { Task { _ = await js(highlightsScript) } } }
     }
@@ -42,6 +46,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
             case .selection(let selected): self?.hasSelection = selected
             case .open(let id, let rect): self?.onOpenNote(id, rect)
             case .menuTarget(let id): self?.menuTarget = id
+            case .noteReference(let url, let label, let rect): self?.onNoteReference(url, label, rect)
             }
         }, contentWorld: Self.world, name: "alx")
         let view = ReaderWebView(frame: .zero, configuration: configuration)
@@ -169,6 +174,30 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         return "alx.setHighlights([\(marks.joined(separator: ", "))])"
     }
 
+    // MARK: Notes de bas de page (S-103)
+
+    /// Appels de note du chapitre affiché, dans l'ordre du texte : adresse absolue de la note et appel.
+    func noteReferences() async -> [(url: URL, label: String)] {
+        guard let list = await js("alx.refs().map(a => [a.href, alx.refLabel(a)])") as? [[String]] else { return [] }
+        return list.compactMap { pair in
+            guard pair.count == 2, let url = URL(string: pair[0]) else { return nil }
+            return (url, pair[1])
+        }
+    }
+
+    /// Rangs (dans `noteReferences()`) des appels visibles sur la page affichée.
+    func referencesOnPage() async -> [Int] {
+        (await js("alx.refsOnPage()") as? [NSNumber])?.map(\.intValue) ?? []
+    }
+
+    /// Revient à un appel de note : sa page, l'appel entouré un instant.
+    func showReference(_ index: Int) {
+        Task {
+            await js("alx.showRef(\(index))")
+            await refresh()
+        }
+    }
+
     // MARK: WebKit
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
@@ -183,6 +212,12 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
     /// Liens du livre : un autre chapitre s'ouvre ici ; une adresse web part dans le navigateur.
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard action.navigationType == .linkActivated, let url = action.request.url else { return .allow }
+        follow(url)
+        return .cancel
+    }
+
+    /// Suit un lien du livre : un chapitre s'ouvre à son ancre, une adresse web part dans le navigateur.
+    func follow(_ url: URL) {
         if url.isFileURL {
             let path = url.standardizedFileURL.path
             if let index = book.chapters.firstIndex(where: { $0.standardizedFileURL.path == path }) {
@@ -191,7 +226,6 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         } else if ["http", "https", "mailto"].contains(url.scheme ?? "") {
             NSWorkspace.shared.open(url)
         }
-        return .cancel
     }
 
     private func land() async {
@@ -257,6 +291,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
             ${s.font ? `body, body *:not(pre):not(code):not(kbd):not(samp):not(tt):not(pre *) { font-family: ${s.font} !important; }` : ''}
             img, svg, video { max-width: 100% !important; max-height: ${h - 2 * m}px !important; object-fit: contain; }
             mark.alx-hl { color: inherit; border-radius: 2px; cursor: pointer; }
+            .alx-ref-flash { outline: 2px solid ${s.ink}; outline-offset: 1px; border-radius: 2px; }
             mark.alx-hl.alx-note { border-bottom: 1px dotted ${s.ink}; }
             mark.alx-hl.alx-note-end::after { content: ''; display: inline-block; width: 0.5em; height: 0.5em;
                    margin-left: 0.15em; vertical-align: super; border-radius: 50%; background: ${s.ink}; opacity: 0.7; }
@@ -332,6 +367,44 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
           return shown ? this.box(shown) : null;
         },
         setHighlights(list) { this.unmark(); list.forEach(h => this.mark(h)); },
+        // Appels de note (S-103) : balisés (EPUB 3, ARIA), ou un lien court en exposant vers une ancre.
+        epubType(el) {
+          return (el.getAttributeNS && el.getAttributeNS('http://www.idpf.org/2007/ops', 'type')) || el.getAttribute('epub:type') || '';
+        },
+        inNote(el) {
+          for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+            const t = this.epubType(p), r = p.getAttribute('role') || '', c = typeof p.className === 'string' ? p.className : '';
+            if (p.tagName.toLowerCase() === 'aside' || /\\b(foot|end|rear)?notes?\\b/.test(t) || /^doc-(foot|end)notes?$/.test(r)
+                || /\\b(foot|end)?notes?\\b/i.test(c)) return true;
+          }
+          return false;
+        },
+        isNoteRef(a) {
+          const href = a.getAttribute('href') || '';
+          if (!href.includes('#') || (/^[a-z]+:/i.test(href) && !/^file:/i.test(href))) return false;
+          const t = this.epubType(a), r = a.getAttribute('role') || '';
+          if (/\\bnoteref\\b/.test(t) || r === 'doc-noteref') return true;
+          if (/\\b(backlink|referrer)\\b/.test(t) || r === 'doc-backlink' || this.inNote(a)) return false;
+          const label = a.textContent.trim();
+          if (!/^[\\[(]?([0-9]{1,3}|[ivxlc]{1,5}|[a-z]|\\*{1,3}|[†‡§¶])[\\])]?$/i.test(label)) return false;
+          const sup = a.closest('sup') || a.querySelector('sup') || getComputedStyle(a).verticalAlign === 'super';
+          return !!sup || /^[\\[(].+[\\])]$/.test(label);
+        },
+        refLabel(a) { return a.textContent.trim().replace(/^[\\[(]|[\\])]$/g, ''); },
+        refs() { return [...document.querySelectorAll('a[href]')].filter(a => this.isNoteRef(a)); },
+        refsOnPage() {
+          const out = [];
+          this.refs().forEach((a, i) => { const r = a.getBoundingClientRect(); if (r.left >= 0 && r.left < window.innerWidth) out.push(i); });
+          return out;
+        },
+        showRef(i) {
+          const a = this.refs()[i];
+          if (!a) return false;
+          this.goTo(this.pageOf(a));
+          a.classList.add('alx-ref-flash');
+          setTimeout(() => a.classList.remove('alx-ref-flash'), 1500);
+          return true;
+        },
         // Surlignage ouvert depuis les notes (S-072) : positions dans le texte du corps, sélectionnées, à leur page.
         selectPos(start, end) {
           const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -376,6 +449,14 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         const s = window.getSelection();
         window.webkit.messageHandlers.alx.postMessage(!!s && !s.isCollapsed && s.toString().trim().length > 0);
       });
+      // Clic sur un appel de note (S-103) : la note s'ouvre dans Foluna, la page ne change pas.
+      document.addEventListener('click', e => {
+        const a = e.target.closest && e.target.closest('a[href]');
+        if (!a || !alx.isNoteRef(a)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        window.webkit.messageHandlers.alx.postMessage({ note: a.href, label: alx.refLabel(a), rect: alx.box(a) });
+      }, true);
       // Clic droit : le passage surligné visé, pour les entrées du menu (S-073).
       document.addEventListener('contextmenu', e => {
         const m = e.target.closest && e.target.closest('mark.alx-hl');
@@ -405,6 +486,8 @@ final class ScriptRelay: NSObject, WKScriptMessageHandler {
         case open(Clipping.ID, CGRect)
         /// Clic droit, sur un passage surligné ou non.
         case menuTarget(Clipping.ID?)
+        /// Clic sur un appel de note : adresse de la note, appel, rectangle de l'appel.
+        case noteReference(URL, String, CGRect)
     }
 
     let receive: @MainActor (Message) -> Void
@@ -415,7 +498,10 @@ final class ScriptRelay: NSObject, WKScriptMessageHandler {
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         let parsed: Message
-        if let body = message.body as? [String: Any], let id = body["menu"] as? String {
+        if let body = message.body as? [String: Any], let href = body["note"] as? String, let url = URL(string: href) {
+            let r = (body["rect"] as? [NSNumber])?.map(\.doubleValue) ?? []
+            parsed = .noteReference(url, body["label"] as? String ?? "", r.count == 4 ? CGRect(x: r[0], y: r[1], width: r[2], height: r[3]) : .zero)
+        } else if let body = message.body as? [String: Any], let id = body["menu"] as? String {
             parsed = .menuTarget(id.isEmpty ? nil : id)
         } else if let body = message.body as? [String: Any], let id = body["open"] as? String {
             let r = (body["rect"] as? [NSNumber])?.map(\.doubleValue) ?? []
@@ -435,7 +521,7 @@ final class ReaderWebView: WKWebView {
     /// encore à l'app qu'une sélection existe : « Copier » dans son menu en tient lieu.
     override func willOpenMenu(_ menu: NSMenu, with event: NSEvent) {
         super.willOpenMenu(menu, with: event)
-        guard let controller else { return }
+        guard let controller, controller.editable else { return }
         let selection = menu.items.contains { $0.identifier?.rawValue == "WKMenuItemIdentifierCopy" }
         for item in menu.items where item.identifier?.rawValue == "WKMenuItemIdentifierCopyLinkWithHighlight" {
             menu.removeItem(item)
@@ -478,9 +564,40 @@ final class ReaderWebView: WKWebView {
     }
 }
 
+/// La vue web est posée dans un cadre propre à chaque emplacement : quand le panneau s'ouvre ou change de sens,
+/// SwiftUI recrée l'emplacement, et la même vue web (son chapitre, sa page) passe dans le nouveau cadre.
 struct EPUBPageView: NSViewRepresentable {
     let controller: EPUBPageController
 
-    func makeNSView(context: Context) -> ReaderWebView { controller.webView }
-    func updateNSView(_ view: ReaderWebView, context: Context) {}
+    func makeNSView(context: Context) -> PageFrame {
+        let frame = PageFrame()
+        frame.hold(controller.webView)
+        return frame
+    }
+
+    func updateNSView(_ frame: PageFrame, context: Context) {
+        // Seulement si elle n'est nulle part : un cadre en train de disparaître ne la reprend pas au nouveau.
+        if controller.webView.superview == nil { frame.hold(controller.webView) }
+    }
+
+    /// Cadre qui donne à la vue web exactement sa taille, à chaque mise en page, et coupe ce qui dépasserait.
+    final class PageFrame: NSView {
+        override init(frame: NSRect) {
+            super.init(frame: frame)
+            clipsToBounds = true
+        }
+
+        required init?(coder: NSCoder) { nil }
+
+        func hold(_ web: NSView) {
+            web.removeFromSuperview()
+            addSubview(web)
+            needsLayout = true
+        }
+
+        override func layout() {
+            super.layout()
+            for view in subviews where view.frame != bounds { view.frame = bounds }
+        }
+    }
 }

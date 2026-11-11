@@ -4028,6 +4028,34 @@
         }
       }
     },
+    "Arrêter la comparaison" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleich beenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stop Comparing"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Detener la comparación"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergelijken stoppen"
+          }
+        }
+      }
+    },
     "Aucun disque amovible avec des livres n'est branché." : {
       "localizations" : {
         "de" : {
@@ -4336,6 +4364,34 @@
         }
       }
     },
+    "Aucun livre à comparer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Bücher zum Vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Books to Compare"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ningún libro para comparar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen boeken om te vergelijken"
+          }
+        }
+      }
+    },
     "Aucun passage" : {
       "localizations" : {
         "de" : {
@@ -4640,6 +4696,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geen e-reader om te verwijderen."
+          }
+        }
+      }
+    },
+    "Aucune note dans ce chapitre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keine Fußnoten in diesem Kapitel"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No Footnotes in This Chapter"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No hay notas al pie en este capítulo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen voetnoten in dit hoofdstuk"
           }
         }
       }
@@ -5032,6 +5116,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Andere formaten"
+          }
+        }
+      }
+    },
+    "Autres livres" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere Bücher"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Other Books"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Otros libros"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Andere boeken"
           }
         }
       }
@@ -6464,6 +6576,34 @@
         }
       }
     },
+    "Choisissez la traduction ou l'autre édition à lire en face de « %@ »." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wähle die Übersetzung oder andere Ausgabe, die neben „%@“ gelesen wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose the translation or other edition to read alongside “%@”."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elige la traducción u otra edición para leer junto a «%@»."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies de vertaling of andere uitgave om naast ‘%@’ te lezen."
+          }
+        }
+      }
+    },
     "Choisissez le dossier où se trouvent vos livres (EPUB, MOBI, AZW3, PDF).\nIl sera indexé en lecture seule : aucun fichier n'y sera modifié." : {
       "localizations" : {
         "de" : {
@@ -6716,6 +6856,34 @@
         }
       }
     },
+    "Comparaison avec « %@ »" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleich mit „%@“"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparing with “%@”"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparación con «%@»"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergelijking met ‘%@’"
+          }
+        }
+      }
+    },
     "Compare l'ISBN, le titre, les auteurs, l'éditeur et la date avec la BnF puis Open Library." : {
       "localizations" : {
         "de" : {
@@ -6740,6 +6908,90 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Vergelijkt het ISBN, de titel, de auteurs, de uitgever en de datum met de BnF en daarna Open Library."
+          }
+        }
+      }
+    },
+    "Comparer" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparar"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergelijken"
+          }
+        }
+      }
+    },
+    "Comparer avec un autre livre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem anderen Buch vergleichen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare with Another Book"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparar con otro libro"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergelijken met een ander boek"
+          }
+        }
+      }
+    },
+    "Comparer avec un autre livre…" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mit einem anderen Buch vergleichen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compare with Another Book…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Comparar con otro libro…"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vergelijken met een ander boek…"
           }
         }
       }
@@ -8200,6 +8452,34 @@
         }
       }
     },
+    "Du même auteur" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vom selben Autor"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "By the Same Author"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Del mismo autor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Van dezelfde auteur"
+          }
+        }
+      }
+    },
     "Déplier %@" : {
       "localizations" : {
         "de" : {
@@ -9610,6 +9890,62 @@
         }
       }
     },
+    "Fermer le panneau des notes (⌥⌘N)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnotenbereich schließen (⌥⌘N)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close the footnotes panel (⌥⌘N)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar el panel de notas al pie (⌥⌘N)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voetnotenpaneel sluiten (⌥⌘N)"
+          }
+        }
+      }
+    },
+    "Fermer les notes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnoten schließen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close Footnotes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cerrar las notas al pie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voetnoten sluiten"
+          }
+        }
+      }
+    },
     "Fichier affiché ici et envoyé à la liseuse" : {
       "localizations" : {
         "de" : {
@@ -10990,6 +11326,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Kan de thema's niet bewaren: %@"
+          }
+        }
+      }
+    },
+    "Impossible d'ouvrir « %@ » en face" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "„%@“ kann nicht daneben geöffnet werden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Couldn’t open “%@” alongside"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No se puede abrir «%@» al lado"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kan ‘%@’ niet ernaast openen"
           }
         }
       }
@@ -12966,6 +13330,62 @@
         }
       }
     },
+    "Les deux textes avancent ensemble ; cliquer pour les lire séparément" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beide Texte blättern gemeinsam; klicken, um sie getrennt zu lesen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Both texts move together; click to read them separately"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los dos textos avanzan juntos; haz clic para leerlos por separado"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beide teksten gaan samen vooruit; klik om ze apart te lezen"
+          }
+        }
+      }
+    },
+    "Les deux textes avancent séparément ; cliquer pour les remettre en face" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Die Texte blättern getrennt; klicken, um sie wieder nebeneinanderzustellen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The texts move separately; click to line them up again"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Los textos avanzan por separado; haz clic para volver a alinearlos"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De teksten gaan apart vooruit; klik om ze weer naast elkaar te zetten"
+          }
+        }
+      }
+    },
     "Les exports et les notes envoyées à Zotero suivent aussi cette langue. Les titres, les notes et les dates déjà enregistrées ne sont pas traduits." : {
       "localizations" : {
         "de" : {
@@ -13246,6 +13666,34 @@
         }
       }
     },
+    "Lire en face une traduction ou une autre édition (⌥⌘C)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eine Übersetzung oder andere Ausgabe daneben lesen (⌥⌘C)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read a translation or another edition alongside (⌥⌘C)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leer al lado una traducción u otra edición (⌥⌘C)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een vertaling of andere uitgave ernaast lezen (⌥⌘C)"
+          }
+        }
+      }
+    },
     "Liseuse" : {
       "localizations" : {
         "de" : {
@@ -13522,6 +13970,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Boek niet gevonden"
+          }
+        }
+      }
+    },
+    "Livres" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Bücher"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Books"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Libros"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boeken"
           }
         }
       }
@@ -13868,6 +14344,34 @@
         }
       }
     },
+    "Marquer et montrer les notes dont l'appel est sur la page affichée" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnoten markieren und zeigen, auf die die aktuelle Seite verweist"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mark and show the footnotes referenced on the current page"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Marcar y mostrar las notas al pie citadas en la página actual"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voetnoten markeren en tonen waarnaar op de huidige pagina wordt verwezen"
+          }
+        }
+      }
+    },
     "Mettre les livres sélectionnés en attente : ils partiront dès que la liseuse sera branchée (⌘K)" : {
       "localizations" : {
         "de" : {
@@ -14060,6 +14564,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Toont de gegevens van het boek"
+          }
+        }
+      }
+    },
+    "Montrer l'appel de cette note dans le texte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zeigen, wo im Text auf diese Fußnote verwiesen wird"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show where this footnote is referenced in the text"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mostrar dónde se cita esta nota en el texto"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tonen waar deze voetnoot in de tekst staat"
           }
         }
       }
@@ -14344,6 +14876,34 @@
         }
       }
     },
+    "Note %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnote %@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Note %@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nota %@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Noot %@"
+          }
+        }
+      }
+    },
     "Note : %@" : {
       "localizations" : {
         "de" : {
@@ -14564,6 +15124,62 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Notities van Foluna"
+          }
+        }
+      }
+    },
+    "Notes de bas de page" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnoten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Footnotes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas al pie"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voetnoten"
+          }
+        }
+      }
+    },
+    "Notes du chapitre" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnoten des Kapitels"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Chapter Footnotes"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notas del capítulo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voetnoten van het hoofdstuk"
           }
         }
       }
@@ -14988,6 +15604,34 @@
         }
       }
     },
+    "Ouvrir dans le panneau des notes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Im Fußnotenbereich öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in the Footnotes Panel"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abrir en el panel de notas"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Openen in het voetnotenpaneel"
+          }
+        }
+      }
+    },
     "Ouvrir la fenêtre de lecture à ce passage" : {
       "localizations" : {
         "de" : {
@@ -15336,6 +15980,34 @@
         }
       }
     },
+    "Panneau des notes de bas de page du chapitre (⌥⌘N)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fußnotenbereich des Kapitels (⌥⌘N)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Footnotes panel for the chapter (⌥⌘N)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Panel de notas al pie del capítulo (⌥⌘N)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voetnotenpaneel van het hoofdstuk (⌥⌘N)"
+          }
+        }
+      }
+    },
     "Par couleur" : {
       "localizations" : {
         "de" : {
@@ -15528,6 +16200,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nog niet gecontroleerd"
+          }
+        }
+      }
+    },
+    "Pendant une comparaison, les notes s'ouvrent en bulle sur leur appel" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Beim Vergleichen öffnen sich Fußnoten in einer Blase am Verweis"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "While comparing, footnotes open in a bubble at their reference"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Al comparar, las notas se abren en una burbuja junto a su llamada"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tijdens het vergelijken openen voetnoten in een ballon bij hun verwijzing"
           }
         }
       }
@@ -16474,6 +17174,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Zoek naar updates…"
+          }
+        }
+      }
+    },
+    "Rechercher un titre ou un auteur" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nach Titel oder Autor suchen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Search for a title or author"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Buscar un título o un autor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zoeken naar titel of auteur"
           }
         }
       }
@@ -17608,6 +18336,34 @@
         }
       }
     },
+    "Revenir au texte" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zurück zum Text"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back to Text"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Volver al texto"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug naar de tekst"
+          }
+        }
+      }
+    },
     "Revenir à la sauvegarde du %@ ?" : {
       "localizations" : {
         "de" : {
@@ -18598,6 +19354,34 @@
         }
       }
     },
+    "Seuls les EPUB, MOBI et AZW3 sans DRM se lisent en face." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Nur EPUB, MOBI und AZW3 ohne DRM lassen sich daneben lesen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only EPUB, MOBI and AZW3 books without DRM can be read alongside."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo los EPUB, MOBI y AZW3 sin DRM se pueden leer al lado."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen EPUB, MOBI en AZW3 zonder DRM kunnen ernaast worden gelezen."
+          }
+        }
+      }
+    },
     "Sombre" : {
       "localizations" : {
         "de" : {
@@ -18678,6 +19462,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Het bestand wordt verplaatst"
+          }
+        }
+      }
+    },
+    "Suivre la lecture" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lesen folgen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Follow Reading"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seguir la lectura"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Lezen volgen"
           }
         }
       }
@@ -19294,6 +20106,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Gemarkeerd in het leesvenster van Foluna, niet op de e-reader"
+          }
+        }
+      }
+    },
+    "Synchroniser les deux textes" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte synchron halten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Keep Texts in Sync"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sincronizar los dos textos"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teksten synchroon houden"
           }
         }
       }
@@ -20498,6 +21338,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Een PDF houdt zijn eigen lettertypen en kleuren"
+          }
+        }
+      }
+    },
+    "Un clic sur un appel de note l'ouvre ici." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klicke auf einen Fußnotenverweis, um ihn hier zu öffnen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click a footnote reference to open it here."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Haz clic en una llamada de nota para abrirla aquí."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klik op een voetnootverwijzing om hem hier te openen."
           }
         }
       }
@@ -23183,6 +24051,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Te controleren"
+          }
+        }
+      }
+    },
+    "Échanger les côtés" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Seiten tauschen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swap Sides"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intercambiar lados"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kanten wisselen"
           }
         }
       }

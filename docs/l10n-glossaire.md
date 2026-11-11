@@ -22,6 +22,9 @@ Les termes de macOS suivent ceux de macOS dans chaque langue (Réglages Système
 | en attente d'envoi | waiting to send | wacht op verzending | wartet auf Senden | en espera de envío |
 | texte redimensionnable | resizable text | aanpasbare tekst | anpassbarer Text | texto ajustable |
 | police | font | lettertype | Schrift | tipo de letra |
+| note de bas de page | footnote | voetnoot | Fußnote | nota al pie |
+| appel de note | footnote reference | voetnootverwijzing | Fußnotenverweis | llamada de nota |
+| lire en face, comparer | read alongside, compare | ernaast lezen, vergelijken | daneben lesen, vergleichen | leer al lado, comparar |
 
 Les noms propres ne se traduisent pas : Foluna, Kindle, Kobo, Zotero, Open Library, BnF, iCloud Drive.
 Le dossier « Sauvegarde Foluna » garde son nom dans toutes les langues (c'est un nom de dossier sur le disque).

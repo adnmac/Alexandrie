@@ -86,6 +86,15 @@ struct ReaderView: View {
     @State private var hitQuery = ""
     /// Colonne de gauche : table des matières ou renvois de la recherche.
     @State private var sidebarMode: SidebarMode = .contents
+    /// Panneau des notes de bas de page ouvert (S-103), pour tous les livres ; ses notes suivent la page.
+    @AppStorage("readerNotesVisible") private var showsNotes = false
+    @AppStorage("readerNotesFollow") private var notesFollow = true
+    /// Une note courte s'ouvre en bulle sur son appel quand le panneau est fermé.
+    @AppStorage("readerShortNotesInBubble") private var shortNotesInBubble = true
+    @State private var footnotes = FootnotesModel()
+    /// Livre lu en face (S-104) ; il prend la place du panneau des notes.
+    @State private var compare: CompareSession?
+    @State private var choosesCompanion = false
 
     enum SidebarMode: Hashable { case contents, hits }
 
@@ -100,7 +109,7 @@ struct ReaderView: View {
             sidebar
                 .navigationSplitViewColumnWidth(min: 200, ideal: 260, max: 380)
         } detail: {
-            page
+            readingArea
                 .safeAreaInset(edge: .top, spacing: 0) { if !hits.isEmpty { hitsBar } }
         }
         .navigationTitle(book.title)
@@ -116,6 +125,10 @@ struct ReaderView: View {
         .sheet(isPresented: $managesResearches) {
             ResearchesSheet(selected: researches.activeResearch(for: book)?.id)
         }
+        .sheet(isPresented: $choosesCompanion) {
+            CompanionPickerSheet(book: book) { startCompare(with: $0) }
+        }
+        .onChange(of: showsNotes) { if showsNotes { refreshNotes(reload: true) } }
         .onChange(of: ReaderLaunch.shared.targets[book.id]) { jumpToTarget() }
         .onDisappear { reading.saveNow() }
     }
@@ -126,17 +139,21 @@ struct ReaderView: View {
         switch content {
         case .epub(let controller):
             VStack(spacing: 0) {
+                if compare != nil {
+                    ReaderPaneHeader(book: book)
+                    Divider()
+                }
                 EPUBPageView(controller: controller)
-                footer(previous: controller.previous, next: controller.next,
-                       text: String(localized: "Page \(controller.page + 1) sur \(controller.pageCount) du chapitre"),
-                       percent: controller.percent)
+                ReaderFooter(previous: controller.previous, next: controller.next,
+                             text: String(localized: "Page \(controller.page + 1) sur \(controller.pageCount) du chapitre"),
+                             percent: controller.percent)
             }
             .background(reading.theme.paperColor)
         case .pdf(let controller):
             VStack(spacing: 0) {
                 PDFPageView(controller: controller)
-                footer(previous: controller.previous, next: controller.next,
-                       text: String(localized: "Page \(controller.page + 1) sur \(controller.pageCount)"), percent: controller.percent)
+                ReaderFooter(previous: controller.previous, next: controller.next,
+                             text: String(localized: "Page \(controller.page + 1) sur \(controller.pageCount)"), percent: controller.percent)
             }
         case nil:
             if let failure {
@@ -148,24 +165,162 @@ struct ReaderView: View {
         }
     }
 
-    private func footer(previous: @escaping () -> Void, next: @escaping () -> Void, text: String, percent: Double) -> some View {
-        HStack(spacing: Space.md) {
-            Button(action: previous) { Image(systemName: "chevron.left") }
-                .help("Page précédente (←)")
-            Spacer()
-            Text(text).monospacedDigit()
-            Text("·")
-            Text(ReadingPosition(chapter: 0, fraction: 0, percent: percent).label).monospacedDigit()
-            Spacer()
-            Button(action: next) { Image(systemName: "chevron.right") }
-                .help("Page suivante (→ ou Espace)")
+    // MARK: Fenêtre divisée (S-103, S-104)
+
+    private var epub: EPUBPageController? {
+        if case .epub(let c) = content { c } else { nil }
+    }
+
+    /// La page seule, ou avec le livre comparé, ou avec le panneau des notes ; dessous dans une fenêtre étroite.
+    @ViewBuilder private var readingArea: some View {
+        if epub != nil, let compare {
+            GeometryReader { geo in
+                ReaderSplit(vertical: geo.size.width < Layout.readerSplitWidth) {
+                    if compare.isSwapped { ComparePane(session: compare) } else { page }
+                } second: {
+                    if compare.isSwapped { page } else { ComparePane(session: compare) }
+                }
+            }
+        } else if epub != nil, showsNotes {
+            GeometryReader { geo in
+                let vertical = geo.size.width < Layout.readerSplitWidth
+                ReaderSplit(vertical: vertical) {
+                    page
+                } second: {
+                    notesPanel
+                        .frame(minWidth: vertical ? nil : Layout.notesPanelMin, idealWidth: vertical ? nil : Layout.notesPanel,
+                               maxWidth: vertical ? nil : Layout.notesPanelMax,
+                               minHeight: vertical ? Layout.notesPanelMinHeight : nil)
+                }
+            }
+        } else {
+            page
         }
-        .buttonStyle(.borderless)
-        .font(.caption)
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, Space.lg)
-        .padding(.vertical, Space.sm)
-        .background(.bar)
+    }
+
+    // MARK: Notes de bas de page (S-103)
+
+    private var notesPanel: some View {
+        ReaderNotesPanel(model: footnotes, follows: $notesFollow, closesOnEscape: hits.isEmpty,
+                         onReturn: { note in
+                             guard let c = epub, let index = footnotes.referenceIndex(of: note.id) else { return }
+                             footnotes.active = note.id
+                             c.showReference(index)
+                         },
+                         onClose: { showsNotes = false })
+    }
+
+    /// Clic sur un appel de note : dans le panneau s'il est ouvert ou si la note est longue, sinon en bulle.
+    /// Pendant une comparaison, toujours en bulle, dans la page où est l'appel.
+    private func openFootnote(_ url: URL, label: String, rect: CGRect, in controller: EPUBPageController) {
+        Task {
+            guard let note = await FootnotesModel.resolve(url, label: label, root: controller.book.root) else {
+                // Ancre introuvable : le lien est suivi comme un autre.
+                controller.follow(url)
+                return
+            }
+            let isMain = controller === epub
+            if compare == nil, isMain, showsNotes || !(shortNotesInBubble && note.isShort) {
+                showsNotes = true
+                await footnotes.reloadIfNeeded(controller)
+                footnotes.active = note.id
+            } else {
+                FootnotePopover.show(note, at: rect, in: controller.webView, openInPanel: compare == nil && isMain ? {
+                    showsNotes = true
+                    Task {
+                        await footnotes.reloadIfNeeded(controller)
+                        footnotes.active = note.id
+                    }
+                } : nil)
+            }
+        }
+    }
+
+    /// Page tournée dans le livre de la fenêtre : notes du chapitre relues ou suivies, livre d'en face synchronisé.
+    private func mainMoved(_ controller: EPUBPageController) {
+        compare?.moved(controller, main: controller)
+        if showsNotes { refreshNotes(reload: false) }
+    }
+
+    private func refreshNotes(reload: Bool) {
+        guard let c = epub else { return }
+        Task {
+            if reload || footnotes.chapter != c.chapter {
+                footnotes.active = nil
+                await footnotes.reload(c)
+            } else if notesFollow {
+                await footnotes.updatePage(c)
+            }
+        }
+    }
+
+    // MARK: Comparaison (S-104)
+
+    /// Ouvre un autre livre en face, à la position correspondante ; le choix est repris à la prochaine ouverture.
+    private func startCompare(with other: Book) {
+        guard let main = epub else { return }
+        let directories = library.directories
+        Task { [main] in
+            do {
+                let prepared = try await Task.detached(priority: .userInitiated) {
+                    try ReaderBook.prepare(other, directories: directories)
+                }.value
+                let companion = EPUBPageController(book: prepared)
+                companion.editable = false
+                companion.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
+                companion.highlights = kindle.readerHighlights(of: other)
+                let session = CompareSession(book: other, controller: companion, mainWeights: main.book.weights)
+                companion.onMove = { [weak session, weak main, weak companion] _ in
+                    guard let session, let main, let companion else { return }
+                    session.moved(companion, main: main)
+                }
+                companion.onNoteReference = { [weak companion] url, label, rect in
+                    guard let companion else { return }
+                    openFootnote(url, label: label, rect: rect, in: companion)
+                }
+                compare = session
+                reading.setCompanion(other, for: book)
+                let place = session.alignment.counterpart(chapter: main.chapter, fraction: main.fraction)
+                companion.open(chapter: place.chapter, fraction: place.fraction)
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = String(localized: "Impossible d'ouvrir « \(other.title) » en face")
+                alert.informativeText = error.localizedDescription
+                alert.runModal()
+            }
+        }
+    }
+
+    private func stopCompare() {
+        compare = nil
+        reading.setCompanion(nil, for: book)
+    }
+
+    /// Synchronisation remise : le livre d'en face revient au passage de celui de la fenêtre.
+    private func setLocked(_ locked: Bool) {
+        guard let compare else { return }
+        compare.isLocked = locked
+        if locked, let main = epub { compare.moved(main, main: main) }
+    }
+
+    private var compareMenu: some View {
+        Menu {
+            if let compare {
+                Button("Échanger les côtés") { compare.isSwapped.toggle() }
+                Divider()
+                Button("Comparer avec un autre livre…") { choosesCompanion = true }
+                Button("Arrêter la comparaison") { stopCompare() }
+            } else {
+                Button("Comparer avec un autre livre…") { choosesCompanion = true }
+                    .keyboardShortcut("c", modifiers: [.command, .option])
+            }
+        } label: {
+            Label("Comparer", systemImage: "rectangle.split.2x1")
+        }
+        .menuIndicator(.hidden)
+        .disabled(epub == nil)
+        .help(compare.map { String(localized: "Comparaison avec « \($0.book.title) »") }
+              ?? String(localized: "Lire en face une traduction ou une autre édition (⌥⌘C)"))
     }
 
     // MARK: Table des matières (S-067)
@@ -315,6 +470,21 @@ struct ReaderView: View {
     // MARK: Réglages du texte (S-069)
 
     @ToolbarContentBuilder private var toolbar: some ToolbarContent {
+        ToolbarItemGroup(placement: .primaryAction) {
+            Toggle(isOn: $showsNotes) { Label("Notes de bas de page", systemImage: "list.number") }
+                .keyboardShortcut("n", modifiers: [.command, .option])
+                .disabled(epub == nil || compare != nil)
+                .help(compare != nil ? String(localized: "Pendant une comparaison, les notes s'ouvrent en bulle sur leur appel")
+                      : String(localized: "Panneau des notes de bas de page du chapitre (⌥⌘N)"))
+            compareMenu
+            if let compare {
+                Toggle(isOn: Binding(get: { compare.isLocked }, set: { setLocked($0) })) {
+                    Label("Synchroniser les deux textes", systemImage: compare.isLocked ? "link" : "link.badge.plus")
+                }
+                .help(compare.isLocked ? String(localized: "Les deux textes avancent ensemble ; cliquer pour les lire séparément")
+                      : String(localized: "Les deux textes avancent séparément ; cliquer pour les remettre en face"))
+            }
+        }
         ToolbarItem(placement: .primaryAction) { researchMenu }
         ToolbarItem(placement: .primaryAction) {
             Button { highlight() } label: { Label("Surligner", systemImage: "highlighter") }
@@ -537,7 +707,14 @@ struct ReaderView: View {
                 }.value
                 let controller = EPUBPageController(book: prepared)
                 controller.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
-                controller.onMove = { reading.record($0, for: book) }
+                controller.onMove = { [weak controller] position in
+                    reading.record(position, for: book)
+                    if let controller { mainMoved(controller) }
+                }
+                controller.onNoteReference = { [weak controller] url, label, rect in
+                    guard let controller else { return }
+                    openFootnote(url, label: label, rect: rect, in: controller)
+                }
                 controller.actions = highlightActions
                 controller.markOf = { [researches] in researches.mark(of: $0) }
                 controller.onOpenNote = { openNote($0, at: $1) }
@@ -546,6 +723,11 @@ struct ReaderView: View {
                 // Un passage trouvé l'emporte sur la position de lecture.
                 if ReaderLaunch.shared.targets[book.id] != nil { jumpToTarget() } else {
                     controller.open(chapter: start?.chapter ?? 0, fraction: start?.fraction ?? 0)
+                }
+                // Comparaison laissée ouverte à la dernière lecture (S-104).
+                if let fingerprint = reading.companion(of: book),
+                   let other = library.visibleBooks.first(where: { $0.fingerprint == fingerprint && ReaderBook.canRead($0) }) {
+                    startCompare(with: other)
                 }
             } catch {
                 failure = error.localizedDescription
@@ -574,6 +756,7 @@ struct ReaderView: View {
         case .pdf(let c): c.apply(scale: reading.textScale)
         case nil: break
         }
+        compare?.controller.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
     }
 }
 

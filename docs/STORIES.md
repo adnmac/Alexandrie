@@ -771,7 +771,7 @@ Acceptance:
 Status: done
 
 ### S-103 Lire les notes de bas de page à côté du texte
-Dans la fenêtre de lecture d'un EPUB (ou d'un MOBI, d'un AZW3), un clic sur un appel de note ouvre la note sans quitter la page : une note courte en bulle sur son appel, une longue dans un panneau à droite de la page (dessous dans une fenêtre étroite). Le panneau (⌥⌘N) liste toutes les notes du chapitre, marque celle ouverte, et, en suivant la lecture, celles dont l'appel est sur la page ; « Revenir au texte » ramène à l'appel, entouré un instant.
+Dans la fenêtre de lecture d'un EPUB (ou d'un MOBI, d'un AZW3), un clic sur un appel de note ouvre la note sans quitter la page : une note courte en bulle sur son appel, une longue dans un panneau à droite de la page (dessous dans une fenêtre étroite). Le panneau (Lecture › Notes de bas de page, ⌥⌘N) liste toutes les notes du chapitre, marque celle ouverte, et, en suivant la lecture, celles dont l'appel est sur la page ; « Revenir au texte » ramène à l'appel, entouré un instant.
 Screens: lecture-notes
 Depends: S-066
 Acceptance:
@@ -781,13 +781,14 @@ Acceptance:
 Status: done
 
 ### S-104 Comparer deux livres côte à côte
-Je lis un livre en face d'un autre : l'original et sa traduction, deux traductions, deux éditions. Comparer › Comparer avec un autre livre… (⌥⌘C) propose d'abord les livres du même auteur ; les deux pages avancent ensemble, chapitre en face de chapitre, même quand une édition a une préface de plus ou coupe un chapitre en deux. Le bouton de synchronisation les détache ou les remet en face ; « Échanger les côtés » change leur place. La comparaison est reprise à la prochaine ouverture du livre.
+Je lis un livre en face d'un autre : l'original et sa traduction, deux traductions, deux éditions. Lecture › Comparer avec un autre livre… (⌥⌘C, ou le bouton Comparer) propose d'abord les livres du même auteur ; les deux pages avancent ensemble, chapitre en face de chapitre, même quand une édition a une préface de plus ou coupe un chapitre en deux. Le bouton de synchronisation (ou Lecture › Synchroniser les deux textes) les détache ou les remet en face ; « Échanger les côtés » change leur place. La comparaison est reprise à la prochaine ouverture du livre.
 Screens: lecture-comparaison
 Depends: S-066, S-103
 Acceptance:
 - [unit] `SectionAlignment` garde en face les chapitres d'une traduction plus longue de 10 à 25 %, saute une page de titre et une préface en plus, suit un chapitre coupé en deux, dans les deux sens.
 - [snap] « Le Port des brumes » en face de sa traduction, au même passage, en clair et en sombre.
 - [manual] Tourner la page d'un côté amène l'autre au passage en face ; détaché, chaque côté avance seul ; un appel de note ouvre une bulle dans la page où il est ; un PDF grise le menu Comparer.
+- [manual] Le menu Lecture suit la fenêtre de lecture au premier plan : grisé depuis la bibliothèque, coches à jour ; ouvrir, fermer ou arrêter une comparaison garde le passage affiché.
 Status: done
 
 ## Later

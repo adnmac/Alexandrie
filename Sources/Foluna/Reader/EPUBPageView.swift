@@ -47,6 +47,7 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
             case .open(let id, let rect): self?.onOpenNote(id, rect)
             case .menuTarget(let id): self?.menuTarget = id
             case .noteReference(let url, let label, let rect): self?.onNoteReference(url, label, rect)
+            case .resized: Task { await self?.refresh() }
             }
         }, contentWorld: Self.world, name: "alx")
         let view = ReaderWebView(frame: .zero, configuration: configuration)
@@ -300,7 +301,12 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         width() { return window.innerWidth; },
         pageCount() { return Math.max(1, Math.ceil(root().scrollWidth / this.width() - 0.01)); },
         page() { return Math.round(root().scrollLeft / this.width()); },
-        goTo(p) { const n = this.pageCount(); p = Math.max(0, Math.min(n - 1, p)); root().scrollLeft = p * this.width(); return p; },
+        // `place` garde l'avancée de la page montrée : un changement de largeur la retrouve (S-103, S-104).
+        goTo(p) {
+          const n = this.pageCount(); p = Math.max(0, Math.min(n - 1, p)); root().scrollLeft = p * this.width();
+          this.place = n <= 1 ? 0 : p / (n - 1);
+          return p;
+        },
         next() { const p = this.page(); if (p >= this.pageCount() - 1) return 'end'; this.goTo(p + 1); return 'ok'; },
         prev() { const p = this.page(); if (p <= 0) return 'start'; this.goTo(p - 1); return 'ok'; },
         last() { this.goTo(this.pageCount() - 1); },
@@ -468,10 +474,14 @@ final class EPUBPageController: NSObject, WKNavigationDelegate {
         if (!m || (s && !s.isCollapsed) || e.target.closest('a')) return;
         window.webkit.messageHandlers.alx.postMessage({ open: m.getAttribute('data-alx'), rect: alx.box(m) });
       });
+      // Largeur changée (fenêtre, panneau ouvert ou fermé, comparaison) : même passage, et Foluna relit la page.
       window.addEventListener('resize', () => {
-        const f = alx.fraction();
+        const f = alx.place ?? alx.fraction();
         alx.layout();
-        requestAnimationFrame(() => alx.setFraction(f));
+        requestAnimationFrame(() => {
+          alx.setFraction(f);
+          window.webkit.messageHandlers.alx.postMessage({ resized: true });
+        });
       });
     })();
     """
@@ -488,6 +498,8 @@ final class ScriptRelay: NSObject, WKScriptMessageHandler {
         case menuTarget(Clipping.ID?)
         /// Clic sur un appel de note : adresse de la note, appel, rectangle de l'appel.
         case noteReference(URL, String, CGRect)
+        /// La page a changé de largeur et s'est remise au même passage.
+        case resized
     }
 
     let receive: @MainActor (Message) -> Void
@@ -498,7 +510,9 @@ final class ScriptRelay: NSObject, WKScriptMessageHandler {
 
     func userContentController(_ controller: WKUserContentController, didReceive message: WKScriptMessage) {
         let parsed: Message
-        if let body = message.body as? [String: Any], let href = body["note"] as? String, let url = URL(string: href) {
+        if let body = message.body as? [String: Any], body["resized"] != nil {
+            parsed = .resized
+        } else if let body = message.body as? [String: Any], let href = body["note"] as? String, let url = URL(string: href) {
             let r = (body["rect"] as? [NSNumber])?.map(\.doubleValue) ?? []
             parsed = .noteReference(url, body["label"] as? String ?? "", r.count == 4 ? CGRect(x: r[0], y: r[1], width: r[2], height: r[3]) : .zero)
         } else if let body = message.body as? [String: Any], let id = body["menu"] as? String {

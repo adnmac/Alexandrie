@@ -19662,6 +19662,34 @@
         }
       }
     },
+    "Sujets du fichier" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sachgebiete aus der Datei"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Subjects from File"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Materias del archivo"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onderwerpen uit het bestand"
+          }
+        }
+      }
+    },
     "Supprimer" : {
       "localizations" : {
         "de" : {
@@ -24779,6 +24807,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Status"
+          }
+        }
+      }
+    },
+    "Étiquette" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlagwort"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Etiqueta"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tag"
           }
         }
       }

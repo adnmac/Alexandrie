@@ -58,6 +58,7 @@ public enum LibraryMerge {
         book.catalogCheckedAt = previous.catalogCheckedAt
         book.catalogDismissed = previous.catalogDismissed
         book.tags = previous.tags
+        book.userTags = previous.userTags
         book.asin = previous.asin
         book.lastSentAt = previous.lastSentAt
         book.sentFilename = previous.sentFilename

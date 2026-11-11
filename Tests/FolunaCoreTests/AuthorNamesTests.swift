@@ -217,3 +217,28 @@ import Testing
         #expect(groups.first { $0.name == "Roman" }?.bookCount == 2)
     }
 }
+
+@Suite struct TagNamesTests {
+    func book(_ path: String, _ title: String, tags: [String]?, subjects: [String] = []) -> Book {
+        var b = Book(path: path, format: .epub, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
+                     title: title, authors: ["Auteur"], tags: subjects, hasCover: false, isDRMProtected: false, isImported: false, asin: "A")
+        b.userTags = tags
+        return b
+    }
+
+    @Test func groupsUserTagsOnly() {
+        let books = [book("/a.epub", "A", tags: ["À lire", "Été"]), book("/a.azw3", "A", tags: ["à lire"]),
+                     book("/b.epub", "B", tags: ["À lire"], subjects: ["FICTION / General"]),
+                     book("/c.epub", "C", tags: nil, subjects: ["Roman"])]
+        let groups = TagNames.groups(books)
+        // Les sujets des fichiers ne deviennent pas des étiquettes.
+        #expect(groups.map(\.name) == ["À lire", "Été"])
+        // Graphie la plus fréquente ; deux fichiers du même livre comptent pour un livre.
+        #expect(groups.first?.bookCount == 2)
+        #expect(TagNames.has(books[2], key: TagNames.key("À LIRE")))
+    }
+
+    @Test func cleanDropsEmptyAndDuplicates() {
+        #expect(TagNames.clean([" Été ", "", "ete", "  ", "Plage", "#"]) == ["Été", "Plage"])
+    }
+}

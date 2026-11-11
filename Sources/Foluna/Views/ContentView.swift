@@ -271,6 +271,8 @@ struct ContentView: View {
         case .series(let key): SeriesNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? String(localized: "Série")
         case .genre(let key):
             GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? String(localized: "Genre")
+        case .tag(let key):
+            TagNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? String(localized: "Étiquette")
         case .folder(let path): LibraryFolders.name(of: path)
         case .catalog(let id): opds.catalog(id: id)?.name ?? String(localized: "Catalogue")
         }
@@ -314,6 +316,7 @@ struct ContentView: View {
         case .author(let key): AuthorNames.groups(books).contains { $0.key == key }
         case .series(let key): SeriesNames.groups(books).contains { $0.key == key }
         case .genre(let key): GenreNames.groups(books, identities: library.identities).contains { $0.key == key }
+        case .tag(let key): books.contains { TagNames.has($0, key: key) }
         case .shelf(let id): kindle.readers.contains { $0.id == id }
         case .folder(let path): library.folders.count > 1 && library.folders.contains { $0.path == path }
         default: true
@@ -426,6 +429,7 @@ struct ContentView: View {
         case .pending: list = list.filter(\.isPendingSend)
         case .shelf(let reader): list = list.filter { $0.shelfIDs.contains(reader) }
         case .genre(let key): list = list.filter { $0.genre.map(GenreNames.key) == key }
+        case .tag(let key): list = list.filter { TagNames.has($0, key: key) }
         case .toReview: list = list.filter { !$0.catalogSuggestions.isEmpty }
         case .series(let key):
             // Classement par numéro de tome, les livres sans numéro à la fin.
@@ -443,7 +447,7 @@ struct ContentView: View {
             // Aussi les livres dont une note ou un surlignage Kindle contient le texte cherché.
             let withNotes = kindle.titleKeys(withClippingsMatching: query)
             list = list.filter { b in
-                [b.title, b.authorLine, b.series ?? "", b.genre ?? "", b.tags.joined(separator: " ")]
+                [b.title, b.authorLine, b.series ?? "", b.genre ?? "", b.labels.joined(separator: " "), b.tags.joined(separator: " ")]
                     .contains { $0.localizedStandardContains(query) }
                     || withNotes.contains(ShelfSync.normalize(b.title))
             }

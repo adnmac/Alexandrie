@@ -1,7 +1,7 @@
 import CryptoKit
 import Foundation
 
-/// Livre indexé. Les champs `title`, `authors`, `tags` peuvent être modifiés dans l'app
+/// Livre indexé. Les champs `title`, `authors`, `userTags` peuvent être modifiés dans l'app
 /// sans jamais toucher au fichier source.
 public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var id: String { path }
@@ -22,7 +22,12 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
     public var series: String?
     public var seriesIndex: Double?
     public var genre: String?
+    /// Sujets lus dans le fichier (dc:subject…) : cherchables, absents de la barre latérale.
     public var tags: [String]
+    /// Étiquettes posées par l'utilisateur (S-106). Facultatif : les index plus anciens n'en ont pas.
+    public var userTags: [String]?
+
+    public var labels: [String] { userTags ?? [] }
     public var hasCover: Bool
     public var isDRMProtected: Bool
     public var isImported: Bool

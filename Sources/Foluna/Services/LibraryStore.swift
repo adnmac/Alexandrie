@@ -682,6 +682,7 @@ final class LibraryStore {
         for j in siblingPositions {
             books[j].edits = book.edits
             books[j].tags = book.tags
+            books[j].userTags = book.userTags
         }
         save()
     }

@@ -116,6 +116,15 @@ enum SeedData {
         if let book = library.books.first(where: { $0.title == orbit }), book.pendingSendAt == nil {
             library.queueForKindle([book], reader: nil)
         }
+        // Étiquettes (S-106) : section de la barre latérale ; les sujets des fichiers n'y vont pas.
+        let tagged = [harbour: [t("À relire", "Reread"), t("Bretagne", "Brittany")], lowTide: [t("Bretagne", "Brittany")],
+                      slowHours: [t("À relire", "Reread")]]
+        for (title, tags) in tagged {
+            for var book in library.books where book.title == title && book.userTags == nil {
+                book.userTags = tags
+                library.update(book)
+            }
+        }
         // Favoris (S-107) : une étoile sur la couverture du « Port des brumes ».
         if let book = library.books.first(where: { $0.title == harbour }), !book.isFavorite {
             library.setFavorite([book], on: true)

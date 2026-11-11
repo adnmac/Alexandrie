@@ -22,6 +22,8 @@ enum SidebarItem: Hashable {
     case series(String)
     /// Clé de regroupement de genre (voir `GenreNames`).
     case genre(String)
+    /// Étiquette de l'utilisateur (S-106), par sa clé de regroupement (voir `TagNames`).
+    case tag(String)
     /// Dossier de livres (chemin), quand la bibliothèque en a plusieurs.
     case folder(String)
     /// Catalogue OPDS en ligne (S-086), par son identifiant.
@@ -55,7 +57,7 @@ extension SidebarItem {
     /// Pages où « Mettre à la corbeille » est proposé (menu du livre, menu Livre, touche Supprimer).
     var allowsTrash: Bool {
         switch self {
-        case .all, .recent, .favorites, .toReview, .format, .author, .series, .genre, .folder: true
+        case .all, .recent, .favorites, .toReview, .format, .author, .series, .genre, .tag, .folder: true
         case .sent, .pending, .shelf, .trash, .kindle, .notes, .thematic, .catalog: false
         }
     }
@@ -80,6 +82,7 @@ extension SidebarItem {
         case .author(let key): "author:" + key
         case .series(let key): "series:" + key
         case .genre(let key): "genre:" + key
+        case .tag(let key): "tag:" + key
         case .folder(let path): "folder:" + path
         case .catalog(let id): "catalog:" + id
         }
@@ -103,6 +106,7 @@ extension SidebarItem {
         case ("author", let key?): self = .author(key)
         case ("series", let key?): self = .series(key)
         case ("genre", let key?): self = .genre(key)
+        case ("tag", let key?): self = .tag(key)
         case ("folder", let path?): self = .folder(path)
         case ("catalog", let id?): self = .catalog(id)
         default: return nil

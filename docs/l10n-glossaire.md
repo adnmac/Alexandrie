@@ -13,6 +13,9 @@ Les termes de macOS suivent ceux de macOS dans chaque langue (Réglages Système
 | note | note | notitie | Notiz | nota |
 | thématique | topic | thema | Thema | tema |
 | étagère | shelf | boekenplank | Regal | estantería |
+| étiquette (posée par l'utilisateur) | tag | tag | Schlagwort | etiqueta |
+| sujet (lu dans le fichier) | subject | onderwerp | Sachgebiet | materia |
+| favori | favorite | favoriet | Favorit | favorito |
 | notice (catalogue) | record | record | Datensatz | registro |
 | corbeille de Foluna | Foluna's trash | prullenmand van Foluna | Papierkorb von Foluna | papelera de Foluna |
 | Corbeille de macOS | macOS Trash | macOS-prullenmand | macOS-Papierkorb | Papelera de macOS |

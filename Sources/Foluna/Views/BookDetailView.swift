@@ -143,6 +143,8 @@ struct BookDetailView: View {
                     if let sent = draft.lastSentAt { info(String(localized: "Envoyé le"), sent.formatted(date: .long, time: .shortened)) }
                     // Fenêtre de lecture (S-068) : où la lecture s'est arrêtée.
                     if let position = reading.savedPosition(of: draft) { info(String(localized: "Lecture"), position.label) }
+                    // Sujets lus dans le fichier (S-106) : cherchables, distincts des étiquettes.
+                    if !draft.tags.isEmpty { info(String(localized: "Sujets du fichier"), draft.tags.joined(separator: ", ")) }
                     // Par liseuse : étagères et derniers envois (liseuses oubliées ignorées).
                     let shelfNames = kindle.readers.filter { draft.shelfIDs.contains($0.id) }.map(\.name)
                     if !shelfNames.isEmpty { info(String(localized: "Étagères"), shelfNames.joined(separator: ", ")) }
@@ -164,6 +166,7 @@ struct BookDetailView: View {
             guard let stored = library.book(id: draft.id) else { return }
             draft.edits = stored.edits
             draft.tags = stored.tags
+            draft.userTags = stored.userTags
             draft.catalogDismissed = stored.catalogDismissed
         }
         .onChange(of: library.book(id: draft.id)) { _, new in
@@ -278,8 +281,8 @@ struct BookDetailView: View {
     }
 
     private var tagsBinding: Binding<String> {
-        Binding(get: { draft.tags.joined(separator: ", ") },
-                set: { draft.tags = $0.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty } })
+        Binding(get: { draft.labels.joined(separator: ", ") },
+                set: { let tags = TagNames.clean($0.split(separator: ",").map(String.init)); draft.userTags = tags.isEmpty ? nil : tags })
     }
 }
 

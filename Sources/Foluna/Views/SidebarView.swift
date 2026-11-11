@@ -17,6 +17,7 @@ struct SidebarView: View {
     @AppStorage("sidebarFoldersExpanded") private var foldersExpanded = true
     @AppStorage("sidebarSeriesExpanded") private var seriesExpanded = false
     @AppStorage("sidebarGenresExpanded") private var genresExpanded = false
+    @AppStorage("sidebarTagsExpanded") private var tagsExpanded = true
 
     var body: some View {
         List(selection: $selection) {
@@ -176,6 +177,17 @@ struct SidebarView: View {
                     CollapsibleHeader(title: String(localized: "Genres"), count: genres.count, isExpanded: $genresExpanded)
                     if genresExpanded {
                         ForEach(genres) { g in row(g.name, "theatermasks", .genre(g.key), count: g.bookCount) }
+                    }
+                }
+            }
+
+            // Étiquettes de l'utilisateur (S-106) ; les sujets lus dans les fichiers restent dans la recherche.
+            let tags = TagNames.groups(library.visibleBooks, identities: library.identities)
+            if !tags.isEmpty {
+                Section {
+                    CollapsibleHeader(title: String(localized: "Étiquettes"), count: tags.count, isExpanded: $tagsExpanded)
+                    if tagsExpanded {
+                        ForEach(tags) { t in row(t.name, "number", .tag(t.key), count: t.bookCount) }
                     }
                 }
             }

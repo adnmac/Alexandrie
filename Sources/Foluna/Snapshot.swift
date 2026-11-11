@@ -45,6 +45,8 @@ enum Snapshot {
             Page(name: "fiche-lecture", item: .all, book: SeedData.slowHours),
             Page(name: "serie", item: .series(SeriesNames.key(SeedData.vidalSeries)), book: SeedData.lowTide),
             Page(name: "genre", item: .genre(GenreNames.key(SeedData.crime))),
+            // Étiquette (S-106) et favori (S-107) : page d'une étiquette, fiche du livre favori et étiqueté.
+            Page(name: "etiquette", item: .tag(TagNames.key(SeedData.t("Bretagne", "Brittany"))), book: SeedData.harbour),
             Page(name: "catalogue", item: .catalog("gutenberg"), catalogBook: true),
             Page(name: "auteur", item: .author(AuthorNames.key("Inès Garnier")),
                  book: SeedData.longHistory),

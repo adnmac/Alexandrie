@@ -229,6 +229,49 @@ struct SelfTest {
             check("Retirer des favoris", library.book(id: book.id)?.isFavorite == false)
         }
 
+        // Étiquettes (S-106) : ajout en lot sur tout le livre, sans doublon, renommer, supprimer, ⌘Z.
+        let tagged = Array(library.visibleBooks.prefix(2))
+        if tagged.count == 2 {
+            // Une action par groupe d'annulation, comme des clics successifs (pas de regroupement par passage de boucle).
+            let tagUndo = UndoManager()
+            tagUndo.groupsByEvent = false
+            library.undoManager = tagUndo
+            func step(_ name: String, _ body: () -> Void) {
+                tagUndo.beginUndoGrouping()
+                library.undoable(name, body)
+                tagUndo.endUndoGrouping()
+            }
+            func tagNames() -> [String] { TagNames.groups(library.visibleBooks, identities: library.identities).map(\.name) }
+            func carries(_ book: Book, _ tag: String) -> Bool { library.book(id: book.id).map { TagNames.has($0, key: TagNames.key(tag)) } == true }
+            step("Ajouter l'étiquette") { library.addTag("Plage", to: tagged) }
+            check("étiquette ajoutée à la sélection", tagged.allSatisfy { carries($0, "Plage") } && tagNames().contains("Plage"),
+                  "\(tagNames())")
+            let siblings = library.books.filter { library.identities[$0.id] == library.identities[tagged[0].id] }
+            check("étiquette : tous les fichiers du livre", siblings.allSatisfy { carries($0, "Plage") })
+            library.addTag("plage", to: tagged)
+            check("étiquette sans doublon", library.book(id: tagged[0].id)?.labels.filter { TagNames.key($0) == "plage" }.count == 1)
+            check("sujets du fichier hors des étiquettes",
+                  library.visibleBooks.flatMap(\.tags).allSatisfy { subject in !tagNames().contains(subject) || library.visibleBooks.contains { $0.labels.contains(subject) } })
+            step("Retirer l'étiquette") { library.removeTag(key: "plage", from: [tagged[1]]) }
+            check("étiquette retirée d'un livre", carries(tagged[0], "Plage") && !carries(tagged[1], "Plage"))
+            tagUndo.undo()
+            check("⌘Z remet l'étiquette retirée", carries(tagged[1], "Plage"))
+            step("Renommer l'étiquette") { library.renameTag(key: "plage", to: "Vacances") }
+            check("étiquette renommée partout", tagged.allSatisfy { carries($0, "Vacances") && !carries($0, "Plage") })
+            library.renameTag(key: "vacances", to: "  ")
+            check("nom vide refusé", carries(tagged[0], "Vacances"))
+            step("Supprimer l'étiquette") { library.deleteTag(key: "vacances") }
+            check("étiquette supprimée, livres gardés", !tagNames().contains("Vacances")
+                  && tagged.allSatisfy { library.book(id: $0.id) != nil && library.book(id: $0.id)?.trashedAt == nil })
+            tagUndo.undo()
+            check("⌘Z rend l'étiquette supprimée", tagNames().contains("Vacances"))
+            library.saveNow()
+            check("étiquette gardée dans l'index",
+                  (try? LibraryIndex.load(directories.index))?.first { $0.id == tagged[0].id }?.labels.contains("Vacances") == true)
+            library.deleteTag(key: "vacances")
+            library.undoManager = undo
+        }
+
         // Page de la barre latérale gardée d'un lancement à l'autre (@SceneStorage) : aller-retour en texte.
         let pages: [SidebarItem] = [.all, .recent, .favorites, .sent, .toReview, .kindle, .pending, .trash, .notes, .shelf("A1B2"),
                                     .format(.azw3), .author("dupont jeanne"), .series("commissaire: vidal"), .genre("policier"), .tag("a relire"),

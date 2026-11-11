@@ -312,6 +312,8 @@ struct MultiSelectionView: View {
                 Menu("Étagères") { ShelfActions(books: books) }
                     .fixedSize()
             }
+            TagActions(books: books)
+                .fixedSize()
             let done = books.filter { kindle.transfers[$0.id] == .done }.count
             let failed = books.filter { if case .failed = kindle.transfers[$0.id] { true } else { false } }.count
             if done + failed > 0 {

@@ -762,6 +762,46 @@ final class LibraryStore {
         }
     }
 
+    // MARK: - Étiquettes (S-106)
+
+    /// Une étiquette concerne le livre entier : tous ses fichiers, copies masquées comprises.
+    private func changeTags(of selection: [Book]?, _ change: ([String]) -> [String]) {
+        let ids = identities
+        let keys = selection.map { Set($0.map { ids[$0.id] ?? BookGroups.key($0) }) }
+        var changed = false
+        for i in books.indices where keys?.contains(ids[books[i].id] ?? BookGroups.key(books[i])) ?? true {
+            let tags = TagNames.clean(change(books[i].labels))
+            let new: [String]? = tags.isEmpty ? nil : tags
+            if new != books[i].userTags {
+                books[i].userTags = new
+                changed = true
+            }
+        }
+        if changed { save() }
+    }
+
+    /// Ajoute l'étiquette aux livres choisis (sans doublon, quelle que soit la graphie).
+    func addTag(_ tag: String, to selection: [Book]) {
+        changeTags(of: selection) { $0 + [tag] }
+    }
+
+    /// Retire l'étiquette (clé de regroupement) des livres choisis.
+    func removeTag(key: String, from selection: [Book]) {
+        changeTags(of: selection) { $0.filter { TagNames.key($0) != key } }
+    }
+
+    /// Renomme l'étiquette dans toute la bibliothèque ; ses graphies se fondent dans la nouvelle.
+    func renameTag(key: String, to name: String) {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !TagNames.key(name).isEmpty else { return }
+        changeTags(of: nil) { tags in tags.map { TagNames.key($0) == key ? name : $0 } }
+    }
+
+    /// Retire l'étiquette de tous les livres ; les livres eux-mêmes restent.
+    func deleteTag(key: String) {
+        changeTags(of: nil) { $0.filter { TagNames.key($0) != key } }
+    }
+
     // MARK: - File d'envoi (Kindle débranchée)
 
     /// Tous les livres en attente d'envoi, quelle que soit la liseuse.

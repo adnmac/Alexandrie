@@ -458,6 +458,7 @@ struct BookActions: View {
                 .disabled(kindle.isBusy || !kindle.canSend(book))
         }
         ShelfActions(books: [book])
+        TagActions(books: [book])
         // Retirer d'une liste ne supprime rien : le livre reste dans la bibliothèque.
         if isPending {
             Button("Retirer de la liste « En attente d'envoi »") {
@@ -500,5 +501,32 @@ struct FavoriteButton: View {
         }
         .accessibilityLabel(Text(isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"))
         .help(isFavorite ? String(localized: "Retirer des favoris (⌘D)") : String(localized: "Ajouter aux favoris (⌘D)"))
+    }
+}
+
+/// Étiquettes de l'utilisateur (S-106) : cocher ou décocher pour la sélection, ou en créer une.
+struct TagActions: View {
+    @Environment(LibraryStore.self) private var library
+    let books: [Book]
+
+    var body: some View {
+        let current = books.compactMap { library.book(id: $0.id) }
+        let tags = TagNames.groups(library.visibleBooks, identities: library.identities)
+        Menu("Étiquettes") {
+            ForEach(tags) { tag in
+                Toggle(tag.name, isOn: Binding(
+                    get: { !current.isEmpty && current.allSatisfy { TagNames.has($0, key: tag.key) } },
+                    set: { on in
+                        library.undoable(on ? String(localized: "Ajouter l'étiquette") : String(localized: "Retirer l'étiquette")) {
+                            if on { library.addTag(tag.name, to: books) } else { library.removeTag(key: tag.key, from: books) }
+                        }
+                    }))
+            }
+            if !tags.isEmpty { Divider() }
+            Button("Nouvelle étiquette…") {
+                guard let name = Panels.askTagName(title: String(localized: "Nouvelle étiquette"), action: String(localized: "Ajouter")) else { return }
+                library.undoable(String(localized: "Ajouter l'étiquette")) { library.addTag(name, to: books) }
+            }
+        }
     }
 }

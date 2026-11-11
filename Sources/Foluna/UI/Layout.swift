@@ -8,6 +8,8 @@ enum Layout {
     static let sheet: CGFloat = 480
     /// Feuille large : formulaire à deux colonnes, aperçu.
     static let sheetWide: CGFloat = 640
+    /// Champ d'une alerte qui demande un nom (étiquette, S-106) : la largeur d'une alerte macOS.
+    static let alertFieldWidth: CGFloat = 240
     /// Réglages Mac : chaque onglet est un `Form` groupé de cette largeur.
     static let settingsWidth: CGFloat = 520
     /// Hauteur au-delà de laquelle une feuille ou un onglet des réglages défile. Les captures du site

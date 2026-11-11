@@ -187,7 +187,10 @@ struct SidebarView: View {
                 Section {
                     CollapsibleHeader(title: String(localized: "Étiquettes"), count: tags.count, isExpanded: $tagsExpanded)
                     if tagsExpanded {
-                        ForEach(tags) { t in row(t.name, "number", .tag(t.key), count: t.bookCount) }
+                        ForEach(tags) { t in
+                            row(t.name, "number", .tag(t.key), count: t.bookCount)
+                                .contextMenu { tagMenu(t) }
+                        }
                     }
                 }
             }
@@ -220,6 +223,21 @@ struct SidebarView: View {
             for key in AuthorNames.keys(of: b) { seen[key, default: []].insert(identity) }
         }
         return seen.mapValues(\.count)
+    }
+
+    /// Renommer ou supprimer une étiquette dans toute la bibliothèque (S-106), annulable.
+    @ViewBuilder private func tagMenu(_ tag: TagNames.Group) -> some View {
+        Button("Renommer l'étiquette…") {
+            guard let name = Panels.askTagName(title: String(localized: "Renommer l'étiquette « \(tag.name) »"),
+                                               action: String(localized: "Renommer"), initial: tag.name) else { return }
+            library.undoable(String(localized: "Renommer l'étiquette")) { library.renameTag(key: tag.key, to: name) }
+            if selection == .tag(tag.key) { selection = .tag(TagNames.key(name)) }
+        }
+        Button("Supprimer l'étiquette…", role: .destructive) {
+            guard Panels.confirmDeleteTag(tag.name, bookCount: tag.bookCount) else { return }
+            library.undoable(String(localized: "Supprimer l'étiquette")) { library.deleteTag(key: tag.key) }
+            if selection == .tag(tag.key) { selection = .all }
+        }
     }
 
     private func row(_ title: String, _ icon: String, _ tag: SidebarItem, count: Int? = nil) -> some View {

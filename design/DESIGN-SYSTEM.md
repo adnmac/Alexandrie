@@ -70,6 +70,7 @@ L'app n'a donc pas de sélecteur d'accent ni de réglage clair/sombre : elle sui
 | `Layout.sheet` 480 | feuille ordinaire : nommer une liseuse, corriger un livre sur la Kindle |
 | `Layout.sheetWide` 640 | feuille à deux colonnes ou avec aperçu |
 | `Layout.settingsWidth` 520 | chaque onglet des réglages |
+| `Layout.alertFieldWidth` 240 | champ de texte d'une alerte (`NSAlert`) : nommer ou renommer une étiquette |
 | `.fitsContent()` | `Form` d'un onglet des réglages ou d'une feuille : la hauteur suit le contenu, défile au-delà de 640 pt (`Layout.maxPanelHeight`) |
 | `.noInitialFocus()` | chaque feuille et la fenêtre des réglages : pas d'anneau de focus à l'ouverture |
 

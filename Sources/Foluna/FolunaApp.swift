@@ -203,6 +203,30 @@ enum Panels {
                 action: String(localized: "Vider la corbeille"))
     }
 
+    /// Étiquettes (S-106) : supprimer retire l'étiquette des livres, sans toucher aux livres.
+    static func confirmDeleteTag(_ name: String, bookCount: Int) -> Bool {
+        confirm(title: String(localized: "Supprimer l'étiquette « \(name) » ?"),
+                message: bookCount == 1 ? String(localized: "Elle sera retirée du livre qui la porte. Le livre reste dans la bibliothèque.")
+                    : String(localized: "Elle sera retirée des \(bookCount) livres qui la portent. Les livres restent dans la bibliothèque."),
+                action: String(localized: "Supprimer"))
+    }
+
+    /// Nom d'une étiquette, nouvelle ou renommée ; nil si l'on annule ou si le nom est vide.
+    static func askTagName(title: String, action: String, initial: String = "") -> String? {
+        let alert = NSAlert()
+        alert.messageText = title
+        let field = NSTextField(string: initial)
+        field.placeholderString = String(localized: "Nom de l'étiquette")
+        field.frame.size.width = Layout.alertFieldWidth
+        alert.accessoryView = field
+        alert.addButton(withTitle: action)
+        alert.addButton(withTitle: String(localized: "Annuler"))
+        alert.window.initialFirstResponder = field
+        guard alert.runModal() == .alertFirstButtonReturn else { return nil }
+        let name = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        return TagNames.key(name).isEmpty ? nil : name
+    }
+
     private static func confirm(title: String, message: String, action: String) -> Bool {
         let alert = NSAlert()
         alert.alertStyle = .warning

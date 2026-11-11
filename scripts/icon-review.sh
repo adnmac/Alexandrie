@@ -1,10 +1,10 @@
 #!/bin/zsh
 # Rend Icon/AppIcon.icon comme macOS l'affiche (ictool d'Icon Composer), sur une seule planche :
 #   par défaut, sombre, teintée, transparente à 256 pt, puis par défaut à 32 et 16 pt.
-# Usage : scripts/icon-review.sh [sortie.png]   (par défaut /tmp/alexandrie-icon.png)
+# Usage : scripts/icon-review.sh [sortie.png]   (par défaut /tmp/foluna-icon.png)
 set -euo pipefail
 ROOT="${0:A:h:h}"
-out=${1:-/tmp/alexandrie-icon.png}
+out=${1:-/tmp/foluna-icon.png}
 ictool="/Applications/Xcode.app/Contents/Applications/Icon Composer.app/Contents/Executables/ictool"
 [[ -x "$ictool" ]] || { echo "ictool introuvable : il faut Xcode 26 ou plus récent."; exit 1; }
 work=$(mktemp -d)

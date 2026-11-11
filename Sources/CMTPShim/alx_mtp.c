@@ -287,7 +287,7 @@ int alx_mtp_replace(alx_mtp_session *session, uint32_t item_id, const char *loca
     lib.destroy_file_t(old);
 
     char temp_name[1100];
-    snprintf(temp_name, sizeof temp_name, "%s.alexandrie-tmp", name);
+    snprintf(temp_name, sizeof temp_name, "%s.foluna-tmp", name);
     LIBMTP_file_t *file = lib.new_file_t();
     file->filename = strdup(temp_name);
     file->filesize = size;

@@ -1,8 +1,8 @@
 #!/bin/zsh
-# Construit build/Foluna.app (release ; l'exécutable et le code gardent le nom d'origine, Alexandrie). Signé avec un certificat Apple Development s'il existe,
+# Construit build/Foluna.app (release ; l'exécutable et le code gardent le nom d'origine, Foluna). Signé avec un certificat Apple Development s'il existe,
 # sinon « Alexandrie Dev » (identité stable : macOS garde les autorisations d'une version à l'autre), sinon ad hoc.
-# Autre certificat : ALEXANDRIE_SIGN_IDENTITY="Nom du certificat" scripts/bundle.sh
-# Copie ensuite l'app dans ~/Applications (ALEXANDRIE_INSTALL=0 pour s'en passer).
+# Autre certificat : FOLUNA_SIGN_IDENTITY="Nom du certificat" scripts/bundle.sh
+# Copie ensuite l'app dans ~/Applications (FOLUNA_INSTALL=0 pour s'en passer).
 set -e
 source "${0:A:h}/env.sh"
 cd "$ROOT"
@@ -10,11 +10,11 @@ cd "$ROOT"
 PROTOCOLS="$ROOT/scripts/appintents-protocols.json"
 CONST_FLAGS=(-Xswiftc -emit-const-values -Xswiftc -Xfrontend -Xswiftc -const-gather-protocols-file -Xswiftc -Xfrontend -Xswiftc "$PROTOCOLS")
 swift build -c release "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}"
-BIN="$(swift build -c release --show-bin-path "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}")/Alexandrie"
+BIN="$(swift build -c release --show-bin-path "${SWIFT_FLAGS[@]}" "${CONST_FLAGS[@]}")/Foluna"
 APP="$ROOT/build/Foluna.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/Alexandrie"
+cp "$BIN" "$APP/Contents/MacOS/Foluna"
 # Icône : Assets.car (Liquid Glass, macOS 26+) et AppIcon.icns (macOS 14-15), compilés par scripts/make-icon.sh.
 for f in Assets.car AppIcon.icns; do [[ -f "$ROOT/Resources/$f" ]] && cp "$ROOT/Resources/$f" "$APP/Contents/Resources/"; done
 # Action Raccourcis « Envoyer à la Kindle » (App Intents) : Raccourcis ne la voit que si le bundle contient
@@ -22,14 +22,14 @@ for f in Assets.car AppIcon.icns; do [[ -f "$ROOT/Resources/$f" ]] && cp "$ROOT/
 # le compilateur écrit pendant la build release. Sans Xcode : l'app marche, sans l'action Raccourcis.
 XCODE_DEV=/Applications/Xcode.app/Contents/Developer
 INTENTS_TOOL="$XCODE_DEV/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor"
-CONSTS="$ROOT/.build/out/Intermediates.noindex/Alexandrie.build/Release/Alexandrie-p.build/Objects-normal/arm64/Alexandrie-primary.swiftconstvalues"
+CONSTS="$ROOT/.build/out/Intermediates.noindex/Foluna.build/Release/Foluna-p.build/Objects-normal/arm64/Foluna-primary.swiftconstvalues"
 # La build release passe toujours CONST_FLAGS : chaque recompilation réécrit ces valeurs.
 if [[ -x "$INTENTS_TOOL" && -f "$CONSTS" ]]; then
   WORK=$(mktemp -d)
-  find "$ROOT/Sources/Alexandrie" -name '*.swift' > "$WORK/sources.txt"
+  find "$ROOT/Sources/Foluna" -name '*.swift' > "$WORK/sources.txt"
   echo "$CONSTS" > "$WORK/consts.txt"
   "$INTENTS_TOOL" --output "$APP/Contents/Resources" \
-    --toolchain-dir "$XCODE_DEV/Toolchains/XcodeDefault.xctoolchain" --module-name Alexandrie \
+    --toolchain-dir "$XCODE_DEV/Toolchains/XcodeDefault.xctoolchain" --module-name Foluna \
     --sdk-root "$(DEVELOPER_DIR=$XCODE_DEV xcrun --sdk macosx --show-sdk-path)" \
     --xcode-version "$(DEVELOPER_DIR=$XCODE_DEV xcodebuild -version | awk '/Build version/ {print $3}')" \
     --platform-family macOS --deployment-target 14.0 --target-triple arm64-apple-macos14.0 \
@@ -57,7 +57,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleName</key><string>Foluna</string>
   <key>CFBundleDisplayName</key><string>Foluna</string>
   <key>CFBundleIdentifier</key><string>be.adnmac.alexandrie</string>
-  <key>CFBundleExecutable</key><string>Alexandrie</string>
+  <key>CFBundleExecutable</key><string>Foluna</string>
   <key>CFBundlePackageType</key><string>APPL</string>
   <key>CFBundleShortVersionString</key><string>${VERSION}</string>
   <key>CFBundleVersion</key><string>${BUILD}</string>
@@ -68,9 +68,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.books</string>
   <key>NSHighResolutionCapable</key><true/>
-  <key>AlexandrieCommit</key><string>${COMMIT}</string>
+  <key>FolunaCommit</key><string>${COMMIT}</string>
   <!-- Adresse qui reçoit les rapports de plantage que l'utilisateur choisit d'envoyer (info@foluna.app par défaut ; vide : Finder seulement). -->
-  <key>AlexandrieSupportEmail</key><string>${ALEXANDRIE_SUPPORT_EMAIL:-info@foluna.app}</string>
+  <key>FolunaSupportEmail</key><string>${FOLUNA_SUPPORT_EMAIL:-info@foluna.app}</string>
   <!-- Explications des autorisations demandées par macOS (audit, § 3). -->
   <key>NSRemovableVolumesUsageDescription</key><string>Foluna envoie vos livres à votre liseuse et lit ses notes et surlignages quand elle est branchée.</string>
   <key>NSDocumentsFolderUsageDescription</key><string>Foluna lit les livres de votre bibliothèque rangés dans Documents, sans les modifier.</string>
@@ -84,7 +84,7 @@ PLIST
 # Raccourcis n'exécute l'action que si la signature porte un team ID : « Alexandrie Dev » n'en a pas
 # (linkd refuse alors la connexion de l'app, voir docs/FIXLOG.md).
 APPLE_DEV="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/"Apple Development: /{print $2; exit}')"
-IDENTITY="${ALEXANDRIE_SIGN_IDENTITY:-${APPLE_DEV:-Alexandrie Dev}}"
+IDENTITY="${FOLUNA_SIGN_IDENTITY:-${APPLE_DEV:-Alexandrie Dev}}"
 if security find-identity -p codesigning 2>/dev/null | grep -qF "\"$IDENTITY\""; then
   codesign --force --sign "$IDENTITY" "$APP"
   echo "🔏 signé avec « $IDENTITY »"
@@ -96,12 +96,12 @@ fi
 echo "✅ $APP"
 # Copie dans ~/Applications : Raccourcis et le Finder trouvent une seule Foluna, toujours à jour.
 # Une ancienne copie nommée Alexandrie.app est retirée.
-# La copie de build/ est retirée de LaunchServices. ALEXANDRIE_INSTALL=0 garde seulement build/.
-if [[ "${ALEXANDRIE_INSTALL:-1}" != 0 ]]; then
+# La copie de build/ est retirée de LaunchServices. FOLUNA_INSTALL=0 garde seulement build/.
+if [[ "${FOLUNA_INSTALL:-1}" != 0 ]]; then
   DEST="$HOME/Applications/Foluna.app"
   LEGACY="$HOME/Applications/Alexandrie.app"
   LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  if pgrep -f "$DEST/Contents/MacOS/Alexandrie" >/dev/null || pgrep -f "$LEGACY/Contents/MacOS/Alexandrie" >/dev/null; then
+  if pgrep -f "$DEST/Contents/MacOS/" >/dev/null || pgrep -f "$LEGACY/Contents/MacOS/" >/dev/null; then
     echo "⚠️  Foluna est ouverte : quittez-la puis relancez scripts/bundle.sh pour mettre à jour $DEST"
   else
     mkdir -p "$HOME/Applications"

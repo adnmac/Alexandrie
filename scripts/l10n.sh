@@ -28,8 +28,8 @@ case "$1" in
 import glob, os, subprocess, sys
 out, catalog, tool = sys.argv[1:4]
 ours = {os.path.splitext(os.path.basename(p))[0]
-        for p in glob.glob("Sources/Alexandrie/**/*.swift", recursive=True)
-               + glob.glob("Sources/AlexandrieCore/**/*.swift", recursive=True)}
+        for p in glob.glob("Sources/Foluna/**/*.swift", recursive=True)
+               + glob.glob("Sources/FolunaCore/**/*.swift", recursive=True)}
 files = [f for f in glob.glob(os.path.join(out, "*.stringsdata")) if os.path.splitext(os.path.basename(f))[0] in ours]
 args = [tool, "sync", catalog]
 for f in files: args += ["--stringsdata", f]

@@ -3,11 +3,13 @@
 App macOS SwiftUI (paquet SwiftPM, Swift 6, macOS 14+) qui gère une bibliothèque de livres
 et les charge sur une liseuse par USB. Voir `README.md` pour les fonctions et l'architecture.
 
-Nom affiché : **Foluna** (contact info@foluna.app, dépôt `adnmac/Foluna`). Le code garde le nom d'origine,
-Alexandrie : cibles `Alexandrie`/`AlexandrieCore`, exécutable, variables `ALEXANDRIE_*`, identifiant
-`be.adnmac.alexandrie` (autorisations, réglages, Trousseau et vérification des mises à jour en dépendent),
-dossier de données `~/Library/Application Support/Alexandrie/` (l'index y référence les imports par chemin complet).
-Ne pas les renommer. Tout texte affiché dit « Foluna ».
+Nom affiché : **Foluna** (contact info@foluna.app, dépôt `adnmac/Foluna`). Le code s'appelle aussi Foluna :
+cibles `Foluna`/`FolunaCore`, exécutable, variables `FOLUNA_*`. Seuls gardent le nom d'origine, et ne doivent
+jamais être renommés : l'identifiant `be.adnmac.alexandrie` (autorisations, réglages, Trousseau et vérification
+des mises à jour en dépendent), le dossier de données `~/Library/Application Support/Alexandrie/` (l'index y
+référence les imports par chemin complet), le certificat « Alexandrie Dev », le marqueur des PDF annotés
+(`PDFPageView.marker`) et la reprise des anciennes copies `Alexandrie.app` (mise à jour, `bundle.sh`, `release.sh`).
+Tout texte affiché dit « Foluna ».
 
 Répondre, commenter et écrire les commits en français (Conventional Commits).
 
@@ -16,7 +18,7 @@ Tout texte affiché passe par une API qui traduit (`Text("…")`, `Button("…")
 après un changement de texte : `scripts/l10n.sh sync`, traduire les nouvelles clés (glossaire `docs/l10n-glossaire.md`),
 puis `scripts/l10n.sh check` (appelé par `scripts/test.sh` et donc par la CI). Singulier et pluriel : clés distinctes
 dans le cœur (`count == 1 ? … : …`), variantes de pluriel du catalogue dans l'app. Captures dans une autre langue :
-`ALEXANDRIE_SNAPSHOT_LANG=en scripts/snap.sh`.
+`FOLUNA_SNAPSHOT_LANG=en scripts/snap.sh`.
 
 Règles de design : `design/DESIGN-SYSTEM.md`. Utiliser ses jetons (`Palette`, `Radius`, `Motion`, `Surface`, `Layout`, `Space`) ; jamais de couleur, de rayon ou de durée brute.
 
@@ -29,26 +31,26 @@ correspondance ci-dessous à la place des commandes du modèle.
 
 | Pièce du modèle BAMA | Équivalent dans Foluna |
 | --- | --- |
-| `./build.sh` | `scripts/bundle.sh` (release, construit `build/Foluna.app`, signé Apple Development, sinon « Alexandrie Dev », sinon ad hoc, puis copié dans `~/Applications` ; `ALEXANDRIE_INSTALL=0` pour s'en passer) |
+| `./build.sh` | `scripts/bundle.sh` (release, construit `build/Foluna.app`, signé Apple Development, sinon « Alexandrie Dev », sinon ad hoc, puis copié dans `~/Applications` ; `FOLUNA_INSTALL=0` pour s'en passer) |
 | `./build.sh --debug` | `scripts/build.sh` (debug, sans bundle) |
 | `./build.sh --open` | `scripts/bundle.sh && open ~/Applications/Foluna.app` (quitter l'app avant, sinon la copie n'est pas mise à jour) |
-| `UI/Grid.swift`, `tools/grid-lint.sh`, `tools/check-layout.swift`, `APP_GRID=1` | `Sources/Alexandrie/UI/Grid.swift` (jetons `Space`, sondes `.gridArea`/`.gridProbe`), `scripts/grid-lint.sh` (vues seulement), `swift scripts/check-layout.swift /tmp/alexandrie-shots/*-layout.json` (fichiers écrits par `scripts/snap.sh`), `ALEXANDRIE_GRID=1` dessine la grille. Sondes posées sur la fiche du livre (zone `fiche`) |
-| `swift test` | `scripts/test.sh` (charge les plugins de macros si seules les Command Line Tools sont actives) ; `ALEXANDRIE_FIXTURES=/dossier scripts/test.sh` pour les vrais livres |
-| Cible `<App>Kit` testable | `Sources/AlexandrieCore` (logique sans interface), tests dans `Tests/AlexandrieCoreTests` |
+| `UI/Grid.swift`, `tools/grid-lint.sh`, `tools/check-layout.swift`, `APP_GRID=1` | `Sources/Foluna/UI/Grid.swift` (jetons `Space`, sondes `.gridArea`/`.gridProbe`), `scripts/grid-lint.sh` (vues seulement), `swift scripts/check-layout.swift /tmp/foluna-shots/*-layout.json` (fichiers écrits par `scripts/snap.sh`), `FOLUNA_GRID=1` dessine la grille. Sondes posées sur la fiche du livre (zone `fiche`) |
+| `swift test` | `scripts/test.sh` (charge les plugins de macros si seules les Command Line Tools sont actives) ; `FOLUNA_FIXTURES=/dossier scripts/test.sh` pour les vrais livres |
+| Cible `<App>Kit` testable | `Sources/FolunaCore` (logique sans interface), tests dans `Tests/FolunaCoreTests` |
 | Swift 6, isolation par défaut | Swift 6 (`swiftLanguageModes: [.v6]`), **sans** isolation `MainActor` par défaut : annoter `@MainActor` |
-| `APP_STORE=/tmp/...` | `ALEXANDRIE_STORE=/tmp/...` : dossier de données de test (index, couvertures, conversions, imports). Le dossier de livres vient alors de `ALEXANDRIE_BOOKS` (jamais du signet de l'utilisateur), sans vérification en ligne ni recherche de mises à jour. Les autres réglages (`UserDefaults`) restent partagés |
-| `APP_SNAPSHOT` / `tools/snap.sh` / `APP_SEED=1` | `scripts/snap.sh` : 14 livres d'exemple (`SeedData.swift`) dans `/tmp/alexandrie-snap`, puis une capture par page de la barre latérale, par onglet des réglages (`reglages-<onglet>`) et par feuille (`feuille-<nom>`), en clair et en sombre, dans `/tmp/alexandrie-shots` (`Snapshot.swift`). Bundle de test `be.adnmac.alexandrie.snapshot` (langue fr, réglages séparés). `ALEXANDRIE_SNAPSHOT_PAGES=tous,reglages,feuilles` limite les pages, `ALEXANDRIE_SNAPSHOT_FULLSCREEN=1` met la fenêtre en plein écran, `ALEXANDRIE_SNAPSHOT_STORE=/tmp/…` change le dossier de test (captures du site : `/tmp/Foluna`) |
-| `--selftest` / `tools/selftest.sh` | `scripts/selftest.sh` : compile en debug, vide `/tmp/alexandrie-selftest`, lance `Alexandrie --selftest` sans fenêtre (`Sources/Alexandrie/SelfTest.swift`). PASS/FAIL par étape, code 0 si tout passe. Refuse de tourner sans `ALEXANDRIE_STORE` ou sur un dossier non vide |
-| `Icon/AppIcon.icon`, `tools/make_icon.sh`, `tools/icon_review.sh` | `Icon/AppIcon.icon` (calques SVG dessinés à la main, aucun symbole SF), `scripts/make-icon.sh` (actool, Xcode avec licence acceptée) écrit `Resources/Assets.car` et `Resources/AppIcon.icns`, versionnés ; `scripts/icon-review.sh` écrit la planche `/tmp/alexandrie-icon.png` |
+| `APP_STORE=/tmp/...` | `FOLUNA_STORE=/tmp/...` : dossier de données de test (index, couvertures, conversions, imports). Le dossier de livres vient alors de `FOLUNA_BOOKS` (jamais du signet de l'utilisateur), sans vérification en ligne ni recherche de mises à jour. Les autres réglages (`UserDefaults`) restent partagés |
+| `APP_SNAPSHOT` / `tools/snap.sh` / `APP_SEED=1` | `scripts/snap.sh` : 14 livres d'exemple (`SeedData.swift`) dans `/tmp/foluna-snap`, puis une capture par page de la barre latérale, par onglet des réglages (`reglages-<onglet>`) et par feuille (`feuille-<nom>`), en clair et en sombre, dans `/tmp/foluna-shots` (`Snapshot.swift`). Bundle de test `be.adnmac.alexandrie.snapshot` (langue fr, réglages séparés). `FOLUNA_SNAPSHOT_PAGES=tous,reglages,feuilles` limite les pages, `FOLUNA_SNAPSHOT_FULLSCREEN=1` met la fenêtre en plein écran, `FOLUNA_SNAPSHOT_STORE=/tmp/…` change le dossier de test (captures du site : `/tmp/Foluna`) |
+| `--selftest` / `tools/selftest.sh` | `scripts/selftest.sh` : compile en debug, vide `/tmp/foluna-selftest`, lance `Foluna --selftest` sans fenêtre (`Sources/Foluna/SelfTest.swift`). PASS/FAIL par étape, code 0 si tout passe. Refuse de tourner sans `FOLUNA_STORE` ou sur un dossier non vide |
+| `Icon/AppIcon.icon`, `tools/make_icon.sh`, `tools/icon_review.sh` | `Icon/AppIcon.icon` (calques SVG dessinés à la main, aucun symbole SF), `scripts/make-icon.sh` (actool, Xcode avec licence acceptée) écrit `Resources/Assets.car` et `Resources/AppIcon.icns`, versionnés ; `scripts/icon-review.sh` écrit la planche `/tmp/foluna-icon.png` |
 | `release` | `scripts/release.sh X.Y.Z` (publie sur GitHub, l'app propose la mise à jour) |
 
 Site foluna.app : dossier voisin `../Foluna-Website` (pages dans `src/en` et `src/fr`, `python3 build.py`, `./deploy.sh` puis `./deploy.sh --go`).
 Ses captures ne montrent que des livres inventés ou du domaine public.
 
 Ne jamais faire de captures ni de tests contre les vraies données de
-`~/Library/Application Support/Alexandrie/` : toujours `ALEXANDRIE_STORE` dans `/tmp`.
+`~/Library/Application Support/Alexandrie/` : toujours `FOLUNA_STORE` dans `/tmp`.
 
-Après un changement d'interface : `scripts/grid-lint.sh`, `scripts/snap.sh`, `swift scripts/check-layout.swift /tmp/alexandrie-shots/*-layout.json`, puis regarder les PNG des pages touchées (clair et sombre).
+Après un changement d'interface : `scripts/grid-lint.sh`, `scripts/snap.sh`, `swift scripts/check-layout.swift /tmp/foluna-shots/*-layout.json`, puis regarder les PNG des pages touchées (clair et sombre).
 Sans l'autorisation Enregistrement de l'écran, les captures passent par un rendu de secours (matériaux et verre non fidèles).
 
 Après un changement dans `LibraryStore` ou ses services : `scripts/test.sh` puis `scripts/selftest.sh`.

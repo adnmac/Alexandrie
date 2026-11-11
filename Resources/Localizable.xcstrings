@@ -20334,30 +20334,58 @@
         }
       }
     },
-    "Taille du texte (⌘− / ⌘+)" : {
+    "Taille du texte de ce livre (⌘− / ⌘+, ⌘0 pour la taille par défaut)" : {
       "localizations" : {
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Textgröße (⌘− / ⌘+)"
+            "value" : "Textgröße dieses Buchs (⌘− / ⌘+, ⌘0 für die Standardgröße)"
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Text Size (⌘− / ⌘+)"
+            "value" : "Text Size for This Book (⌘− / ⌘+, ⌘0 for the default size)"
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tamaño del texto (⌘− / ⌘+)"
+            "value" : "Tamaño del texto de este libro (⌘− / ⌘+, ⌘0 para el tamaño predeterminado)"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Tekstgrootte (⌘− / ⌘+)"
+            "value" : "Tekstgrootte van dit boek (⌘− / ⌘+, ⌘0 voor de standaardgrootte)"
+          }
+        }
+      }
+    },
+    "Taille par défaut" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standardgröße"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Default Size"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tamaño predeterminado"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Standaardgrootte"
           }
         }
       }
@@ -21478,6 +21506,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Een thema deelt markeringen uit verschillende boeken in; zijn kleuren benoemen categorieën."
+          }
+        }
+      }
+    },
+    "Utiliser cette taille par défaut" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Diese Größe als Standard verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use This Size as Default"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usar este tamaño como predeterminado"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze grootte als standaard gebruiken"
           }
         }
       }

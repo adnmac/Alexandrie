@@ -119,7 +119,7 @@ struct ReaderView: View {
         .navigationSubtitle(book.authorLine)
         .toolbar { toolbar }
         .task { await load() }
-        .onChange(of: reading.textScale) { applySettings() }
+        .onChange(of: reading.textScale(for: book)) { applySettings() }
         .onChange(of: reading.theme) { applySettings() }
         .onChange(of: reading.font) { applySettings() }
         .onChange(of: kindle.readerHighlights(of: book)) { showHighlights() }
@@ -285,7 +285,7 @@ struct ReaderView: View {
                 }.value
                 let companion = EPUBPageController(book: prepared)
                 companion.editable = false
-                companion.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
+                companion.apply(scale: reading.textScale(for: book), theme: reading.theme, font: reading.font)
                 companion.highlights = kindle.readerHighlights(of: other)
                 let session = CompareSession(book: other, controller: companion, mainWeights: main.book.weights)
                 companion.onMove = { [weak session, weak main, weak companion] _ in
@@ -545,20 +545,24 @@ struct ReaderView: View {
         }
         ToolbarItemGroup(placement: .primaryAction) {
             ControlGroup {
-                Button { reading.reduce() } label: { Label("Réduire le texte", systemImage: "textformat.size.smaller") }
+                Button { reading.reduce(book) } label: { Label("Réduire le texte", systemImage: "textformat.size.smaller") }
                     .keyboardShortcut("-")
-                    .disabled(!reading.canReduce)
-                Button { reading.enlarge() } label: { Label("Agrandir le texte", systemImage: "textformat.size.larger") }
+                    .disabled(!reading.canReduce(book))
+                // Taille propre au livre (S-105) : ⌘0 le ramène à la taille par défaut.
+                Button { reading.resetTextScale(for: book) } label: { Label("Taille par défaut", systemImage: "textformat.size") }
+                    .keyboardShortcut("0")
+                    .disabled(!reading.hasOwnScale(book))
+                Button { reading.enlarge(book) } label: { Label("Agrandir le texte", systemImage: "textformat.size.larger") }
                     .keyboardShortcut("+")
-                    .disabled(!reading.canEnlarge)
+                    .disabled(!reading.canEnlarge(book))
             }
-            .help("Taille du texte (⌘− / ⌘+)")
+            .help("Taille du texte de ce livre (⌘− / ⌘+, ⌘0 pour la taille par défaut)")
             textMenu
         }
     }
 
     /// Police (S-095) et fond (S-069), réunis sous une icône : deux menus déroulants se réduisaient à leurs
-    /// flèches dans une fenêtre étroite. Les choix valent pour tous les livres ; un PDF garde polices et couleurs.
+    /// flèches dans une fenêtre étroite. Police et fond valent pour tous les livres ; un PDF garde polices et couleurs.
     private var textMenu: some View {
         Menu {
             Picker("Police", selection: Binding(get: { reading.font }, set: { reading.font = $0 })) {
@@ -573,6 +577,10 @@ struct ReaderView: View {
                 ForEach(ReaderTheme.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.inline)
+            Divider()
+            // La taille reste propre à chaque livre (S-105) ; celle-ci devient celle des livres jamais réglés.
+            Button("Utiliser cette taille par défaut") { reading.useAsDefault(book) }
+                .disabled(!reading.hasOwnScale(book))
         } label: {
             Label { Text("Police et fond") } icon: {
                 Image(systemName: "textformat").accessibilityLabel(Text("Police et fond"))
@@ -748,7 +756,7 @@ struct ReaderView: View {
             showHighlights()
             // Après la mise en place de la vue : PDFKit ignore un saut de page fait avant.
             try? await Task.sleep(for: .milliseconds(50))
-            controller.apply(scale: reading.textScale)
+            controller.apply(scale: reading.textScale(for: book))
             controller.go(to: start?.chapter ?? 0)
             jumpToTarget()
             controller.onMove = { reading.record($0, for: book) }
@@ -759,7 +767,7 @@ struct ReaderView: View {
                     try ReaderBook.prepare(book, directories: directories)
                 }.value
                 let controller = EPUBPageController(book: prepared)
-                controller.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
+                controller.apply(scale: reading.textScale(for: book), theme: reading.theme, font: reading.font)
                 controller.onMove = { [weak controller] position in
                     reading.record(position, for: book)
                     if let controller { mainMoved(controller) }
@@ -805,11 +813,11 @@ struct ReaderView: View {
 
     private func applySettings() {
         switch content {
-        case .epub(let c): c.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
-        case .pdf(let c): c.apply(scale: reading.textScale)
+        case .epub(let c): c.apply(scale: reading.textScale(for: book), theme: reading.theme, font: reading.font)
+        case .pdf(let c): c.apply(scale: reading.textScale(for: book))
         case nil: break
         }
-        compare?.controller.apply(scale: reading.textScale, theme: reading.theme, font: reading.font)
+        compare?.controller.apply(scale: reading.textScale(for: book), theme: reading.theme, font: reading.font)
     }
 }
 

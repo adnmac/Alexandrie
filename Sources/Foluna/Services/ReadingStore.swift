@@ -59,11 +59,14 @@ final class ReadingStore {
         UserDefaults.standard.set(all, forKey: Self.companionsKey)
     }
 
-    // MARK: Réglages du texte (valables pour tous les livres)
+    // MARK: Réglages du texte
 
     static let scaleKey = "readerTextScale", themeKey = "readerTheme", fontKey = "readerFont"
+    /// Taille propre à un livre (S-105), par empreinte ; un livre absent suit la taille par défaut.
+    static let bookScalesKey = "readerTextScales"
     static let scales: [Double] = [0.8, 0.9, 1, 1.1, 1.25, 1.4, 1.6, 1.8, 2]
 
+    /// Taille par défaut, pour les livres jamais réglés.
     var textScale: Double {
         get {
             access(keyPath: \.textScale)
@@ -71,6 +74,34 @@ final class ReadingStore {
             return value == 0 ? 1 : value
         }
         set { withMutation(keyPath: \.textScale) { UserDefaults.standard.set(newValue, forKey: Self.scaleKey) } }
+    }
+
+    private var bookScales: [String: Double] {
+        get {
+            access(keyPath: \.bookScales)
+            return UserDefaults.standard.dictionary(forKey: Self.bookScalesKey) as? [String: Double] ?? [:]
+        }
+        set { withMutation(keyPath: \.bookScales) { UserDefaults.standard.set(newValue, forKey: Self.bookScalesKey) } }
+    }
+
+    /// Taille du texte de ce livre : la sienne s'il a été réglé, sinon la taille par défaut.
+    func textScale(for book: Book) -> Double { bookScales[book.fingerprint] ?? textScale }
+
+    /// Le livre a sa propre taille, différente de la taille par défaut.
+    func hasOwnScale(_ book: Book) -> Bool { bookScales[book.fingerprint] != nil }
+
+    /// Règle la taille de ce livre seulement ; la taille par défaut efface la valeur propre.
+    func setTextScale(_ scale: Double, for book: Book) {
+        bookScales[book.fingerprint] = abs(scale - textScale) < 0.001 ? nil : scale
+    }
+
+    /// Le livre revient à la taille par défaut (⌘0).
+    func resetTextScale(for book: Book) { bookScales[book.fingerprint] = nil }
+
+    /// La taille de ce livre devient la taille par défaut ; les livres réglés gardent la leur.
+    func useAsDefault(_ book: Book) {
+        textScale = textScale(for: book)
+        resetTextScale(for: book)
     }
 
     var theme: ReaderTheme {
@@ -90,9 +121,16 @@ final class ReadingStore {
         set { withMutation(keyPath: \.font) { UserDefaults.standard.set(newValue.rawValue, forKey: Self.fontKey) } }
     }
 
-    var canEnlarge: Bool { textScale < Self.scales.last! - 0.001 }
-    var canReduce: Bool { textScale > Self.scales.first! + 0.001 }
+    func canEnlarge(_ book: Book) -> Bool { textScale(for: book) < Self.scales.last! - 0.001 }
+    func canReduce(_ book: Book) -> Bool { textScale(for: book) > Self.scales.first! + 0.001 }
 
-    func enlarge() { textScale = Self.scales.first { $0 > textScale + 0.001 } ?? textScale }
-    func reduce() { textScale = Self.scales.last { $0 < textScale - 0.001 } ?? textScale }
+    func enlarge(_ book: Book) {
+        let current = textScale(for: book)
+        setTextScale(Self.scales.first { $0 > current + 0.001 } ?? current, for: book)
+    }
+
+    func reduce(_ book: Book) {
+        let current = textScale(for: book)
+        setTextScale(Self.scales.last { $0 < current - 0.001 } ?? current, for: book)
+    }
 }

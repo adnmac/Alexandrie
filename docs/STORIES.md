@@ -792,6 +792,15 @@ Acceptance:
 - [manual] Le menu Lecture suit la fenêtre de lecture au premier plan : grisé depuis la bibliothèque, coches à jour ; ouvrir, fermer ou arrêter une comparaison garde le passage affiché.
 Status: done
 
+### S-105 Garder la taille du texte de chaque livre
+J'agrandis un PDF A4 sans agrandir mon roman : ⌘+ et ⌘− règlent la taille du livre ouvert seulement, et elle revient à sa prochaine ouverture. Un livre jamais réglé suit la taille par défaut ; ⌘0 (ou le bouton du milieu) ramène le livre à cette taille, et « Utiliser cette taille par défaut » (menu Police et fond) la remplace. Police et fond restent communs à tous les livres. Dans une comparaison, l'autre livre prend la taille du livre ouvert.
+Depends: S-069
+Acceptance:
+- [self] Deux livres gardent deux tailles après redémarrage ; un livre non réglé suit la taille par défaut, et change avec elle ; ⌘0 efface la taille du livre ; revenir à la taille par défaut l'efface aussi.
+- [snap] Les captures de lecture gardent leurs tailles (« lecture-sepia » agrandie).
+- [manual] Deux fenêtres de lecture ouvertes : agrandir l'une ne change pas l'autre ; ⌘0 est grisé pour un livre à la taille par défaut.
+Status: done
+
 ## Later
 
 - Liseuses Android Boox (MTP) et reMarkable (page web locale) ; KEPUB pour la Kobo.

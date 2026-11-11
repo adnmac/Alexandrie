@@ -663,23 +663,44 @@ struct SelfTest {
         // S-069 : taille et fond gardés (réglages partagés : remis comme avant).
         let defaults = UserDefaults.standard
         let saved = (defaults.object(forKey: ReadingStore.scaleKey), defaults.object(forKey: ReadingStore.themeKey),
-                     defaults.object(forKey: ReadingStore.fontKey))
+                     defaults.object(forKey: ReadingStore.fontKey), defaults.object(forKey: ReadingStore.bookScalesKey))
         store.textScale = 1
-        store.enlarge(); store.enlarge()
+        store.resetTextScale(for: epub)
+        store.resetTextScale(for: pdf)
+        store.enlarge(epub); store.enlarge(epub)
         store.theme = .sepia
         store.font = .iowan
         let relaunched = ReadingStore(directories: directories)
-        check("taille du texte et fond gardés", relaunched.textScale == 1.25 && relaunched.theme == .sepia,
-              "\(relaunched.textScale) \(relaunched.theme)")
+        check("taille du texte et fond gardés", relaunched.textScale(for: epub) == 1.25 && relaunched.theme == .sepia,
+              "\(relaunched.textScale(for: epub)) \(relaunched.theme)")
+        // S-105 : la taille appartient au livre ; un livre jamais réglé suit la taille par défaut.
+        check("taille propre au livre", relaunched.textScale(for: pdf) == 1 && relaunched.textScale == 1
+              && relaunched.hasOwnScale(epub) && !relaunched.hasOwnScale(pdf),
+              "\(relaunched.textScale(for: pdf)) \(relaunched.textScale)")
+        store.reduce(pdf)
+        check("deux livres, deux tailles", store.textScale(for: pdf) == 0.9 && store.textScale(for: epub) == 1.25)
+        store.textScale = 1.1
+        var unread = epub
+        unread.fingerprint = "selftest-jamais-ouvert"
+        check("taille par défaut suivie par les livres non réglés", store.textScale(for: epub) == 1.25
+              && store.textScale(for: pdf) == 0.9 && store.textScale(for: unread) == 1.1)
+        store.useAsDefault(epub)
+        check("taille d'un livre choisie par défaut", store.textScale == 1.25 && !store.hasOwnScale(epub)
+              && store.textScale(for: pdf) == 0.9)
+        store.resetTextScale(for: pdf)
+        check("⌘0 : retour à la taille par défaut", store.textScale(for: pdf) == 1.25 && !store.hasOwnScale(pdf))
+        store.enlarge(pdf); store.reduce(pdf)
+        check("revenir à la taille par défaut efface la valeur du livre", !store.hasOwnScale(pdf))
         // S-095 : police gardée ; une valeur inconnue revient à celle du livre.
         check("police gardée", relaunched.font == .iowan, "\(relaunched.font)")
         defaults.set("police-disparue", forKey: ReadingStore.fontKey)
         check("police inconnue : celle du livre", ReadingStore(directories: directories).font == .book)
-        for _ in 0..<20 { store.enlarge() }
-        check("taille du texte bornée", !store.canEnlarge && store.textScale == ReadingStore.scales.last)
+        for _ in 0..<20 { store.enlarge(epub) }
+        check("taille du texte bornée", !store.canEnlarge(epub) && store.textScale(for: epub) == ReadingStore.scales.last)
         defaults.set(saved.0, forKey: ReadingStore.scaleKey)
         defaults.set(saved.1, forKey: ReadingStore.themeKey)
         defaults.set(saved.2, forKey: ReadingStore.fontKey)
+        defaults.set(saved.3, forKey: ReadingStore.bookScalesKey)
     }
 
     /// PDF pour la Kindle (S-064, S-065) : copie rognée, texte redimensionnable, scan sans texte.

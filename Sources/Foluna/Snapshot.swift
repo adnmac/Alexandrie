@@ -200,7 +200,8 @@ enum Snapshot {
         for shot in shots {
             guard let book = library.visibleBooks.first(where: { $0.title == shot.title }) else { continue }
             reading.theme = shot.theme
-            reading.textScale = shot.scale
+            reading.textScale = 1
+            reading.setTextScale(shot.scale, for: book)
             reading.font = shot.font
             // Lecture reprise (S-068) : au milieu du deuxième chapitre.
             if book.format == .epub {
@@ -230,6 +231,9 @@ enum Snapshot {
         reading.theme = .light
         reading.textScale = 1
         reading.font = .book
+        for shot in shots {
+            if let book = library.visibleBooks.first(where: { $0.title == shot.title }) { reading.resetTextScale(for: book) }
+        }
         await captureReaderPanels(library: library, dir: dir)
     }
 

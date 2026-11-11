@@ -175,11 +175,14 @@ struct ReaderView: View {
     @ViewBuilder private var readingArea: some View {
         if epub != nil, let compare {
             GeometryReader { geo in
-                ReaderSplit(vertical: geo.size.width < Layout.readerSplitWidth) {
-                    if compare.isSwapped { ComparePane(session: compare) } else { page }
+                let vertical = geo.size.width < Layout.readerSplitWidth
+                ReaderSplit(vertical: vertical) {
+                    comparePane(compare.isSwapped ? AnyView(ComparePane(session: compare)) : AnyView(page), vertical: vertical)
                 } second: {
-                    if compare.isSwapped { page } else { ComparePane(session: compare) }
+                    comparePane(compare.isSwapped ? AnyView(page) : AnyView(ComparePane(session: compare)), vertical: vertical)
                 }
+                // Côtés échangés : les deux volets repartent à moitié chacun, au lieu de garder l'ancienne séparation.
+                .id(compare.isSwapped)
             }
         } else if epub != nil, showsNotes {
             GeometryReader { geo in
@@ -196,6 +199,12 @@ struct ReaderView: View {
         } else {
             page
         }
+    }
+
+    /// Volet d'une comparaison : les deux livres ont la même taille minimale et prennent la place offerte.
+    private func comparePane(_ content: AnyView, vertical: Bool) -> some View {
+        content.frame(minWidth: vertical ? nil : Layout.readerPageMin, maxWidth: .infinity,
+                      minHeight: vertical ? Layout.readerPageMinHeight : nil, maxHeight: .infinity)
     }
 
     // MARK: Notes de bas de page (S-103)
@@ -315,7 +324,10 @@ struct ReaderView: View {
                     .keyboardShortcut("c", modifiers: [.command, .option])
             }
         } label: {
-            Label("Comparer", systemImage: "rectangle.split.2x1")
+            // Le symbole porte le nom : dans la barre d'outils, VoiceOver lit celui du symbole sinon.
+            Label { Text("Comparer") } icon: {
+                Image(systemName: "rectangle.split.2x1").accessibilityLabel(Text("Comparer"))
+            }
         }
         .menuIndicator(.hidden)
         .disabled(epub == nil)
@@ -523,7 +535,9 @@ struct ReaderView: View {
             }
             .pickerStyle(.inline)
         } label: {
-            Label("Police et fond", systemImage: "textformat")
+            Label { Text("Police et fond") } icon: {
+                Image(systemName: "textformat").accessibilityLabel(Text("Police et fond"))
+            }
         }
         .menuIndicator(.hidden)
         .disabled(book.format == .pdf)

@@ -80,6 +80,10 @@ struct ContentView: View {
         // Sauvegarde du jour dans le dossier choisi (jamais pendant les captures).
         .onAppear { if Snapshot.directory == nil { AppServices.shared.backups.start() } }
         .task {
+            if StressUI.directory != nil {
+                await StressUI.run(library: library, sidebar: $sidebar, selection: $selection, search: $search)
+                return
+            }
             guard Snapshot.directory != nil else { return }
             await Snapshot.run(library: library, kindle: kindle, sidebar: $sidebar, selection: $selection, notesBook: $notesBook,
                                search: $search, searchScope: $searchScope, openSettings: openSettings)

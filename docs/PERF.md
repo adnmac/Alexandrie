@@ -72,7 +72,12 @@ Aucun livre perdu à aucun palier. Index : 6,8 Mo à 10 000 livres, 68 Mo à 100
 | Ouverture | 535 ms | 421 ms |
 | Fiche d'un livre | 359 ms | 46 ms |
 
-Variabilité non expliquée : sur deux passes de suite du même code, machine au calme (36 Go, 85 % de mémoire libre, aucun échange sur disque), la première reste sous 160 ms partout. Dans la seconde, à partir d'environ 30 s de visite, chaque action en liste coûte 0,3 à 0,9 s, et la fiche 0,78 s. Une instrumentation a écarté une boucle de recalcul. Le profil de la liste montrait AppKit occupé par `Table`, mais la cause n'est pas établie. À 10 000 livres, les passes restent sous 160 ms.
+Variabilité expliquée : App Nap. Sur certaines passes, à partir d'environ 30 s de visite, chaque action en liste coûtait 0,3 à 3,5 s, et la fiche jusqu'à 1,9 s. La cause était macOS, qui met en veille une app dont la fenêtre est cachée par d'autres (priorité baissée, minuteries regroupées), et la fenêtre de test était souvent derrière d'autres fenêtres. Preuve, à 100 000 livres :
+- app masquée exprès, App Nap actif : blocages jusqu'à 8,7 s ;
+- `NSAppSleepDisabled` : trois passes sur trois rapides ;
+- activité déclarée : app masquée et rapide (liste de 44 à 159 ms, fiche 254 ms).
+
+C'est un artefact de mesure : quelqu'un qui regarde la fenêtre de Foluna n'est pas concerné. `StressUI` déclare maintenant une activité au système (`ProcessInfo.beginActivity`) pendant la visite. Plusieurs lenteurs attribuées plus haut à une « machine chargée » venaient sans doute aussi d'App Nap.
 
 ## Comment relancer
 

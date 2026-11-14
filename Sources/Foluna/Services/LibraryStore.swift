@@ -51,6 +51,7 @@ final class LibraryStore {
     @ObservationIgnored private var lastSummary: LibrarySummary?
     /// Faux pendant le premier calcul des identités en arrière-plan (grande bibliothèque, voir `warmUpIdentities`).
     private(set) var identitiesReady = true
+    @ObservationIgnored private var warmUpToken = 0
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "foluna.index", qos: .utility)
@@ -188,6 +189,8 @@ final class LibraryStore {
     /// bloquaient l'ouverture de la fenêtre. Le résultat est ensuite tenu à jour titre par titre.
     private func warmUpIdentities() {
         identitiesReady = false
+        warmUpToken &+= 1
+        let token = warmUpToken
         let books = self.books
         Task { [weak self] in
             let cache = await Task.detached(priority: .userInitiated) { () -> IdentityCache in
@@ -195,9 +198,10 @@ final class LibraryStore {
                 cache.update(books)
                 return cache
             }.value
-            guard let self else { return }
-            // Une action a pu forcer le calcul entre-temps : il est déjà là et à jour.
-            if self.identityCache.isEmpty { self.identityCache = cache }
+            // Un calcul plus récent est en route (ouverture puis gros parcours) : c'est lui qui conclura.
+            guard let self, token == self.warmUpToken else { return }
+            // Les livres changés depuis seront repris titre par titre au prochain accès.
+            self.identityCache = cache
             self.identityMap = nil; self.duplicateIDs = nil; self.visibleCache = nil; self.summaryCache = nil
             self.generation &+= 1
             self.identitiesReady = true
@@ -514,35 +518,69 @@ final class LibraryStore {
         func publishInterval() -> Duration {
             .milliseconds(min(5000, 500 + books.count * 2 / 5))
         }
-        for (i, item) in plan.changed.enumerated() {
-            let f = item.file
-            let imported = f.url.path.hasPrefix(importsPath)
-            var book = await Task.detached(priority: .utility) {
-                FolderScanner.makeBook(f, imported: imported, coverStore: covers)
-            }.value
-            if let previous = item.previous {
-                LibraryMerge.carryOver(from: previous, to: &book)
-            } else if autoCheckCatalog {
-                newBooks.append(book.id)
+        // Extraction en parallèle, un fil par cœur moins un (une à la fois, 800 livres par seconde : plus de deux
+        // minutes pour 100 000 livres). L'ordre d'arrivée ne compte pas : la liste est triée à l'affichage.
+        let changed = plan.changed, total = changed.count
+        // Gros parcours (première indexation) : chaque lot ajoute beaucoup de titres, et les identités seraient
+        // recalculées en entier sur le thread principal à chaque fois (3 s et plus à 100 000 livres). Les vues
+        // font sans pendant le parcours ; le calcul se fait en arrière-plan à la fin (`warmUpIdentities`).
+        let bigScan = total > LibraryListing.directLimit
+        if bigScan { identitiesReady = false }
+        let width = max(2, ProcessInfo.processInfo.activeProcessorCount - 1)
+        await withTaskGroup(of: (Int, Book).self) { group in
+            var next = 0
+            while next < min(width, total) {
+                let i = next, f = changed[i].file
+                let imported = f.url.path.hasPrefix(importsPath)
+                group.addTask(priority: .utility) { (i, Self.makeBook(f, imported: imported, coverStore: covers)) }
+                next += 1
             }
-            pending.append(book)
-            let now = ContinuousClock.now
-            if now - lastPublish >= publishInterval() {
-                books.append(contentsOf: pending)
-                pending.removeAll(keepingCapacity: true)
-                lastPublish = now
-            }
-            if now - lastProgress >= .milliseconds(100) || i == plan.changed.count - 1 {
-                progress = (i + 1, plan.changed.count)
-                lastProgress = now
+            var done = 0
+            for await (i, extracted) in group {
+                var book = extracted
+                if let previous = changed[i].previous {
+                    LibraryMerge.carryOver(from: previous, to: &book)
+                } else if autoCheckCatalog {
+                    newBooks.append(book.id)
+                }
+                pending.append(book)
+                done += 1
+                let now = ContinuousClock.now
+                if now - lastPublish >= publishInterval() {
+                    books.append(contentsOf: pending)
+                    pending.removeAll(keepingCapacity: true)
+                    lastPublish = now
+                }
+                if now - lastProgress >= .milliseconds(100) || done == total {
+                    progress = (done, total)
+                    lastProgress = now
+                }
+                if next < total {
+                    let j = next, f = changed[j].file
+                    let imported = f.url.path.hasPrefix(importsPath)
+                    group.addTask(priority: .utility) { (j, Self.makeBook(f, imported: imported, coverStore: covers)) }
+                    next += 1
+                }
             }
         }
         if !pending.isEmpty { books.append(contentsOf: pending) }
+        if bigScan { warmUpIdentities() }
         save()
         // Une copie en double d'un livre déjà connu n'est pas revérifiée en ligne.
-        let duplicates = hiddenDuplicates
+        let duplicates = newBooks.isEmpty ? [] : hiddenDuplicates
         checkCatalog(newBooks.filter { !duplicates.contains($0) })
         if unreachable.isEmpty { await purgeStorage() }
+    }
+
+    /// Les PDF passent par PDFKit et AppKit (vignette de la première page), qui ne se partagent pas entre fils :
+    /// ils sont lus un à la fois, les autres formats en parallèle.
+    nonisolated private static let pdfLock = NSLock()
+
+    nonisolated private static func makeBook(_ file: ScannedFile, imported: Bool, coverStore: CoverStore) -> Book {
+        guard BookFormat(url: file.url) == .pdf else {
+            return FolderScanner.makeBook(file, imported: imported, coverStore: coverStore)
+        }
+        return pdfLock.withLock { FolderScanner.makeBook(file, imported: imported, coverStore: coverStore) }
     }
 
     // MARK: - Stockage de l'app

@@ -112,6 +112,7 @@ struct LibraryView: View, Equatable {
             .padding(20)
         }
         .background(Color(nsColor: .textBackgroundColor))
+        .onAppear { ClickModifiers.install() }
         // Focalisable sans anneau : la sélection des cartes montre déjà où l'on est.
         .focusable()
         .focusEffectDisabled()
@@ -123,7 +124,7 @@ struct LibraryView: View, Equatable {
     }
 
     private func select(_ g: BookGroup) {
-        let flags = NSEvent.modifierFlags
+        let flags = ClickModifiers.current
         var ids = selection.ids
         if flags.contains(.command) {
             if ids.contains(g.id) { ids.remove(g.id) } else { ids.insert(g.id) }
@@ -208,6 +209,27 @@ struct LibraryView: View, Equatable {
             if ids.count == 1, let b = ids.first.flatMap(resolve), b.canRead, !library.isUnavailable(b) { ReaderWindows.open(b.id) }
         }
     }
+}
+
+/// Touches enfoncées au moment du dernier clic. Le clic simple d'une carte n'est confirmé qu'après le délai du
+/// double-clic : lire `NSEvent.modifierFlags` à ce moment-là perdait ⌘ ou ⇧ déjà relâchée, et le clic remplaçait
+/// la sélection au lieu de l'étendre.
+@MainActor
+enum ClickModifiers {
+    private static var atMouseDown: NSEvent.ModifierFlags = []
+    private static var monitor: Any?
+
+    static func install() {
+        guard monitor == nil else { return }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { event in
+            let flags = event.modifierFlags
+            MainActor.assumeIsolated { atMouseDown = flags }
+            return event
+        }
+    }
+
+    /// Touches du clic, plus celles encore enfoncées.
+    static var current: NSEvent.ModifierFlags { atMouseDown.union(NSEvent.modifierFlags) }
 }
 
 extension LibraryView {

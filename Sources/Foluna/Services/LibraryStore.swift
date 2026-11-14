@@ -10,7 +10,7 @@ final class LibraryStore {
     let covers: CoverStore
     private(set) var books: [Book] = [] {
         didSet {
-            positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil
+            titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil
             hiddenByIdentity = nil
             visibleCache = nil; summaryCache = nil
             generation &+= 1
@@ -32,6 +32,7 @@ final class LibraryStore {
     /// Index reconstruits à la demande après chaque changement de `books`.
     @ObservationIgnored private var positions: [Book.ID: Int]?
     @ObservationIgnored private var titleIndex: [String: [Int]]?
+    @ObservationIgnored private var positionsGeneration = -1
     @ObservationIgnored private var publisherList: [String]?
     @ObservationIgnored private var duplicateIDs: Set<Book.ID>?
     /// Copies masquées regroupées par livre (identité), pour la fiche (voir `hiddenCopies`).
@@ -210,10 +211,14 @@ final class LibraryStore {
         guard displayTask == nil else { return }
         let books = self.books, cache = identityCache, generation = self.generation
         displayTask = Task { [weak self] in
-            let (updated, ids, duplicates) = await Task.detached(priority: .userInitiated) {
+            let (updated, ids, duplicates, copies) = await Task.detached(priority: .userInitiated) {
                 var cache = cache
                 let ids = cache.update(books)
-                return (cache, ids, BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: ids))
+                let duplicates = BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: ids)
+                // Copies masquées regroupées par livre, pour la fiche (voir `hiddenCopies`).
+                var copies: [String: [Book]] = [:]
+                for b in books where duplicates.contains(b.id) { copies[ids[b.id] ?? BookGroups.key(b), default: []].append(b) }
+                return (cache, ids, duplicates, copies)
             }.value
             guard let self else { return }
             self.displayTask = nil
@@ -221,10 +226,12 @@ final class LibraryStore {
                 self.identityCache = updated
                 self.identityMap = ids
                 self.duplicateIDs = duplicates
+                self.hiddenByIdentity = copies
             }
             self.lastIdentityMap = ids
             self.lastDuplicateIDs = duplicates
-            self.visibleCache = nil; self.summaryCache = nil; self.hiddenByIdentity = nil
+            self.visibleCache = nil; self.summaryCache = nil
+            if self.generation != generation { self.hiddenByIdentity = nil }
             self.displayVersion &+= 1
         }
     }
@@ -237,19 +244,27 @@ final class LibraryStore {
         let token = warmUpToken
         let books = self.books, generation = self.generation
         Task { [weak self] in
-            let (cache, map) = await Task.detached(priority: .userInitiated) { () -> (IdentityCache, [Book.ID: String]) in
+            let (cache, map, duplicates, copies) = await Task.detached(priority: .userInitiated) {
                 var cache = IdentityCache()
                 let map = cache.update(books)
-                return (cache, map)
+                // Doublons masqués et copies regroupées par livre dans la foulée : sinon calculés sur le thread
+                // principal à la première lecture (0,4 s à 100 000 livres à l'ouverture).
+                let duplicates = BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: map)
+                var copies: [String: [Book]] = [:]
+                for b in books where duplicates.contains(b.id) { copies[map[b.id] ?? BookGroups.key(b), default: []].append(b) }
+                return (cache, map, duplicates, copies)
             }.value
             // Un calcul plus récent est en route (ouverture puis gros parcours) : c'est lui qui conclura.
             guard let self, token == self.warmUpToken else { return }
             // Les livres changés depuis seront repris titre par titre au prochain accès.
+            let current = self.generation == generation
             self.identityCache = cache
             self.lastIdentityMap = map
-            self.identityMap = self.generation == generation ? map : nil
-            self.duplicateIDs = nil; self.visibleCache = nil; self.summaryCache = nil
-            self.hiddenByIdentity = nil
+            self.lastDuplicateIDs = duplicates
+            self.identityMap = current ? map : nil
+            self.duplicateIDs = current ? duplicates : nil
+            self.hiddenByIdentity = current ? copies : nil
+            self.visibleCache = nil; self.summaryCache = nil
             self.generation &+= 1
             self.identitiesReady = true
         }
@@ -945,13 +960,24 @@ final class LibraryStore {
         return books[i]
     }
 
+    /// L'index des positions n'est pas vidé à chaque modification : une retouche (étiquette, favori, titre) ne
+    /// change ni l'ordre ni les identifiants, et le reconstruire coûtait 0,3 s à 100 000 livres à la première fiche
+    /// ouverte ensuite. Une position est vérifiée avant d'être rendue ; l'index n'est reconstruit que si elle ne
+    /// correspond plus, ou si un livre manque alors que la bibliothèque a changé depuis.
     private func position(of id: Book.ID) -> Int? {
         // Lire `books` enregistre la dépendance des vues, même quand l'index est déjà construit.
         let books = self.books
-        if positions == nil {
-            positions = Dictionary(books.indices.map { (books[$0].id, $0) }, uniquingKeysWith: { a, _ in a })
+        if let positions {
+            if let i = positions[id] {
+                if i < books.count, books[i].id == id { return i }
+            } else if positionsGeneration == generation {
+                return nil
+            }
         }
-        return positions?[id]
+        let rebuilt = Dictionary(books.indices.map { (books[$0].id, $0) }, uniquingKeysWith: { a, _ in a })
+        positions = rebuilt
+        positionsGeneration = generation
+        return rebuilt[id]
     }
 
     /// Livres dont le titre normalisé (cf. `KindleMonitor.normalize`) est `key`.

@@ -65,6 +65,15 @@ Aucun livre perdu à aucun palier. Index : 6,8 Mo à 10 000 livres, 68 Mo à 100
 | Encodage seul (banc d'essai) | 80 → 25 ms | 679 → 111 ms |
 | `saveNow` (store réel, bloque la fermeture) | 85 → 28 ms | 722 → 140 ms |
 
+**Fiche et ouverture.** L'index des positions (`position(of:)`) n'est plus vidé à chaque modification : une position est vérifiée avant d'être rendue, et l'index n'est reconstruit que si elle ne correspond plus. La première fiche ouverte après une retouche ne paie plus 0,3 s à 100 000 livres. Le premier calcul des identités et le recalcul d'affichage calculent aussi, en arrière-plan, les doublons masqués et les copies regroupées par livre.
+
+| 100 000 livres, plus long blocage | Avant | Après (passe 1) |
+| --- | ---: | ---: |
+| Ouverture | 535 ms | 421 ms |
+| Fiche d'un livre | 359 ms | 46 ms |
+
+Variabilité non expliquée : sur deux passes de suite du même code, machine au calme (36 Go, 85 % de mémoire libre, aucun échange sur disque), la première reste sous 160 ms partout. Dans la seconde, à partir d'environ 30 s de visite, chaque action en liste coûte 0,3 à 0,9 s, et la fiche 0,78 s. Une instrumentation a écarté une boucle de recalcul. Le profil de la liste montrait AppKit occupé par `Table`, mais la cause n'est pas établie. À 10 000 livres, les passes restent sous 160 ms.
+
 ## Comment relancer
 
 ```bash

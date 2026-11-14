@@ -266,6 +266,17 @@ struct SelfTest {
             check("⌘Z remet l'étiquette retirée", carries(tagged[1], "Plage"))
             step("Renommer l'étiquette") { library.renameTag(key: "plage", to: "Vacances") }
             check("étiquette renommée partout", tagged.allSatisfy { carries($0, "Vacances") && !carries($0, "Plage") })
+            // Identités reprises après une étiquette, recalculées après un titre corrigé.
+            check("identités justes après une étiquette", library.identities == BookGroups.identities(library.books))
+            if var retitled = library.book(id: tagged[0].id) {
+                let before = library.identity(of: retitled)
+                retitled.title += " (bis)"
+                library.update(retitled)
+                check("identités recalculées après un titre corrigé",
+                      library.identities == BookGroups.identities(library.books) && library.identity(of: retitled) != before)
+                retitled.title.removeLast(" (bis)".count)
+                library.update(retitled)
+            }
             library.renameTag(key: "vacances", to: "  ")
             check("nom vide refusé", carries(tagged[0], "Vacances"))
             step("Supprimer l'étiquette") { library.deleteTag(key: "vacances") }

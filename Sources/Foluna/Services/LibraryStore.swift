@@ -29,8 +29,8 @@ final class LibraryStore {
     @ObservationIgnored private var publisherList: [String]?
     @ObservationIgnored private var duplicateIDs: Set<Book.ID>?
     @ObservationIgnored private var identityMap: [Book.ID: String]?
-    /// Dernières identités calculées et l'empreinte des livres d'où elles viennent (voir `identities`).
-    @ObservationIgnored private var identityCache: (signature: Int, map: [Book.ID: String])?
+    /// Identités tenues à jour titre par titre (voir `identities`).
+    @ObservationIgnored private var identityCache = IdentityCache()
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "foluna.index", qos: .utility)
@@ -114,18 +114,11 @@ final class LibraryStore {
 
     /// Identité de chaque fichier (voir `BookGroups.identities`) : réunit les fichiers d'un même livre
     /// même quand leurs auteurs sont écrits différemment ou manquent.
-    /// Toute modification de `books` vide `identityMap` ; le calcul complet (plusieurs secondes à 100 000 livres)
-    /// n'est refait que si un chemin, un titre ou des auteurs ont changé.
+    /// Toute modification de `books` vide `identityMap` ; `identityCache` ne recalcule ensuite que les titres
+    /// touchés (aucun pour une étiquette, un favori ou la corbeille ; l'ancien et le nouveau pour un titre corrigé).
     var identities: [Book.ID: String] {
         if let identityMap { return identityMap }
-        let books = self.books
-        let signature = BookGroups.identitySignature(books)
-        if let cache = identityCache, cache.signature == signature {
-            identityMap = cache.map
-            return cache.map
-        }
-        let map = BookGroups.identities(books)
-        identityCache = (signature, map)
+        let map = identityCache.update(books)
         identityMap = map
         return map
     }

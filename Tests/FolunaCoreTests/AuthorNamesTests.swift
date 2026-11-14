@@ -243,27 +243,3 @@ import Testing
     }
 }
 
-@Suite struct IdentitySignatureTests {
-    func book(_ path: String, _ title: String, _ authors: [String]) -> Book {
-        Book(path: path, format: .epub, fingerprint: path, fileSize: 0, modifiedAt: Date(), addedAt: Date(),
-             title: title, authors: authors, tags: [], hasCover: false, isDRMProtected: false, isImported: false, asin: "A")
-    }
-
-    @Test func changesOnlyWithPathTitleOrAuthors() {
-        let books = [book("/a.epub", "Candide", ["Voltaire"]), book("/b.epub", "Zadig", ["Voltaire"])]
-        let base = BookGroups.identitySignature(books)
-        var other = books
-        other[0].userTags = ["À lire"]
-        other[0].favoritedAt = Date()
-        other[1].trashedAt = Date()
-        #expect(BookGroups.identitySignature(other) == base)
-        for change in [{ (b: inout Book) in b.title = "Candide ou l'Optimisme" },
-                       { (b: inout Book) in b.authors = ["François-Marie Arouet"] },
-                       { (b: inout Book) in b.path = "/livres/a.epub" }] {
-            var changed = books
-            change(&changed[0])
-            #expect(BookGroups.identitySignature(changed) != base)
-        }
-        #expect(BookGroups.identitySignature(Array(books.prefix(1))) != base)
-    }
-}

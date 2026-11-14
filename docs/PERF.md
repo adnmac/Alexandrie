@@ -80,23 +80,29 @@ Interface, 10 000 livres (`interface-10500.md`) :
 
    | 50 livres | 10 000 | 100 000 |
    | --- | ---: | ---: |
-   | À la corbeille | 20 ms | 0,20 s |
-   | Restaurés | 21 ms | 0,17 s |
+   | À la corbeille | 19 ms | 0,20 s |
+   | Restaurés | 18 ms | 0,17 s |
 
    Avant la correction du point 2, il fallait encore 4,2 s pour restaurer à 100 000 livres : les identités étaient recalculées après la mise à la corbeille.
-2. **Identités recalculées après chaque modification : corrigé en partie.**
+2. **Identités recalculées après chaque modification : corrigé.**
    - Avant : `books.didSet` vidait `identityMap`, et la barre latérale relit les identités (`bookCount`). Le rendu qui suivait n'importe quelle retouche refaisait donc tout le calcul.
-   - Maintenant : `LibraryStore.identities` garde le dernier résultat avec une empreinte des chemins, des titres et des auteurs (`BookGroups.identitySignature`). Les identités ne dépendent que de ces trois champs, donc une étiquette, un favori, la corbeille ou un envoi ne coûtent plus que le calcul de l'empreinte.
+   - Maintenant : `IdentityCache` (dans le cœur) tient les identités à jour titre par titre. Les identités d'un fichier ne dépendent que des fichiers de même titre (`BookGroups.titleKey`), et pour chacun de son chemin, de son titre et de ses auteurs.
+     - Une étiquette, un favori, la corbeille ou un envoi ne touchent aucun titre : il ne reste qu'une recherche par fichier.
+     - Un titre ou un auteur corrigé ne recalcule que l'ancien et le nouveau titre.
+     - Un fichier ajouté ou disparu ne recalcule que son titre.
+     - Au-delà de la moitié des fichiers touchés, le calcul complet est refait.
 
-   | 100 000 livres | Durée |
-   | --- | ---: |
-   | Identités après une étiquette (avant la correction) | 3,5 à 4,3 s |
-   | Identités après une étiquette (après) | 0,16 s |
-   | Identités après un titre ou un auteur corrigé | 4,3 s, inchangé |
+     `IdentityCacheTests` vérifie que le résultat reste identique au calcul complet, sur des retouches choisies et sur 40 retouches au hasard.
 
-   Il reste deux pistes :
-   - recalculer seulement le groupe de titres touché (`identities` traite chaque titre à part) ;
-   - ou faire le calcul hors du thread principal.
+   | 100 000 livres | Avant | Après |
+   | --- | ---: | ---: |
+   | Identités après une étiquette | 3,5 à 4,3 s | 0,14 s |
+   | Identités après un titre corrigé | 4,3 s | 0,30 s |
+   | 50 livres restaurés | 4,2 s | 0,17 s |
+
+   Ce qui reste à surveiller :
+   - La mémoire maximale à 100 000 livres passe d'environ 880 à 1 090 Mo : le cache garde une entrée par fichier.
+   - La première indexation à 100 000 livres a mis 151 s, contre 129 s au premier passage. L'écart était le même avec la version intermédiaire, qui ne touchait pas au parcours : il vient probablement de l'état de la machine. À vérifier au prochain passage.
 3. **Même titre, auteurs différents.** `BookGroups.identities` est en O(k³) (`BookGroups.swift:79-89`). Quelques centaines de « Sans titre », « Mémoires » ou « Poèmes » suffisent à figer l'app. Le banc d'essai `sameTitle` échoue volontairement tant que ce n'est pas corrigé.
 4. **Coût fixe de chaque rendu.** Entre 0,3 et 1,3 s par action à 10 000 livres. `ContentView` et `SidebarView` refont à chaque passage :
    - `visibleBooks` (sans cache) ;

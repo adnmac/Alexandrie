@@ -18,10 +18,13 @@ final class ContentIndexer {
     private(set) var indexed: Set<String>
     /// Livres qui restent à lire.
     private(set) var remaining = 0
-    var isIndexing: Bool { remaining > 0 }
+    /// Choix des livres à indexer en cours (voir `refresh`).
+    private(set) var isRefreshing = false
+    var isIndexing: Bool { remaining > 0 || isRefreshing }
     @ObservationIgnored private let directories: AppDirectories
     @ObservationIgnored private let index: ContentIndex?
     @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private var refreshToken = 0
     /// File d'attente, le prochain livre à la fin (`popLast` : retirer le premier d'un grand tableau recopie tout).
     @ObservationIgnored private var queued: [Book] = []
 
@@ -36,11 +39,30 @@ final class ContentIndexer {
 
     /// Met l'index à jour avec la bibliothèque, un seul fichier par livre (`BookText.filesToIndex`) : les livres
     /// nouveaux sont lus en arrière-plan ; les fichiers qui ne sont plus retenus (livre disparu, autre fichier
-    /// préféré) quittent l'index et leur texte est effacé.
+    /// préféré) quittent l'index et leur texte est effacé. Le choix des fichiers et leur tri se font hors du
+    /// thread principal (près d'une seconde à 100 000 livres) ; seul le dernier appel s'applique.
     func refresh(books: [Book], identities: [Book.ID: String]) {
+        guard index != nil else { return }
+        refreshToken &+= 1
+        let token = refreshToken
+        let known = indexed.union(queued.map(\.fingerprint))
+        isRefreshing = true
+        Task { [weak self] in
+            let (current, fresh) = await Task.detached(priority: .utility) { () -> ([String: Book], [Book]) in
+                let current = Dictionary(BookText.filesToIndex(books, identities: identities).map { ($0.fingerprint, $0) },
+                                         uniquingKeysWith: { a, _ in a })
+                // Les nouveaux passent après ceux qui attendent déjà, par ordre de titre (le prochain à la fin).
+                let fresh = current.values.filter { !known.contains($0.fingerprint) }
+                return (current, fresh.indices.sorted { fresh[$0].title > fresh[$1].title }.map { fresh[$0] })
+            }.value
+            guard let self, token == self.refreshToken else { return }
+            self.apply(current: current, fresh: fresh)
+            self.isRefreshing = false
+        }
+    }
+
+    private func apply(current: [String: Book], fresh: [Book]) {
         guard let index else { return }
-        let chosen = BookText.filesToIndex(books, identities: identities)
-        let current = Dictionary(chosen.map { ($0.fingerprint, $0) }, uniquingKeysWith: { a, _ in a })
         let gone = indexed.subtracting(current.keys)
         if !gone.isEmpty {
             for fingerprint in gone {
@@ -53,9 +75,7 @@ final class ContentIndexer {
         }
         queued.removeAll { current[$0.fingerprint] == nil }
         let waiting = Set(queued.map(\.fingerprint))
-        // Les nouveaux passent après ceux qui attendent déjà, par ordre de titre.
-        queued.insert(contentsOf: current.values.filter { !indexed.contains($0.fingerprint) && !waiting.contains($0.fingerprint) }
-            .sorted { $0.title > $1.title }, at: 0)
+        queued.insert(contentsOf: fresh.filter { !indexed.contains($0.fingerprint) && !waiting.contains($0.fingerprint) }, at: 0)
         remaining = queued.count
         guard task == nil, !queued.isEmpty else { return }
         task = Task { [weak self] in await self?.work() }

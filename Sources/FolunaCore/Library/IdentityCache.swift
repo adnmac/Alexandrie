@@ -18,10 +18,21 @@ public struct IdentityCache: Sendable {
 
     public init() {}
 
+    /// Rien encore de calculé.
+    public var isEmpty: Bool { entries.isEmpty }
+
     /// Met les identités à jour pour `books` et les renvoie ; identiques à `BookGroups.identities(books)`.
     /// Cas courant (aucun titre ni auteur changé) : une recherche par fichier, rien n'est recopié.
     @discardableResult
     public mutating func update(_ books: [Book]) -> [Book.ID: String] {
+        if entries.isEmpty {
+            // Premier calcul : chaque clé de titre une seule fois, sans suivre les titres touchés (tous le sont).
+            let keys = books.map { BookGroups.titleKey($0.title) }
+            entries.reserveCapacity(books.count)
+            for (i, b) in books.enumerated() { entries[b.id] = Entry(title: b.title, authors: b.authors, titleKey: keys[i]) }
+            map = BookGroups.identities(books, titleKeys: keys)
+            return map
+        }
         var touched = Set<String>()
         for b in books {
             if let e = entries[b.id] {
@@ -46,11 +57,11 @@ public struct IdentityCache: Sendable {
         let affected = books.filter { touched.contains(entries[$0.id]!.titleKey) }
         // Beaucoup de fichiers touchés (premier calcul, gros parcours) : le calcul complet est aussi rapide.
         if affected.count * 2 > books.count {
-            map = BookGroups.identities(books)
+            map = BookGroups.identities(books, titleKeys: books.map { entries[$0.id]!.titleKey })
             return map
         }
         // Tous les fichiers des titres touchés sont recalculés : un fichier renommé quitte son ancien groupe.
-        for (id, value) in BookGroups.identities(affected) { map[id] = value }
+        for (id, value) in BookGroups.identities(affected, titleKeys: affected.map { entries[$0.id]!.titleKey }) { map[id] = value }
         return map
     }
 }

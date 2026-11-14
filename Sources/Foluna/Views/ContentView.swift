@@ -69,9 +69,14 @@ struct ContentView: View {
         withSheets
         // Texte des livres indexé en arrière-plan (S-081), après chaque analyse du dossier ou ajout.
         .onChange(of: library.isScanning, initial: true) { _, scanning in
-            if !scanning { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+            if !scanning, let ids = library.readyIdentities { contentIndexer.refresh(books: library.visibleBooks, identities: ids) }
         }
-        .onChange(of: library.visibleBooks.count) { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+        .onChange(of: library.visibleBooks.count) {
+            if let ids = library.readyIdentities { contentIndexer.refresh(books: library.visibleBooks, identities: ids) }
+        }
+        .onChange(of: library.identitiesReady) { _, ready in
+            if ready, !library.isScanning { contentIndexer.refresh(books: library.visibleBooks, identities: library.identities) }
+        }
         // Catalogue en ligne (S-088) : « Afficher dans la bibliothèque » montre le livre téléchargé.
         .onChange(of: opds.showRequest) { _, id in
             guard let id else { return }
@@ -154,7 +159,7 @@ struct ContentView: View {
             books: sidebar == .trash ? library.trashedBooks : library.visibleBooks, page: sidebar, query: search,
             scope: searchScope, sort: sort,
             withNotes: query.isEmpty || searchScope != .titles ? [] : kindle.titleKeys(withClippingsMatching: query),
-            identities: library.identities, ranks: library.sortRanks)
+            identities: library.readyIdentities ?? [:], ranks: library.sortRanks)
         if input.books.count <= LibraryListing.directLimit {
             listingMemo.task?.cancel()
             listingMemo.isComputing = false
@@ -380,7 +385,7 @@ struct ContentView: View {
         case .format(let f): books.contains { $0.format == f }
         case .author(let key): AuthorNames.groups(books).contains { $0.key == key }
         case .series(let key): SeriesNames.groups(books).contains { $0.key == key }
-        case .genre(let key): GenreNames.groups(books, identities: library.identities).contains { $0.key == key }
+        case .genre(let key): books.contains { $0.genre.map(GenreNames.key) == key }
         case .tag(let key): books.contains { TagNames.has($0, key: key) }
         case .shelf(let id): kindle.readers.contains { $0.id == id }
         case .folder(let path): library.folders.count > 1 && library.folders.contains { $0.path == path }

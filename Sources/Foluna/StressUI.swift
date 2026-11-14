@@ -26,6 +26,12 @@ enum StressUI {
         setvbuf(stdout, nil, _IOLBF, 0)
         let watchdog = MainThreadWatchdog()
         watchdog.start()
+        // Sans cela, macOS met l'app en veille (App Nap) dès que sa fenêtre est cachée par d'autres : priorité
+        // baissée et minuteries regroupées faisaient mesurer des blocages de plusieurs secondes qu'un utilisateur
+        // devant la fenêtre ne voit jamais.
+        let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .latencyCritical],
+                                                             reason: "Visite de test de l'interface")
+        defer { ProcessInfo.processInfo.endActivity(activity) }
         // Index déjà construit par `scripts/stress.sh` : on attend le parcours de vérification.
         let start = ContinuousClock.now
         try? await Task.sleep(for: .milliseconds(300))

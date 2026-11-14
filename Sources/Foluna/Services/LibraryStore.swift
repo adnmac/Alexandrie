@@ -59,27 +59,25 @@ final class LibraryStore {
 
     init() {
         covers = CoverStore(directory: directories.covers)
-        do {
-            books = try LibraryIndex.load(directories.index)
-            // Copie du jour, faite avant tout changement : on peut revenir à l'état du matin.
-            _ = try? IndexBackups.backUpToday(directories.index, to: directories.backups)
-        } catch {
-            // Index illisible : mis de côté plutôt qu'écrasé, la bibliothèque est réindexée.
-            let moved = try? LibraryIndex.quarantine(directories.index)
-            lastError = String(localized: "Index de la bibliothèque illisible (\(error.localizedDescription)). ")
-                + (moved.map { String(localized: "Il a été mis de côté sous « \($0.lastPathComponent) ».") } ?? "")
-        }
-        // Séries enregistrées avec leur numéro (« Brunetti 8 ») : nom et numéro séparés une fois pour toutes.
-        var changed = false
-        for i in books.indices {
-            let (name, index) = SeriesNames.normalized(books[i].series, books[i].seriesIndex)
-            if name != books[i].series || index != books[i].seriesIndex {
-                (books[i].series, books[i].seriesIndex) = (name, index)
-                changed = true
+        let indexBytes = (try? FileManager.default.attributesOfItem(atPath: directories.index.path)[.size] as? Int) ?? 0
+        let loadsInBackground = indexBytes > Self.backgroundLoadBytes
+        if loadsInBackground {
+            // Gros index : lu hors du thread principal (près d'une seconde à 100 000 livres, avant même que la
+            // fenêtre s'ouvre). En attendant, la page montre l'indexation, rien n'est écrit ni parcouru.
+            isLoadingIndex = true
+            isScanning = true
+            let directories = self.directories
+            Task { [weak self] in
+                let loaded = await Task.detached(priority: .userInitiated) { Self.readIndex(directories) }.value
+                guard let self else { return }
+                self.install(loaded)
+                self.isLoadingIndex = false
+                self.isScanning = false
+                await self.rescan()
             }
+        } else {
+            install(Self.readIndex(directories))
         }
-        if changed { save() }
-        if books.count > LibraryListing.directLimit { warmUpIdentities() }
         loadFolders()
         startWatching()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
@@ -100,8 +98,51 @@ final class LibraryStore {
                 }
             }
         }
+        if !loadsInBackground { Task { await rescan() } }
+    }
+
+    /// Au-delà de cette taille (environ 7 000 livres), l'index est lu en arrière-plan au lancement.
+    static let backgroundLoadBytes = 5_000_000
+    /// Lecture de l'index en cours (gros index) : `books` est encore vide, rien ne doit être enregistré.
+    private(set) var isLoadingIndex = false
+
+    private struct LoadedIndex: Sendable {
+        var books: [Book] = []
+        var changed = false
+        var error: String?
+    }
+
+    /// Lit l'index, fait la copie du jour et sépare les numéros des noms de série. Sans état : appelable
+    /// hors du thread principal.
+    nonisolated private static func readIndex(_ directories: AppDirectories) -> LoadedIndex {
+        var loaded = LoadedIndex()
+        do {
+            loaded.books = try LibraryIndex.load(directories.index)
+            // Copie du jour, faite avant tout changement : on peut revenir à l'état du matin.
+            _ = try? IndexBackups.backUpToday(directories.index, to: directories.backups)
+        } catch {
+            // Index illisible : mis de côté plutôt qu'écrasé, la bibliothèque est réindexée.
+            let moved = try? LibraryIndex.quarantine(directories.index)
+            loaded.error = String(localized: "Index de la bibliothèque illisible (\(error.localizedDescription)). ")
+                + (moved.map { String(localized: "Il a été mis de côté sous « \($0.lastPathComponent) ».") } ?? "")
+        }
+        // Séries enregistrées avec leur numéro (« Brunetti 8 ») : nom et numéro séparés une fois pour toutes.
+        for i in loaded.books.indices {
+            let (name, index) = SeriesNames.normalized(loaded.books[i].series, loaded.books[i].seriesIndex)
+            if name != loaded.books[i].series || index != loaded.books[i].seriesIndex {
+                (loaded.books[i].series, loaded.books[i].seriesIndex) = (name, index)
+                loaded.changed = true
+            }
+        }
+        return loaded
+    }
+
+    private func install(_ loaded: LoadedIndex) {
+        books = loaded.books
+        if let error = loaded.error { lastError = error }
+        if loaded.changed { save() }
+        if books.count > LibraryListing.directLimit { warmUpIdentities() }
         refreshSortRanks()
-        Task { await rescan() }
     }
 
     var hasLibrary: Bool { !folders.isEmpty || !books.isEmpty }
@@ -643,6 +684,7 @@ final class LibraryStore {
 
     /// Écrit tout de suite un enregistrement en attente (fermeture de l'app).
     func saveNow() {
+        guard !isLoadingIndex else { return }  // rien à enregistrer avant la fin de la lecture
         if let pending = saveTask {
             pending.cancel()
             saveTask = nil
@@ -653,6 +695,8 @@ final class LibraryStore {
     }
 
     private func write(sync: Bool) {
+        // Jamais pendant la lecture d'un gros index : la liste vide l'écraserait.
+        guard !isLoadingIndex else { return }
         let books = self.books
         let url = directories.index
         let work: @Sendable () -> Void = { [weak self] in

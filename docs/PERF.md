@@ -200,10 +200,13 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | Parcours sans changement (sans fenêtre) | 40 ms | 0,83 s (5,4 s avant) |
    | Ouverture de la fenêtre et parcours | 90 ms (360 ms avant) | 1,0 s (1,8 s avant) |
 
-6. **Lancement et fermeture à 100 000 livres.** C'est ce qui reste du blocage à l'ouverture.
-   - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,7 à 0,9 s, avant que la fenêtre s'ouvre).
-   - À la fermeture, `saveNow` l'écrit en 0,7 s.
-   - Piste : lire l'index en arrière-plan avant de créer la fenêtre, ou passer à un format plus rapide à décoder.
+6. **Lancement : index lu en arrière-plan.** Au-delà de 5 Mo d'index (environ 7 000 livres), `LibraryStore` lit l'index, fait la copie du jour et sépare les numéros des noms de série hors du thread principal (`readIndex`).
+   - Pendant la lecture, la page montre l'indexation et les parcours demandés attendent.
+   - `write` et `saveNow` n'écrivent rien pendant la lecture : la liste encore vide ne peut pas écraser l'index.
+   - En dessous de 5 Mo, rien ne change.
+   - Résultat : la création du store passe de 0,9 s à 2 ms à 100 000 livres. La lecture complète est vérifiée par le test de résistance (« relance sans perte »), pas par le self-test, qui utilise un petit index.
+
+   Ce qui reste à l'ouverture, à 100 000 livres : quelques blocages de 0,4 à 1 s, répartis entre le calcul des doublons masqués (`hiddenDuplicates`, environ 0,2 s), la fusion du parcours sur le thread principal (environ 0,4 s) et l'affichage de la grille. À la fermeture, `saveNow` écrit l'index en 0,7 s.
 7. **Première indexation.** Débit d'environ 800 livres/s, en série, soit un peu plus de 2 min pour 100 000 livres. C'est acceptable, et l'extraction pourrait se faire en parallèle. Pas encore mesuré : le coût des vues pendant cette indexation, fenêtre ouverte (un `append` par livre, chacun réévaluant les vues).
 
 ## Pas encore mesuré

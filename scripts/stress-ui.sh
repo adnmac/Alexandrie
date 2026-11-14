@@ -43,4 +43,4 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 rm -rf ~/Library/Saved\ Application\ State/$BUNDLE_ID.savedState
 UI_DIR="$OUT"; [[ -n "$FOLUNA_STRESS_UI_MANUAL" ]] && UI_DIR=""
-FOLUNA_STORE="$STORE" FOLUNA_HANGLOG=1 FOLUNA_STRESS_UI="$UI_DIR" "$APP/Contents/MacOS/Foluna" -gridMode YES -AppleLanguages "(fr)"
+FOLUNA_STORE="$STORE" FOLUNA_HANGLOG=1 FOLUNA_STRESS_UI="$UI_DIR" "$APP/Contents/MacOS/Foluna" -AppleLanguages "(fr)"

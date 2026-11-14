@@ -36,6 +36,9 @@ struct LibraryView: View, Equatable {
     @Environment(KindleMonitor.self) private var kindle
     let groups: [BookGroup]
     let listingID: Int
+    /// Change avec la page, la recherche ou le tri (pas avec une retouche) : la liste est alors reconstruite
+    /// plutôt que comparée ligne à ligne, ce qui prenait des secondes sur 100 000 livres quand l'ordre changeait.
+    var tableIdentity = 0
     let selection: SelectionBox
     let setSelection: (Set<String>) -> Void
     let gridMode: Bool
@@ -183,6 +186,7 @@ struct LibraryView: View, Equatable {
             }
             .width(90)
         }
+        .id(tableIdentity)
         .contextMenu(forSelectionType: String.self) { ids in
             if ids.count == 1, let id = ids.first, let b = resolve(id) { BookActions(book: b) }
         } primaryAction: { ids in

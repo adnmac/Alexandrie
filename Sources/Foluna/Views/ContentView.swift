@@ -148,6 +148,7 @@ struct ContentView: View {
                                   sort: sort, ranks: library.sortRanks.generation, clippings: kindle.clippings.count)
         guard listingMemo.key != key else { return listingMemo }
         listingMemo.key = key
+        let identity = tableIdentity
         let query = search.trimmingCharacters(in: .whitespaces)
         let input = LibraryListing(
             books: sidebar == .trash ? library.trashedBooks : library.visibleBooks, page: sidebar, query: search,
@@ -157,7 +158,7 @@ struct ContentView: View {
         if input.books.count <= LibraryListing.directLimit {
             listingMemo.task?.cancel()
             listingMemo.isComputing = false
-            listingMemo.show(input.groups())
+            listingMemo.show(input.groups(), tableIdentity: identity)
         } else {
             // Grande bibliothèque : la liste précédente reste affichée pendant le calcul.
             listingMemo.isComputing = true
@@ -166,7 +167,7 @@ struct ContentView: View {
             listingMemo.task = Task {
                 let groups = await Task.detached(priority: .userInitiated) { input.groups() }.value
                 guard !Task.isCancelled, memo.key == key else { return }
-                memo.show(groups)
+                memo.show(groups, tableIdentity: identity)
                 memo.isComputing = false
                 listingVersion &+= 1
             }
@@ -335,9 +336,19 @@ struct ContentView: View {
         return searchScope == .content ? String(localized: "Mot ou expression dans les livres") : String(localized: "Titre, auteur, série, genre…")
     }
 
+    /// Identité de la liste (`Table`) : page, recherche et tri. Une retouche la garde (défilement conservé).
+    private var tableIdentity: Int {
+        var h = Hasher()
+        h.combine(sidebar)
+        h.combine(search)
+        h.combine(searchScope)
+        h.combine(sort)
+        return h.finalize()
+    }
+
     /// Grille ou liste des livres, avec Coup d'œil (Espace) et la touche Supprimer.
     private func libraryPage(groups: [BookGroup], selected: [Book], resolve: @escaping (String) -> Book?) -> some View {
-        LibraryView(groups: groups, listingID: listingMemo.id, selection: selectionBox,
+        LibraryView(groups: groups, listingID: listingMemo.id, tableIdentity: listingMemo.tableIdentity, selection: selectionBox,
                     setSelection: { ids in
                         selectionBox.ids = ids
                         selection = ids
@@ -511,8 +522,12 @@ struct ContentView: View {
     /// Augmente à chaque nouvelle liste : `LibraryView` ne se reconstruit que quand il change.
     private(set) var id = 0
 
-    func show(_ groups: [BookGroup]) {
+    /// Identité de la liste affichée (voir `ContentView.tableIdentity`), changée avec ses livres.
+    private(set) var tableIdentity = 0
+
+    func show(_ groups: [BookGroup], tableIdentity: Int) {
         id &+= 1
+        self.tableIdentity = tableIdentity
         self.groups = groups
         index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         cachedURLs = nil

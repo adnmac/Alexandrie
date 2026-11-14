@@ -166,6 +166,24 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | Recherche tapée lettre par lettre | 81 ms | 0,27 s (0,59 s avant) |
    | Tous les livres | 123 ms | 0,27 à 0,86 s |
 
+   - **Liste (`Table`) reconstruite plutôt que comparée.** Les mesures « liste » ci-dessus étaient faussées. `scripts/stress-ui.sh` lançait l'app avec `-gridMode YES` : un argument de lancement l'emporte sur le réglage, donc la page restait en grille. Il ne le fait plus.
+     - Une fois mesurée pour de vrai à 100 000 livres, la liste bloquait 5,2 s sur Tous les livres et 44,6 s sur Récents : SwiftUI comparait les 100 000 lignes une à une quand l'ordre changeait.
+     - La liste prend maintenant une nouvelle identité (`.id`) quand la page, la recherche ou le tri changent, au moment où les nouveaux livres s'affichent. Elle est alors reconstruite.
+     - Une retouche (étiquette, favori) garde l'identité : le défilement n'est pas perdu.
+
+   | Liste, plus long blocage | 10 000 livres | 100 000 livres |
+   | --- | ---: | ---: |
+   | Tous les livres | 41 ms | 0,21 s (5,2 s avant) |
+   | Récents | 110 ms | 0,18 s (44,6 s avant) |
+   | Petites pages | moins de 115 ms | moins de 210 ms |
+
+   - **Vérifié dans l'app avec de vrais clics** (contrôle de l'ordinateur, 10 000 livres) :
+     - grille : clic sur une carte (cadre et fiche), clic dans le vide (tout désélectionné) ;
+     - liste : clic, ⌘-clic et ⇧-clic ;
+     - même sélection après un passage de la liste à la grille.
+
+     Pas vérifié : ⌘-clic et ⇧-clic dans la grille. L'outil relâche la touche tout de suite, alors que la grille lit les touches quand le clic simple est confirmé, après le délai du double-clic (`NSEvent.modifierFlags` dans `onTapGesture`, comportement d'avant ces changements). À essayer à la main : relâcher ⌘ très vite pourrait faire perdre la touche.
+
    Ce qui reste à 100 000 livres :
    - afficher une nouvelle liste de toute la bibliothèque coûte encore 0,3 à 0,9 s, le temps que SwiftUI prépare 100 000 éléments ;
    - ouvrir une fiche coûte 0,4 s.

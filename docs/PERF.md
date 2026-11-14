@@ -221,7 +221,7 @@ Interface, 10 000 livres (`interface-10500.md`) :
 
    Sans fenêtre, la première indexation prend toujours 13 s, à environ 800 livres par seconde, en série. L'extraction pourrait se faire en parallèle.
 
-   Point ouvert : juste après une première indexation, les pages en liste, la fiche et la sélection restent plus lentes qu'avec un index déjà construit (0,6 à 1,7 s, contre moins de 150 ms). Le profil est peu exploitable : la machine est alors chargée par le travail de fond (index du contenu, rangs de tri, résumé). La cause n'est pas établie.
+   Après une première indexation, les pages restent rapides : sur trois passes de suite, en liste de 8 à 159 ms, la fiche de 235 à 271 ms, la sélection de 1 000 livres de 181 à 190 ms. Deux passes précédentes avaient mesuré 0,6 à 1,7 s, alors que la machine était chargée par d'autres mesures lancées en même temps (charge moyenne autour de 22). Une instrumentation temporaire a confirmé que la bibliothèque ne change plus pendant la visite : ni parcours, ni recalcul en boucle. Avant de comparer deux passes de `stress-ui.sh`, vérifier que rien d'autre ne tourne (`uptime`).
 
 `scripts/stress-ui.sh` fixe la présentation au lancement par le réglage du bundle de test (`FOLUNA_STRESS_UI_GRID=NO` pour la liste), plus par un argument `-gridMode`, qui empêchait de changer de présentation dans l'app.
 

@@ -207,7 +207,23 @@ Interface, 10 000 livres (`interface-10500.md`) :
    - Résultat : la création du store passe de 0,9 s à 2 ms à 100 000 livres. La lecture complète est vérifiée par le test de résistance (« relance sans perte »), pas par le self-test, qui utilise un petit index.
 
    Ce qui reste à l'ouverture, à 100 000 livres : quelques blocages de 0,4 à 1 s, répartis entre le calcul des doublons masqués (`hiddenDuplicates`, environ 0,2 s), la fusion du parcours sur le thread principal (environ 0,4 s) et l'affichage de la grille. À la fermeture, `saveNow` écrit l'index en 0,7 s.
-7. **Première indexation.** Débit d'environ 800 livres/s, en série, soit un peu plus de 2 min pour 100 000 livres. C'est acceptable, et l'extraction pourrait se faire en parallèle. Pas encore mesuré : le coût des vues pendant cette indexation, fenêtre ouverte (un `append` par livre, chacun réévaluant les vues).
+7. **Première indexation, fenêtre ouverte : corrigé.** Mesurée avec `FOLUNA_STRESS_UI_FRESH=1 scripts/stress-ui.sh 10000`, qui part d'un index vide.
+   - Avant : chaque livre extrait était ajouté seul à `books`, et chaque ajout faisait recalculer aux vues toute la bibliothèque (visibles, doublons, identités, liste, barre latérale). Avec 10 000 livres, l'indexation n'était pas finie au bout de 20 minutes, avec des blocages de plus en plus longs (jusqu'à 20 s en liste). Plus le thread principal saturait, plus l'extraction ralentissait.
+   - Maintenant : le parcours publie les livres par lots. L'intervalle vaut 0,5 s plus 0,4 ms par livre déjà indexé, 5 s au plus, et l'avancement est mis à jour toutes les 100 ms.
+   - La liste (`Table`) est reconstruite quand un lot change le nombre de lignes de plus de 200, au lieu d'être comparée ligne à ligne.
+
+   | 10 000 livres, index vide | Avant | Après |
+   | --- | ---: | ---: |
+   | Grille : durée de l'indexation | plus de 20 min | 17 s |
+   | Grille : plus long blocage pendant l'indexation | 2,5 s et plus | 0,26 s |
+   | Liste : durée de l'indexation | non finie en 15 min | 24 s |
+   | Liste : plus long blocage pendant l'indexation | jusqu'à 20 s | 0,53 s |
+
+   Sans fenêtre, la première indexation prend toujours 13 s, à environ 800 livres par seconde, en série. L'extraction pourrait se faire en parallèle.
+
+   Point ouvert : juste après une première indexation, les pages en liste, la fiche et la sélection restent plus lentes qu'avec un index déjà construit (0,6 à 1,7 s, contre moins de 150 ms). Le profil est peu exploitable : la machine est alors chargée par le travail de fond (index du contenu, rangs de tri, résumé). La cause n'est pas établie.
+
+`scripts/stress-ui.sh` fixe la présentation au lancement par le réglage du bundle de test (`FOLUNA_STRESS_UI_GRID=NO` pour la liste), plus par un argument `-gridMode`, qui empêchait de changer de présentation dans l'app.
 
 ## Pas encore mesuré
 

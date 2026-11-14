@@ -38,7 +38,9 @@ Aucun échec à aucun palier :
 | Tri par titre | 25 | 121 | 742 | 1 528 |
 | Listes de la barre latérale | 18 | 139 | 537 | 1 020 |
 | Recherche « jardin » | 8 | 38 | 167 | 327 |
-| **50 livres à la corbeille** | **2 007** | **19 131** | **101 572** | **205 695** |
+| **50 livres à la corbeille** (avant la correction) | **2 007** | **19 131** | **101 572** | **205 695** |
+| 50 livres à la corbeille (après) | 2 | 18 | 97 | 248 |
+| 50 livres restaurés (après) | 49 | 382 | 1 970 | 4 203 |
 | Enregistrement (saveNow) | 11 | 83 | 382 | 726 |
 
 | Palier | Index | Couvertures | Mémoire max |
@@ -72,10 +74,16 @@ Interface, 10 000 livres (`interface-10500.md`) :
 
 ## Points lents, du plus grave au moins grave
 
-1. **Corbeille sur une sélection.** Le temps vaut la taille de la sélection multipliée par celle de la bibliothèque, et tout se passe sur le thread principal.
-   - Cause : `BookCommands.swift:59` appelle `moveToTrash` pour chaque livre. Chaque appel modifie `books`, ce qui vide le cache des identités, et l'appel suivant les recalcule toutes.
-   - Effet : 50 livres figent l'app 19 s à 10 000 livres et 3 min 25 s à 100 000. `restoreFromTrash` souffre du même défaut.
-   - Correction : une variante qui reçoit toute la sélection et ne lit les identités qu'une fois.
+1. **Corbeille sur une sélection : corrigé.**
+   - Avant : `BookCommands.swift:59` appelait `moveToTrash` pour chaque livre. Chaque appel vidait le cache des identités, et l'appel suivant les recalculait toutes. Résultat : 50 livres figeaient l'app 19 s à 10 000 livres et 3 min 25 s à 100 000.
+   - Maintenant : `moveToTrash(_:)` et `restoreFromTrash(_:)` reçoivent toute la sélection, lisent les identités une fois et réaffectent `books` une seule fois.
+
+   | 50 livres | 10 000 | 100 000 |
+   | --- | ---: | ---: |
+   | À la corbeille | 18 ms | 0,25 s |
+   | Restaurés | 0,38 s | 4,2 s |
+
+   Le temps qui reste, surtout pour la restauration, vient du recalcul des identités après la modification précédente (point 2).
 2. **Identités recalculées après chaque modification.** `books.didSet` vide `identityMap`, et la barre latérale relit les identités (`bookCount`). Le rendu qui suit la moindre retouche (une étiquette, un favori) devrait donc coûter environ 3,5 s à 100 000 livres. Ce chiffre vient du banc d'essai, il n'a pas été mesuré dans l'interface. Pistes :
    - mettre à jour les identités seulement pour les livres modifiés ;
    - ou les calculer hors du thread principal.

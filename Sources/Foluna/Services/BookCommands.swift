@@ -56,7 +56,7 @@ extension BookCommands {
     /// Met les livres sélectionnés à la corbeille de Foluna, en une action annulable (⌘Z).
     func trash() {
         guard canTrash else { return }
-        library.undoable(String(localized: "Mettre à la corbeille")) { books.forEach(library.moveToTrash) }
+        library.undoable(String(localized: "Mettre à la corbeille")) { library.moveToTrash(books) }
         afterTrash()
     }
 }

@@ -148,22 +148,35 @@ final class LibraryStore {
     var trashedBooks: [Book] { books.filter { $0.trashedAt != nil } }
 
     /// Met le livre entier à la corbeille (tous ses fichiers, copies masquées comprises) ; rien ne bouge sur le disque.
-    func moveToTrash(_ book: Book) {
-        // Identités lues une fois : chaque modification de `books` invalide leur cache.
-        let ids = identities, key = identity(of: book), now = Date()
-        for i in books.indices where books[i].trashedAt == nil && ids[books[i].id] == key {
-            books[i].trashedAt = now
-            books[i].pendingSendAt = nil
-            books[i].pendingFor = nil
+    func moveToTrash(_ book: Book) { moveToTrash([book]) }
+
+    /// Met plusieurs livres à la corbeille en un seul passage : les identités sont lues une fois
+    /// et `books` n'est réaffecté qu'une fois (chaque modification invalide leur cache, à recalculer
+    /// sur toute la bibliothèque).
+    func moveToTrash(_ selection: [Book]) {
+        let ids = identities, now = Date()
+        let keys = Set(selection.map { ids[$0.id] ?? BookGroups.key($0) })
+        var copy = books
+        for i in copy.indices where copy[i].trashedAt == nil && keys.contains(ids[copy[i].id] ?? BookGroups.key(copy[i])) {
+            copy[i].trashedAt = now
+            copy[i].pendingSendAt = nil
+            copy[i].pendingFor = nil
         }
+        books = copy
         save()
     }
 
-    func restoreFromTrash(_ book: Book) {
-        let ids = identities, key = identity(of: book)
-        for i in books.indices where books[i].trashedAt != nil && ids[books[i].id] == key {
-            books[i].trashedAt = nil
+    func restoreFromTrash(_ book: Book) { restoreFromTrash([book]) }
+
+    /// Restaure plusieurs livres en un seul passage (voir `moveToTrash(_:)`).
+    func restoreFromTrash(_ selection: [Book]) {
+        let ids = identities
+        let keys = Set(selection.map { ids[$0.id] ?? BookGroups.key($0) })
+        var copy = books
+        for i in copy.indices where copy[i].trashedAt != nil && keys.contains(ids[copy[i].id] ?? BookGroups.key(copy[i])) {
+            copy[i].trashedAt = nil
         }
+        books = copy
         save()
     }
 

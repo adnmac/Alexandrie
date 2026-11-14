@@ -104,6 +104,19 @@ public enum BookGroups {
         return out
     }
 
+    /// Empreinte de ce dont dépendent `identities(_:)` : chemin, titre et auteurs de chaque fichier, dans l'ordre.
+    /// Une étiquette, un favori, la corbeille ou un envoi ne la changent pas : les identités calculées restent bonnes.
+    public static func identitySignature(_ books: [Book]) -> Int {
+        var h = Hasher()
+        h.combine(books.count)
+        for b in books {
+            h.combine(b.path)
+            h.combine(b.title)
+            h.combine(b.authors)
+        }
+        return h.finalize()
+    }
+
     /// Deux groupes d'un même titre sont le même livre : un auteur de l'un est contenu dans un auteur de l'autre,
     /// ou un fichier de chacun est rangé dans le même dossier de livre (« Titre (528) », à la Calibre ; un dossier
     /// thématique comme « Poutine » peut réunir plusieurs livres de même titre).

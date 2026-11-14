@@ -173,6 +173,13 @@ struct StressTest {
         await step("étiqueter 1 000 livres (annulable)") {
             store.undoable("Stress") { store.addTag("Stress", to: selection) }
         }
+        // Ce que paie le rendu qui suit une retouche : identités reprises (étiquette) ou recalculées (titre).
+        await step("identités après une étiquette") { _ = store.identities }
+        if var retitled = store.visibleBooks.first {
+            retitled.title += " (corrigé)"
+            store.update(retitled)
+            await step("identités après un titre corrigé") { _ = store.identities }
+        }
         // Comme « Mettre à la corbeille » sur une sélection (BookCommands) : un seul appel pour la sélection.
         let victims = Array(store.visibleBooks.prefix(50))
         await step("50 livres à la corbeille", note: "sélection en un appel, comme BookCommands") {

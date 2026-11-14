@@ -80,13 +80,23 @@ Interface, 10 000 livres (`interface-10500.md`) :
 
    | 50 livres | 10 000 | 100 000 |
    | --- | ---: | ---: |
-   | À la corbeille | 18 ms | 0,25 s |
-   | Restaurés | 0,38 s | 4,2 s |
+   | À la corbeille | 20 ms | 0,20 s |
+   | Restaurés | 21 ms | 0,17 s |
 
-   Le temps qui reste, surtout pour la restauration, vient du recalcul des identités après la modification précédente (point 2).
-2. **Identités recalculées après chaque modification.** `books.didSet` vide `identityMap`, et la barre latérale relit les identités (`bookCount`). Le rendu qui suit la moindre retouche (une étiquette, un favori) devrait donc coûter environ 3,5 s à 100 000 livres. Ce chiffre vient du banc d'essai, il n'a pas été mesuré dans l'interface. Pistes :
-   - mettre à jour les identités seulement pour les livres modifiés ;
-   - ou les calculer hors du thread principal.
+   Avant la correction du point 2, il fallait encore 4,2 s pour restaurer à 100 000 livres : les identités étaient recalculées après la mise à la corbeille.
+2. **Identités recalculées après chaque modification : corrigé en partie.**
+   - Avant : `books.didSet` vidait `identityMap`, et la barre latérale relit les identités (`bookCount`). Le rendu qui suivait n'importe quelle retouche refaisait donc tout le calcul.
+   - Maintenant : `LibraryStore.identities` garde le dernier résultat avec une empreinte des chemins, des titres et des auteurs (`BookGroups.identitySignature`). Les identités ne dépendent que de ces trois champs, donc une étiquette, un favori, la corbeille ou un envoi ne coûtent plus que le calcul de l'empreinte.
+
+   | 100 000 livres | Durée |
+   | --- | ---: |
+   | Identités après une étiquette (avant la correction) | 3,5 à 4,3 s |
+   | Identités après une étiquette (après) | 0,16 s |
+   | Identités après un titre ou un auteur corrigé | 4,3 s, inchangé |
+
+   Il reste deux pistes :
+   - recalculer seulement le groupe de titres touché (`identities` traite chaque titre à part) ;
+   - ou faire le calcul hors du thread principal.
 3. **Même titre, auteurs différents.** `BookGroups.identities` est en O(k³) (`BookGroups.swift:79-89`). Quelques centaines de « Sans titre », « Mémoires » ou « Poèmes » suffisent à figer l'app. Le banc d'essai `sameTitle` échoue volontairement tant que ce n'est pas corrigé.
 4. **Coût fixe de chaque rendu.** Entre 0,3 et 1,3 s par action à 10 000 livres. `ContentView` et `SidebarView` refont à chaque passage :
    - `visibleBooks` (sans cache) ;

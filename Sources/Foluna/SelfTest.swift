@@ -117,6 +117,14 @@ struct SelfTest {
               && library.trashedBooks.contains { $0.id == edited.id })
         library.restoreFromTrash(edited)
         check("restauration depuis la corbeille", library.visibleBooks.contains { $0.id == edited.id })
+        // Sélection entière en un appel (menu « Mettre à la corbeille »), puis restaurée de même.
+        let everything = library.visibleBooks
+        library.moveToTrash(everything)
+        check("sélection mise à la corbeille", library.visibleBooks.isEmpty
+              && Set(library.trashedBooks.map(\.id)).isSuperset(of: everything.map(\.id)), "\(library.visibleBooks.count) visibles")
+        library.restoreFromTrash(library.trashedBooks)
+        check("sélection restaurée", library.trashedBooks.isEmpty
+              && Set(library.visibleBooks.map(\.id)) == Set(everything.map(\.id)), "\(library.trashedBooks.count) dans la corbeille")
         check("fichiers source intacts", sources.map { try? Data(contentsOf: $0) } == originals
               && sources.allSatisfy { fm.fileExists(atPath: $0.path) })
 

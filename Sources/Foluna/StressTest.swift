@@ -173,13 +173,13 @@ struct StressTest {
         await step("étiqueter 1 000 livres (annulable)") {
             store.undoable("Stress") { store.addTag("Stress", to: selection) }
         }
-        // Comme « Mettre à la corbeille » sur une sélection (BookCommands) : un appel par livre.
+        // Comme « Mettre à la corbeille » sur une sélection (BookCommands) : un seul appel pour la sélection.
         let victims = Array(store.visibleBooks.prefix(50))
-        await step("50 livres à la corbeille", note: "un appel par livre, comme BookCommands") {
-            store.undoable("Stress") { victims.forEach(store.moveToTrash) }
+        await step("50 livres à la corbeille", note: "sélection en un appel, comme BookCommands") {
+            store.undoable("Stress") { store.moveToTrash(victims) }
         }
         check("corbeille remplie", store.trashedBooks.count >= 50, "\(store.trashedBooks.count) fichiers")
-        await step("50 livres restaurés") { for b in victims { store.restoreFromTrash(b) } }
+        await step("50 livres restaurés") { store.restoreFromTrash(victims) }
         check("corbeille vide", store.trashedBooks.isEmpty, "\(store.trashedBooks.count) fichiers")
         await step("enregistrement (saveNow)") { store.saveNow() }
 

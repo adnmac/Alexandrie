@@ -9,7 +9,11 @@ final class LibraryStore {
     let directories = AppDirectories()
     let covers: CoverStore
     private(set) var books: [Book] = [] {
-        didSet { positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil }
+        didSet {
+            positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil
+            visibleCache = nil; summaryCache = nil
+            generation &+= 1
+        }
     }
     /// Dossiers de livres, dans l'ordre d'ajout (voir `LibraryFolders`).
     private(set) var folders: [LibraryFolders.Entry] = []
@@ -29,6 +33,10 @@ final class LibraryStore {
     @ObservationIgnored private var publisherList: [String]?
     @ObservationIgnored private var duplicateIDs: Set<Book.ID>?
     @ObservationIgnored private var identityMap: [Book.ID: String]?
+    @ObservationIgnored private var visibleCache: [Book]?
+    @ObservationIgnored private var summaryCache: LibrarySummary?
+    /// Augmente à chaque modification de `books` : les vues s'en servent pour garder leurs listes calculées.
+    @ObservationIgnored private(set) var generation = 0
     /// Identités tenues à jour titre par titre (voir `identities`).
     @ObservationIgnored private var identityCache = IdentityCache()
     @ObservationIgnored private var saveTask: Task<Void, Never>?
@@ -91,6 +99,7 @@ final class LibraryStore {
         get { access(keyPath: \.showDuplicates); return UserDefaults.standard.bool(forKey: Self.showDuplicatesKey) }
         set {
             lastShowDuplicates = newValue
+            visibleCache = nil; summaryCache = nil; generation &+= 1
             withMutation(keyPath: \.showDuplicates) { UserDefaults.standard.set(newValue, forKey: Self.showDuplicatesKey) }
         }
     }
@@ -103,6 +112,7 @@ final class LibraryStore {
         let value = UserDefaults.standard.bool(forKey: Self.showDuplicatesKey)
         guard value != lastShowDuplicates else { return }
         lastShowDuplicates = value
+        visibleCache = nil; summaryCache = nil; generation &+= 1
         withMutation(keyPath: \.showDuplicates) {}
     }
 
@@ -117,6 +127,7 @@ final class LibraryStore {
     /// Toute modification de `books` vide `identityMap` ; `identityCache` ne recalcule ensuite que les titres
     /// touchés (aucun pour une étiquette, un favori ou la corbeille ; l'ancien et le nouveau pour un titre corrigé).
     var identities: [Book.ID: String] {
+        let books = self.books  // lu d'abord : une vue qui lit les identités suit aussi les changements de livres
         if let identityMap { return identityMap }
         let map = identityCache.update(books)
         identityMap = map
@@ -142,9 +153,24 @@ final class LibraryStore {
 
     /// Livres affichés, comptés et vérifiés en ligne. L'envoi et la reconnaissance des livres
     /// de la liseuse passent, eux, par tous les fichiers.
+    /// Gardés jusqu'à la prochaine modification : la barre latérale et la liste les relisent à chaque rendu.
     var visibleBooks: [Book] {
-        let hidden = showDuplicates ? [] : hiddenDuplicates
-        return books.filter { $0.trashedAt == nil && !hidden.contains($0.id) }
+        let show = showDuplicates, books = self.books
+        if let visibleCache { return visibleCache }
+        let hidden = show ? [] : hiddenDuplicates
+        let list = books.filter { $0.trashedAt == nil && !hidden.contains($0.id) }
+        visibleCache = list
+        return list
+    }
+
+    /// Compteurs et listes de la barre latérale, calculés une fois par modification de la bibliothèque
+    /// (voir `LibrarySummary`).
+    var summary: LibrarySummary {
+        let visible = visibleBooks, folders = self.folders.map(\.path)
+        if let summaryCache, summaryCache.folderPaths == folders { return summaryCache }
+        let s = LibrarySummary(visible: visible, all: books, identities: identities, folders: folders)
+        summaryCache = s
+        return s
     }
 
     // MARK: - Corbeille de Foluna
@@ -418,7 +444,7 @@ final class LibraryStore {
         return UserDefaults.standard.object(forKey: "catalogAutoCheck") != nil
     }
 
-    var pendingSuggestionCount: Int { visibleBooks.filter { !$0.catalogSuggestions.isEmpty }.count }
+    var pendingSuggestionCount: Int { summary.toReview }
 
     func checkCatalog(_ ids: [Book.ID]) {
         let fresh = ids.filter { !catalogQueue.contains($0) && catalogChecking != $0 }
@@ -713,10 +739,7 @@ final class LibraryStore {
     }
 
     /// Nombre de livres (et non de fichiers) d'une étagère.
-    func shelfCount(_ reader: Reader.ID) -> Int {
-        let ids = identities
-        return Set(shelfBooks(reader).map { ids[$0.id] ?? BookGroups.key($0) }).count
-    }
+    func shelfCount(_ reader: Reader.ID) -> Int { summary.shelves[reader] ?? 0 }
 
     /// Une étagère concerne le livre entier : tous ses fichiers, copies masquées comprises.
     func addToShelf(_ books: [Book], reader: Reader.ID) {

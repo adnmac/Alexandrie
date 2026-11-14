@@ -424,6 +424,7 @@ struct SelfTest {
 
         // Livre retiré de la bibliothèque : il quitte l'index ; remis, il y revient.
         indexer.refresh(books: books.filter { $0.id != pdf.id }, identities: library.identities)
+        await indexer.waitUntilIdle()  // le choix des livres se fait en arrière-plan
         let gone = await indexer.search("bateliers", in: books)
         check("livre retiré : hors de l'index, texte effacé", !indexer.indexed.contains(pdf.fingerprint) && gone.isEmpty
               && !FileManager.default.fileExists(atPath: BookText.url(of: pdf.fingerprint, in: directories).path))

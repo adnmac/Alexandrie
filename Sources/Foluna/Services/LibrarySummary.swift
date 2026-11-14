@@ -5,7 +5,7 @@ import Foundation
 /// et listes des séries, genres, étiquettes, auteurs, formats. Calculé en un passage par `LibraryStore.summary`,
 /// gardé jusqu'à la modification suivante : sans lui, chaque changement de page refaisait tout (plus d'une
 /// seconde à 100 000 livres).
-struct LibrarySummary {
+struct LibrarySummary: Sendable {
     var all = 0, favorites = 0, sent = 0, trash = 0, pending = 0, toReview = 0
     var formats: [(format: BookFormat, count: Int)] = []
     var series: [SeriesNames.Group] = []
@@ -19,6 +19,12 @@ struct LibrarySummary {
     /// Livres par dossier de livres (chemin), quand il y en a plusieurs.
     var folderCounts: [String: Int] = [:]
     let folderPaths: [String]
+
+    /// En attendant les identités (premier calcul en arrière-plan) : le nombre de fichiers, rien d'autre.
+    init(waitingFor visible: [Book], folders: [String]) {
+        folderPaths = folders
+        all = visible.count
+    }
 
     init(visible: [Book], all files: [Book], identities: [Book.ID: String], folders: [String]) {
         folderPaths = folders

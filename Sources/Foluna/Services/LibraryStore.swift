@@ -44,6 +44,13 @@ final class LibraryStore {
     @ObservationIgnored private var rankTask: Task<Void, Never>?
     /// Identités tenues à jour titre par titre (voir `identities`).
     @ObservationIgnored private var identityCache = IdentityCache()
+    /// Augmente quand un résumé calculé en arrière-plan arrive (voir `summary`).
+    private(set) var summaryVersion = 0
+    @ObservationIgnored private var summaryTask: Task<Void, Never>?
+    /// Dernier résumé calculé, affiché pendant le calcul du suivant.
+    @ObservationIgnored private var lastSummary: LibrarySummary?
+    /// Faux pendant le premier calcul des identités en arrière-plan (grande bibliothèque, voir `warmUpIdentities`).
+    private(set) var identitiesReady = true
     @ObservationIgnored private var saveTask: Task<Void, Never>?
     /// File série : les écritures de l'index se font dans l'ordre, hors du thread principal.
     @ObservationIgnored private let writeQueue = DispatchQueue(label: "foluna.index", qos: .utility)
@@ -72,6 +79,7 @@ final class LibraryStore {
             }
         }
         if changed { save() }
+        if books.count > LibraryListing.directLimit { warmUpIdentities() }
         loadFolders()
         startWatching()
         NotificationCenter.default.addObserver(forName: UserDefaults.didChangeNotification, object: nil,
@@ -130,6 +138,31 @@ final class LibraryStore {
 
     /// Identité de chaque fichier (voir `BookGroups.identities`) : réunit les fichiers d'un même livre
     /// même quand leurs auteurs sont écrits différemment ou manquent.
+    /// Identités pour l'affichage, sans attendre : nil tant que le premier calcul tourne en arrière-plan.
+    /// Les vues font alors sans (doublons pas encore masqués, barre latérale en attente) ; les actions
+    /// passent par `identities`, toujours exactes.
+    var readyIdentities: [Book.ID: String]? { identitiesReady ? identities : nil }
+
+    /// Premier calcul des identités hors du thread principal : plusieurs secondes à 100 000 livres, qui
+    /// bloquaient l'ouverture de la fenêtre. Le résultat est ensuite tenu à jour titre par titre.
+    private func warmUpIdentities() {
+        identitiesReady = false
+        let books = self.books
+        Task { [weak self] in
+            let cache = await Task.detached(priority: .userInitiated) { () -> IdentityCache in
+                var cache = IdentityCache()
+                cache.update(books)
+                return cache
+            }.value
+            guard let self else { return }
+            // Une action a pu forcer le calcul entre-temps : il est déjà là et à jour.
+            if self.identityCache.isEmpty { self.identityCache = cache }
+            self.identityMap = nil; self.duplicateIDs = nil; self.visibleCache = nil; self.summaryCache = nil
+            self.generation &+= 1
+            self.identitiesReady = true
+        }
+    }
+
     /// Toute modification de `books` vide `identityMap` ; `identityCache` ne recalcule ensuite que les titres
     /// touchés (aucun pour une étiquette, un favori ou la corbeille ; l'ancien et le nouveau pour un titre corrigé).
     var identities: [Book.ID: String] {
@@ -151,6 +184,7 @@ final class LibraryStore {
     /// Fichiers masqués : même livre, même format qu'un fichier gardé (voir `BookGroups.duplicates`).
     var hiddenDuplicates: Set<Book.ID> {
         let books = self.books
+        guard identitiesReady else { return [] }  // premier calcul en cours : rien de masqué pour l'instant
         if duplicateIDs == nil {
             duplicateIDs = BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: identities)
         }
@@ -171,12 +205,35 @@ final class LibraryStore {
 
     /// Compteurs et listes de la barre latérale, calculés une fois par modification de la bibliothèque
     /// (voir `LibrarySummary`).
+    /// Au-delà de 5 000 livres, il est calculé en arrière-plan (près d'une seconde à 100 000 livres, refait à
+    /// chaque modification) : le précédent reste affiché jusqu'à l'arrivée du nouveau.
     var summary: LibrarySummary {
         let visible = visibleBooks, folders = self.folders.map(\.path)
+        _ = summaryVersion
         if let summaryCache, summaryCache.folderPaths == folders { return summaryCache }
-        let s = LibrarySummary(visible: visible, all: books, identities: identities, folders: folders)
-        summaryCache = s
-        return s
+        let waiting = lastSummary.flatMap { $0.folderPaths == folders ? $0 : nil }
+            ?? LibrarySummary(waitingFor: visible, folders: folders)
+        guard identitiesReady else { return waiting }
+        if visible.count <= LibraryListing.directLimit {
+            let s = LibrarySummary(visible: visible, all: books, identities: identities, folders: folders)
+            summaryCache = s
+            lastSummary = s
+            return s
+        }
+        if summaryTask == nil {
+            let books = self.books, ids = identities, generation = self.generation
+            summaryTask = Task { [weak self] in
+                let s = await Task.detached(priority: .userInitiated) {
+                    LibrarySummary(visible: visible, all: books, identities: ids, folders: folders)
+                }.value
+                guard let self else { return }
+                self.summaryTask = nil
+                self.lastSummary = s
+                if self.generation == generation { self.summaryCache = s }
+                self.summaryVersion &+= 1
+            }
+        }
+        return waiting
     }
 
     // MARK: - Tri (hors du thread principal)

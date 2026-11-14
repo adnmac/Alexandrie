@@ -75,6 +75,19 @@ struct StressTests {
         #expect(duplicates < Self.limit(n, perThousand: 50))
     }
 
+    /// Ce que paie `LibraryStore.identities` : premier calcul au lancement, puis après une étiquette ou un titre.
+    @Test(arguments: sizes) func identityCache(_ n: Int) {
+        var books = Self.library(n)
+        var cache = IdentityCache()
+        let (first, d) = Self.measure("identityCache.first", n: n) { cache.update(books) }
+        #expect(first.count == n)
+        books[n / 2].userTags = ["Pile"]
+        Self.measure("identityCache.afterTag", n: n) { cache.update(books) }
+        books[n / 2].title += " (corrigé)"
+        Self.measure("identityCache.afterTitle", n: n) { cache.update(books) }
+        #expect(d < Self.limit(n, perThousand: 200))
+    }
+
     @Test(arguments: sizes) func sidebarLists(_ n: Int) {
         let books = Self.library(n)
         let ids = BookGroups.identities(books)

@@ -189,10 +189,21 @@ Interface, 10 000 livres (`interface-10500.md`) :
    - ouvrir une fiche coûte 0,4 s.
 
    Piste, si ces tailles comptent : une grille et une liste AppKit (`NSCollectionView`, `NSTableView`).
-5. **Parcours sans changement.** 11,5 s à 100 000 livres, dont un blocage de 4,7 s. Ce parcours est relancé par FSEvents à chaque changement dans les dossiers. La partie faite sur le thread principal (reconstruction de `books`, `isOffline`, `hiddenDuplicates`) est à déplacer.
-6. **Lancement et fermeture à 100 000 livres.**
-   - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,9 s, blocage de 1,9 s).
+5. **Parcours sans changement et ouverture : corrigés pour l'essentiel.** Le profil a montré que le parcours lui-même coûtait peu sur le thread principal. Le blocage venait du premier calcul des identités après le lancement (3,4 s à 100 000 livres), puis du résumé de la barre latérale et de `ContentIndexer.refresh`, refaits à chaque étape du parcours.
+   - Au-delà de 5 000 livres, `LibraryStore` lance le premier calcul des identités en arrière-plan dès le chargement de l'index (`warmUpIdentities`). Pendant ce temps, les vues lisent `readyIdentities`, qui vaut nil : les doublons ne sont pas encore masqués, et la barre latérale montre le nombre de fichiers. Les actions (corbeille, étiquettes) passent par `identities`, toujours exactes.
+   - Au-delà de 5 000 livres, le résumé de la barre latérale est calculé en arrière-plan, et le précédent reste affiché pendant le calcul.
+   - `ContentIndexer.refresh` choisit et trie les livres à indexer hors du thread principal. Seul le dernier appel s'applique.
+   - Le premier calcul d'`IdentityCache` ne calcule plus deux fois les clés de titre (8 % de gagné).
+
+   | Plus long blocage | 10 000 livres | 100 000 livres |
+   | --- | ---: | ---: |
+   | Parcours sans changement (sans fenêtre) | 40 ms | 0,83 s (5,4 s avant) |
+   | Ouverture de la fenêtre et parcours | 90 ms (360 ms avant) | 1,0 s (1,8 s avant) |
+
+6. **Lancement et fermeture à 100 000 livres.** C'est ce qui reste du blocage à l'ouverture.
+   - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,7 à 0,9 s, avant que la fenêtre s'ouvre).
    - À la fermeture, `saveNow` l'écrit en 0,7 s.
+   - Piste : lire l'index en arrière-plan avant de créer la fenêtre, ou passer à un format plus rapide à décoder.
 7. **Première indexation.** Débit d'environ 800 livres/s, en série, soit un peu plus de 2 min pour 100 000 livres. C'est acceptable, et l'extraction pourrait se faire en parallèle. Pas encore mesuré : le coût des vues pendant cette indexation, fenêtre ouverte (un `append` par livre, chacun réévaluant les vues).
 
 ## Pas encore mesuré

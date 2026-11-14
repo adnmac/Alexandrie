@@ -70,9 +70,16 @@ public enum BookGroups {
     /// (« Soljénitsyne » ⊂ « Alexandre Soljénitsyne »), quand ils sont rangés dans le même dossier, ou quand
     /// l'auteur manque (vide, « Unknown », titre recopié…) et qu'un seul auteur connu existe pour ce titre.
     /// Des livres de même titre et d'auteurs différents (« Les Enchanteurs » de Gary et d'Ellroy) restent séparés.
-    public static func identities(_ books: [Book]) -> [Book.ID: String] {
+    /// `titleKeys` : clés de titre déjà calculées, dans l'ordre de `books` (voir `IdentityCache`).
+    public static func identities(_ books: [Book], titleKeys: [String]? = nil) -> [Book.ID: String] {
         var out: [Book.ID: String] = [:]
-        let byTitle = Dictionary(grouping: books) { titleKey($0.title) }
+        out.reserveCapacity(books.count)
+        var byTitle: [String: [Book]] = [:]
+        if let titleKeys {
+            for (i, b) in books.enumerated() { byTitle[titleKeys[i], default: []].append(b) }
+        } else {
+            for b in books { byTitle[titleKey(b.title), default: []].append(b) }
+        }
         for (title, files) in byTitle {
             // Groupes stricts (même clé), réunis de proche en proche (voir `related`).
             var clusters = files.count == 1 ? [files] : components(files, title: title)

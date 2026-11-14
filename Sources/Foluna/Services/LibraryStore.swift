@@ -503,6 +503,17 @@ final class LibraryStore {
         progress = plan.changed.isEmpty ? nil : (0, plan.changed.count)
         let covers = self.covers
         var newBooks: [Book.ID] = []
+        // Livres extraits publiés par lots : chaque modification de `books` fait recalculer la bibliothèque
+        // entière aux vues (visibles, doublons, identités, liste, barre latérale). Livre par livre, une première
+        // indexation de 10 000 livres prenait plus de dix minutes, fenêtre ouverte. L'intervalle grandit avec
+        // la bibliothèque (0,5 s plus 0,4 ms par livre, 5 s au plus) : chaque lot fait refaire aux vues un travail
+        // proportionnel à la bibliothèque, et des lots trop fréquents saturaient le thread principal, ce qui
+        // ralentissait l'extraction et rapetissait les lots. L'avancement, lui, suit à peu près en continu.
+        var pending: [Book] = []
+        var lastPublish = ContinuousClock.now, lastProgress = ContinuousClock.now
+        func publishInterval() -> Duration {
+            .milliseconds(min(5000, 500 + books.count * 2 / 5))
+        }
         for (i, item) in plan.changed.enumerated() {
             let f = item.file
             let imported = f.url.path.hasPrefix(importsPath)
@@ -514,9 +525,19 @@ final class LibraryStore {
             } else if autoCheckCatalog {
                 newBooks.append(book.id)
             }
-            books.append(book)
-            progress = (i + 1, plan.changed.count)
+            pending.append(book)
+            let now = ContinuousClock.now
+            if now - lastPublish >= publishInterval() {
+                books.append(contentsOf: pending)
+                pending.removeAll(keepingCapacity: true)
+                lastPublish = now
+            }
+            if now - lastProgress >= .milliseconds(100) || i == plan.changed.count - 1 {
+                progress = (i + 1, plan.changed.count)
+                lastProgress = now
+            }
         }
+        if !pending.isEmpty { books.append(contentsOf: pending) }
         save()
         // Une copie en double d'un livre déjà connu n'est pas revérifiée en ligne.
         let duplicates = hiddenDuplicates

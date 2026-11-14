@@ -527,12 +527,17 @@ struct ContentView: View {
     /// Augmente à chaque nouvelle liste : `LibraryView` ne se reconstruit que quand il change.
     private(set) var id = 0
 
-    /// Identité de la liste affichée (voir `ContentView.tableIdentity`), changée avec ses livres.
+    /// Identité de la liste affichée (`Table`), changée avec ses livres (voir `show`).
     private(set) var tableIdentity = 0
+    private var pageIdentity = 0
 
-    func show(_ groups: [BookGroup], tableIdentity: Int) {
+    func show(_ groups: [BookGroup], tableIdentity page: Int) {
         id &+= 1
-        self.tableIdentity = tableIdentity
+        // Autre page, recherche ou tri, ou beaucoup de lignes en plus ou en moins d'un coup (lot d'une
+        // indexation) : la liste est reconstruite. La comparer ligne à ligne coûtait des secondes, et une
+        // première indexation fenêtre ouverte n'avançait presque plus. Une retouche garde le défilement.
+        if page != pageIdentity || abs(groups.count - self.groups.count) > 200 { tableIdentity &+= 1 }
+        pageIdentity = page
         self.groups = groups
         index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         cachedURLs = nil

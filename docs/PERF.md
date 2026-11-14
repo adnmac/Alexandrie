@@ -157,9 +157,20 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | Sélection de 1 000 livres | 118 ms | 0,59 s |
    | Recherche tapée lettre par lettre | 66 ms | 0,59 s |
 
-   Ce qui reste à 100 000 livres : SwiftUI redessine la grille (`LazyVGrid` de 100 000 cartes) ou la liste (`Table`) à chaque sélection et à chaque nouvelle liste, parce que `LibraryView` dépend de la sélection et de closures qui ne se comparent pas. Pistes :
-   - faire lire la sélection par chaque carte (objet observé) plutôt que par `LibraryView` ;
-   - au-delà d'une certaine taille, une grille et une liste AppKit (`NSCollectionView`, `NSTableView`).
+   - **Sélection lue par les cartes.** `SelectionBox` (objet observé) porte la sélection de la grille, et chaque carte (`SelectableBookCard`) lit seulement si elle est sélectionnée. `LibraryView` est comparable par l'identité de sa liste (`.equatable()`) : un clic ne reconstruit plus la grille ni la liste.
+
+   | Action | 10 000 livres | 100 000 livres |
+   | --- | ---: | ---: |
+   | Sélection de 1 000 livres | 70 ms | 77 ms (0,59 s avant) |
+   | Fiche d'un livre | 108 ms | 0,40 s (0,93 s avant) |
+   | Recherche tapée lettre par lettre | 81 ms | 0,27 s (0,59 s avant) |
+   | Tous les livres | 123 ms | 0,27 à 0,86 s |
+
+   Ce qui reste à 100 000 livres :
+   - afficher une nouvelle liste de toute la bibliothèque coûte encore 0,3 à 0,9 s, le temps que SwiftUI prépare 100 000 éléments ;
+   - ouvrir une fiche coûte 0,4 s.
+
+   Piste, si ces tailles comptent : une grille et une liste AppKit (`NSCollectionView`, `NSTableView`).
 5. **Parcours sans changement.** 11,5 s à 100 000 livres, dont un blocage de 4,7 s. Ce parcours est relancé par FSEvents à chaque changement dans les dossiers. La partie faite sur le thread principal (reconstruction de `books`, `isOffline`, `hiddenDuplicates`) est à déplacer.
 6. **Lancement et fermeture à 100 000 livres.**
    - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,9 s, blocage de 1,9 s).

@@ -72,7 +72,7 @@ public enum BookGroups {
     /// Des livres de même titre et d'auteurs différents (« Les Enchanteurs » de Gary et d'Ellroy) restent séparés.
     public static func identities(_ books: [Book]) -> [Book.ID: String] {
         var out: [Book.ID: String] = [:]
-        let byTitle = Dictionary(grouping: books) { Matching.key(Matching.withoutGenre($0.title)) }
+        let byTitle = Dictionary(grouping: books) { titleKey($0.title) }
         for (title, files) in byTitle {
             // Groupes stricts (même clé), puis rapprochements successifs.
             var clusters = Dictionary(grouping: files, by: key).map(\.value)
@@ -104,18 +104,9 @@ public enum BookGroups {
         return out
     }
 
-    /// Empreinte de ce dont dépendent `identities(_:)` : chemin, titre et auteurs de chaque fichier, dans l'ordre.
-    /// Une étiquette, un favori, la corbeille ou un envoi ne la changent pas : les identités calculées restent bonnes.
-    public static func identitySignature(_ books: [Book]) -> Int {
-        var h = Hasher()
-        h.combine(books.count)
-        for b in books {
-            h.combine(b.path)
-            h.combine(b.title)
-            h.combine(b.authors)
-        }
-        return h.finalize()
-    }
+    /// Clé du titre qui partage la bibliothèque pour `identities(_:)` : seuls les fichiers de même clé
+    /// peuvent être le même livre.
+    public static func titleKey(_ title: String) -> String { Matching.key(Matching.withoutGenre(title)) }
 
     /// Deux groupes d'un même titre sont le même livre : un auteur de l'un est contenu dans un auteur de l'autre,
     /// ou un fichier de chacun est rangé dans le même dossier de livre (« Titre (528) », à la Calibre ; un dossier

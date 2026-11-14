@@ -8,6 +8,43 @@ Livres inventés (`StressData`, `StressCatalog`) :
 - 1 % de fichiers tronqués ;
 - un livre sur 1 000 titré « Mémoires ».
 
+## Référence : machine au calme
+
+Série complète du 14 novembre 2026, après tous les correctifs, machine sans autre application (charge moyenne autour de 4, app de test comprise). C'est elle qu'il faut comparer aux passes suivantes.
+
+**Store réel, sans fenêtre** (`scripts/stress.sh`), durée en ms et plus long blocage entre parenthèses :
+
+| Étape | 1 000 | 10 000 | 50 000 | 100 000 |
+| --- | ---: | ---: | ---: | ---: |
+| Première indexation | 588 (0) | 3 230 (0) | 24 243 (1) | 47 828 (0) |
+| Relance : création du store | 16 (21) | 2 | 2 | 2 |
+| Parcours sans changement | 102 (0) | 1 028 (5) | 4 248 (173) | 8 403 (391) |
+| Parcours après ajout de 1 % | 252 (0) | 1 121 (0) | 4 004 (156) | 7 711 (400) |
+| Identités après une étiquette | 3 | 15 | 78 | 144 (103) |
+| Identités après un titre corrigé | 4 | 27 (56) | 146 (438) | 296 (889) |
+| 50 livres à la corbeille | 3 | 18 (32) | 103 (282) | 219 (646) |
+| Tri par titre, par rangs | 19 | 19 | 100 | 213 (197) |
+| Enregistrement (`saveNow`) | 21 | 85 (66) | 362 (332) | 722 (706) |
+
+Aucun livre perdu à aucun palier. Index : 6,8 Mo à 10 000 livres, 68 Mo à 100 000. Mémoire maximale : 124 Mo à 10 000 livres, 1 075 Mo à 100 000. Les lignes « tri par titre » et « listes de la barre latérale » de `synthese.md` mesurent l'ancien calcul direct (1,5 s et 1,1 s à 100 000 livres) : l'app n'y passe plus sur le thread principal.
+
+**Interface** (`scripts/stress-ui.sh`), plus long blocage du thread principal :
+
+| Action | 10 000 | 100 000 | 10 000, index vide |
+| --- | ---: | ---: | ---: |
+| Ouverture et parcours | 93 ms | 1 031 ms | 93 ms (indexation : 4,9 s) |
+| Tous les livres (grille) | 107 ms | 844 ms | 149 ms |
+| Autres pages (grille) | 0 à 35 ms | 0 à 32 ms | 0 à 20 ms |
+| Pages en liste | 50 à 147 ms | 57 à 171 ms | 24 à 127 ms |
+| Fiche d'un livre | 152 ms | 359 ms | 208 ms |
+| Sélection de 1 000 livres | 52 ms | 27 ms | 176 ms |
+| Recherche tapée lettre par lettre | 72 ms | 5 ms | 58 ms |
+
+À 10 000 livres, aucune action ne dépasse 250 ms. À 100 000 livres, seuls dépassent encore :
+- l'ouverture (1,0 s) ;
+- le premier affichage de « Tous les livres » en grille (0,84 s) ;
+- l'enregistrement de l'index à la fermeture (0,7 s), s'il reste une modification à écrire.
+
 ## Comment relancer
 
 ```bash
@@ -197,12 +234,7 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | À vérifier (grille) | 0,32 à 0,40 s | 0,08 à 0,10 s |
    | Tous les livres (liste) | 0,21 à 0,64 s | 0,11 à 0,15 s |
 
-   Ce qui reste à 100 000 livres :
-   - le premier affichage de « Tous les livres » après l'ouverture (environ 0,95 s, quand les identités et la liste arrivent) ;
-   - certaines pages en liste en fin de visite (0,4 à 1,2 s) ;
-   - la fiche (jusqu'à 1,9 s).
-
-   Le profil montre AppKit occupé par la hauteur automatique des lignes de `Table` (`_automaticRowHeightsUpdateVisibleRowViews`) et par les contraintes de mise en page, avec très peu de code de Foluna. Ce coût était déjà là avant l'affichage par fenêtre. Piste : une liste AppKit (`NSTableView`) à hauteur de ligne fixe.
+   Les pages en liste mesurées à 0,4 à 1,2 s et la fiche à 1,9 s pendant ce travail l'avaient été sur une machine chargée. La série de référence (machine au calme, en tête de ce document) les place à 57 à 171 ms et à 0,36 s.
 5. **Parcours sans changement et ouverture : corrigés pour l'essentiel.** Le profil a montré que le parcours lui-même coûtait peu sur le thread principal. Le blocage venait du premier calcul des identités après le lancement (3,4 s à 100 000 livres), puis du résumé de la barre latérale et de `ContentIndexer.refresh`, refaits à chaque étape du parcours.
    - Au-delà de 5 000 livres, `LibraryStore` lance le premier calcul des identités en arrière-plan dès le chargement de l'index (`warmUpIdentities`). Pendant ce temps, les vues lisent `readyIdentities`, qui vaut nil : les doublons ne sont pas encore masqués, et la barre latérale montre le nombre de fichiers. Les actions (corbeille, étiquettes) passent par `identities`, toujours exactes.
    - Au-delà de 5 000 livres, le résumé de la barre latérale est calculé en arrière-plan, et le précédent reste affiché pendant le calcul.

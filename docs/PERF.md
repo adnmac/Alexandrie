@@ -219,7 +219,14 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | Liste : durée de l'indexation | non finie en 15 min | 24 s |
    | Liste : plus long blocage pendant l'indexation | jusqu'à 20 s | 0,53 s |
 
-   Sans fenêtre, la première indexation prend toujours 13 s, à environ 800 livres par seconde, en série. L'extraction pourrait se faire en parallèle.
+   - **Extraction en parallèle.** `rescan` lit les fichiers sur un fil par cœur moins un (`withTaskGroup`). Les PDF passent un à la fois derrière un verrou, parce que PDFKit et AppKit dessinent leur vignette et ne se partagent pas entre fils.
+   - **Identités pendant un gros parcours.** Au-delà de 5 000 fichiers à lire, les vues font sans les identités pendant le parcours, et le calcul est lancé en arrière-plan à la fin (`warmUpIdentities`). Seul le dernier calcul lancé conclut. Avant, chaque lot provoquait un recalcul complet sur le thread principal (4,4 s à 100 000 livres).
+
+   | Première indexation | Avant | Après |
+   | --- | ---: | ---: |
+   | 10 000 livres, sans fenêtre | 13,1 s (800 livres/s) | 3,6 s (2 900 livres/s) |
+   | 100 000 livres, sans fenêtre | 129 à 161 s, blocage 5,5 s | 46,6 s, aucun blocage |
+   | 10 000 livres, fenêtre ouverte (grille) | 17 s | 4,9 s, blocage 44 ms |
 
    Après une première indexation, les pages restent rapides : sur trois passes de suite, en liste de 8 à 159 ms, la fiche de 235 à 271 ms, la sélection de 1 000 livres de 181 à 190 ms. Deux passes précédentes avaient mesuré 0,6 à 1,7 s, alors que la machine était chargée par d'autres mesures lancées en même temps (charge moyenne autour de 22). Une instrumentation temporaire a confirmé que la bibliothèque ne change plus pendant la visite : ni parcours, ni recalcul en boucle. Avant de comparer deux passes de `stress-ui.sh`, vérifier que rien d'autre ne tourne (`uptime`).
 

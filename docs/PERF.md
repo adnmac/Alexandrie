@@ -188,7 +188,21 @@ Interface, 10 000 livres (`interface-10500.md`) :
    - afficher une nouvelle liste de toute la bibliothèque coûte encore 0,3 à 0,9 s, le temps que SwiftUI prépare 100 000 éléments ;
    - ouvrir une fiche coûte 0,4 s.
 
-   Piste, si ces tailles comptent : une grille et une liste AppKit (`NSCollectionView`, `NSTableView`).
+   - **Affichage par fenêtre.** La grille et la liste ne reçoivent que les 2 000 premiers livres de la page, puis 2 000 de plus quand la fin devient visible en défilant (vérifié avec de vrais défilements). La sélection, Coup d'œil et le tri portent toujours sur toute la page.
+   - **Copies masquées regroupées une fois.** `hiddenCopies(of:)` filtrait toute la bibliothèque à chaque fiche ouverte (0,45 s à 100 000 livres). Les copies sont maintenant regroupées par livre une seule fois par modification.
+
+   | 100 000 livres, plus long blocage | Avant | Après |
+   | --- | ---: | ---: |
+   | Récents (grille) | 0,32 à 0,45 s | 0,06 à 0,11 s |
+   | À vérifier (grille) | 0,32 à 0,40 s | 0,08 à 0,10 s |
+   | Tous les livres (liste) | 0,21 à 0,64 s | 0,11 à 0,15 s |
+
+   Ce qui reste à 100 000 livres :
+   - le premier affichage de « Tous les livres » après l'ouverture (environ 0,95 s, quand les identités et la liste arrivent) ;
+   - certaines pages en liste en fin de visite (0,4 à 1,2 s) ;
+   - la fiche (jusqu'à 1,9 s).
+
+   Le profil montre AppKit occupé par la hauteur automatique des lignes de `Table` (`_automaticRowHeightsUpdateVisibleRowViews`) et par les contraintes de mise en page, avec très peu de code de Foluna. Ce coût était déjà là avant l'affichage par fenêtre. Piste : une liste AppKit (`NSTableView`) à hauteur de ligne fixe.
 5. **Parcours sans changement et ouverture : corrigés pour l'essentiel.** Le profil a montré que le parcours lui-même coûtait peu sur le thread principal. Le blocage venait du premier calcul des identités après le lancement (3,4 s à 100 000 livres), puis du résumé de la barre latérale et de `ContentIndexer.refresh`, refaits à chaque étape du parcours.
    - Au-delà de 5 000 livres, `LibraryStore` lance le premier calcul des identités en arrière-plan dès le chargement de l'index (`warmUpIdentities`). Pendant ce temps, les vues lisent `readyIdentities`, qui vaut nil : les doublons ne sont pas encore masqués, et la barre latérale montre le nombre de fichiers. Les actions (corbeille, étiquettes) passent par `identities`, toujours exactes.
    - Au-delà de 5 000 livres, le résumé de la barre latérale est calculé en arrière-plan, et le précédent reste affiché pendant le calcul.

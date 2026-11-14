@@ -47,9 +47,15 @@ struct LibraryView: View, Equatable {
     var isComputing = false
     /// La grille prend le focus au clic : Espace (Coup d'œil) et Supprimer lui arrivent alors.
     @FocusState private var gridFocused: Bool
+    /// Livres donnés à la grille ou à la liste : les premiers seulement, puis davantage en défilant vers la fin.
+    /// Avec 100 000 livres, SwiftUI mettait près d'une seconde à préparer toute la page, à chaque changement.
+    @State private var shown = Self.pageSize
+    static let pageSize = 2000
 
     var body: some View {
         content
+            // Autre page, recherche ou tri : on repart du début.
+            .onChange(of: tableIdentity) { shown = Self.pageSize }
             .overlay(alignment: .top) {
                 if isComputing && !groups.isEmpty {
                     ProgressView().controlSize(.small).padding(Space.md)
@@ -86,7 +92,7 @@ struct LibraryView: View, Equatable {
     private var grid: some View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 130, maximum: 170), spacing: 20)], spacing: 24) {
-                ForEach(groups) { g in
+                ForEach(groups.prefix(shown)) { g in
                     SelectableBookCard(group: g, onDevice: g.books.contains(where: kindle.isOnDevice), selection: selection)
                         // Double-clic : lire le livre (S-066) ; le simple clic reste la sélection.
                         .onTapGesture(count: 2) { if g.primary.canRead, !library.isUnavailable(g.primary) { ReaderWindows.open(g.primary.id) } }
@@ -97,6 +103,10 @@ struct LibraryView: View, Equatable {
                         .draggable(BookDragItem(payload: BookDrag.payload(dragged(g)), file: g.primary.url)) {
                             BookCard(book: g.primary, formats: g.formats, isSelected: false).frame(width: 128)
                         }
+                }
+                // Fin des livres donnés : les suivants arrivent quand elle devient visible.
+                if shown < groups.count {
+                    Color.clear.frame(height: Space.xs).onAppear { shown += Self.pageSize }
                 }
             }
             .padding(20)
@@ -131,7 +141,9 @@ struct LibraryView: View, Equatable {
     // MARK: - Liste : chevron à gauche pour déplier les fichiers d'un même livre
 
     private var table: some View {
-        Table(LibraryRow.rows(groups), children: \.children,
+        let rows = LibraryRow.rows(Array(groups.prefix(shown)))
+        let lastRow = shown < groups.count ? rows.last?.id : nil
+        return Table(rows, children: \.children,
               selection: Binding(get: { selection.ids }, set: { setSelection($0) })) {
             TableColumn("Titre") { r in
                 HStack(spacing: Space.sm) {
@@ -159,6 +171,8 @@ struct LibraryView: View, Equatable {
                     }
                 }
                 .help(r.isFile ? r.book.path : r.book.title)
+                // Dernière ligne donnée : les suivantes arrivent quand elle devient visible.
+                .onAppear { if r.id == lastRow { shown += Self.pageSize } }
             }
             TableColumn("Auteur") { r in Text(r.isFile ? "" : r.book.authorLine).lineLimit(1) }
             TableColumn("Série") { r in

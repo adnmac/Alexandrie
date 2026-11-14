@@ -11,6 +11,7 @@ final class LibraryStore {
     private(set) var books: [Book] = [] {
         didSet {
             positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil
+            hiddenByIdentity = nil
             visibleCache = nil; summaryCache = nil
             generation &+= 1
             ranksStale = true
@@ -33,6 +34,8 @@ final class LibraryStore {
     @ObservationIgnored private var titleIndex: [String: [Int]]?
     @ObservationIgnored private var publisherList: [String]?
     @ObservationIgnored private var duplicateIDs: Set<Book.ID>?
+    /// Copies masquées regroupées par livre (identité), pour la fiche (voir `hiddenCopies`).
+    @ObservationIgnored private var hiddenByIdentity: [String: [Book]]?
     @ObservationIgnored private var identityMap: [Book.ID: String]?
     @ObservationIgnored private var visibleCache: [Book]?
     @ObservationIgnored private var summaryCache: LibrarySummary?
@@ -203,6 +206,7 @@ final class LibraryStore {
             // Les livres changés depuis seront repris titre par titre au prochain accès.
             self.identityCache = cache
             self.identityMap = nil; self.duplicateIDs = nil; self.visibleCache = nil; self.summaryCache = nil
+            self.hiddenByIdentity = nil
             self.generation &+= 1
             self.identitiesReady = true
         }
@@ -374,10 +378,19 @@ final class LibraryStore {
     }
 
     /// Copies masquées d'un livre (même clé de regroupement).
+    /// Regroupées une fois par modification de la bibliothèque : filtrer tous les livres à chaque fiche ouverte
+    /// prenait près d'une demi-seconde à 100 000 livres.
     func hiddenCopies(of book: Book) -> [Book] {
         guard !showDuplicates else { return [] }
-        let hidden = hiddenDuplicates, ids = identities, key = identity(of: book)
-        return books.filter { hidden.contains($0.id) && ids[$0.id] == key }
+        let hidden = hiddenDuplicates
+        guard !hidden.isEmpty else { return [] }
+        let ids = identities
+        if hiddenByIdentity == nil {
+            var groups: [String: [Book]] = [:]
+            for b in books where hidden.contains(b.id) { groups[ids[b.id] ?? BookGroups.key(b), default: []].append(b) }
+            hiddenByIdentity = groups
+        }
+        return hiddenByIdentity?[identity(of: book)] ?? []
     }
 
     // MARK: - Dossiers de livres (S-060 à S-063)

@@ -115,7 +115,7 @@ struct BookDetailView: View {
                         MetadataFields(edits: $draft.edits)
                         LabeledContent("Étiquettes") {
                             TagTokenField(tags: tagsBinding,
-                                          suggestions: TagNames.groups(library.visibleBooks, identities: library.identities).map(\.name))
+                                          suggestions: library.summary.tags.map(\.name))
                         }
                     } header: {
                         Text("Informations")

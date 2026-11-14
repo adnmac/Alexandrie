@@ -35,6 +35,8 @@ struct ContentView: View {
     @State private var notesBook: String?
     /// Fichier montré par Coup d'œil (Espace, ou Livre > Coup d'œil).
     @State private var quickLookURL: URL?
+    /// Liste affichée, gardée d'un rendu à l'autre (voir `listing`).
+    @State private var listingMemo = ListingMemo()
 
     // La chaîne de modificateurs est coupée en trois propriétés : d'un seul tenant, le Swift de la CI
     // (macos-15) n'arrivait plus à la typer à temps.
@@ -129,9 +131,25 @@ struct ContentView: View {
                 set: { if !$0 { library.lastError = nil; kindle.lastError = nil } })
     }
 
+    /// Groupes affichés, recalculés seulement quand la bibliothèque, la page, la recherche ou le tri changent :
+    /// une sélection, une fiche ouverte ou un survol ne refiltrent ni ne retrient toute la bibliothèque.
+    private var listing: ListingMemo {
+        _ = library.visibleBooks  // la vue suit ainsi les changements de la bibliothèque
+        let key = ListingMemo.Key(generation: library.generation, page: sidebar, search: search, scope: searchScope,
+                                  sort: sort, clippings: kindle.clippings.count)
+        if listingMemo.key != key {
+            let groups = BookGroups.make(filteredBooks, identities: library.identities)
+            listingMemo.key = key
+            listingMemo.groups = groups
+            listingMemo.index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+            listingMemo.urls = groups.map(\.primary.url)
+        }
+        return listingMemo
+    }
+
     private var main: some View {
-        let groups = BookGroups.make(filteredBooks, identities: library.identities)
-        let index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        let listing = self.listing
+        let groups = listing.groups, index = listing.index
         // Un groupe sélectionné vaut pour son fichier principal (fiche, envoi à la liseuse).
         let resolve: (String) -> Book? = { id in
             BookGroups.isGroupID(id) ? index[id]?.primary : library.book(id: id)
@@ -271,12 +289,10 @@ struct ContentView: View {
         case .pending: String(localized: "En attente d'envoi")
         case .shelf(let id): kindle.readers.first { $0.id == id }?.name ?? String(localized: "Étagère")
         case .format(let f): f.label
-        case .author(let key): AuthorNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? String(localized: "Auteur")
-        case .series(let key): SeriesNames.groups(library.visibleBooks).first { $0.key == key }?.name ?? String(localized: "Série")
-        case .genre(let key):
-            GenreNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? String(localized: "Genre")
-        case .tag(let key):
-            TagNames.groups(library.visibleBooks, identities: library.identities).first { $0.key == key }?.name ?? String(localized: "Étiquette")
+        case .author(let key): library.summary.authors.first { $0.key == key }?.name ?? String(localized: "Auteur")
+        case .series(let key): library.summary.series.first { $0.key == key }?.name ?? String(localized: "Série")
+        case .genre(let key): library.summary.genres.first { $0.key == key }?.name ?? String(localized: "Genre")
+        case .tag(let key): library.summary.tags.first { $0.key == key }?.name ?? String(localized: "Étiquette")
         case .folder(let path): LibraryFolders.name(of: path)
         case .catalog(let id): opds.catalog(id: id)?.name ?? String(localized: "Catalogue")
         }
@@ -302,7 +318,7 @@ struct ContentView: View {
                 quickLookURL = quickLookURL == nil ? url : nil
                 return .handled
             }
-            .quickLookPreview($quickLookURL, in: groups.map(\.primary.url))
+            .quickLookPreview($quickLookURL, in: listingMemo.urls)
             // Touche Supprimer dans la grille ou la liste : même action que Livre > Mettre à la corbeille.
             .onDeleteCommand {
                 BookCommands(books: selected, list: sidebar, library: library, kindle: kindle,
@@ -484,4 +500,21 @@ struct ContentView: View {
             _ = provider.loadObject(ofClass: URL.self) { url, _ in continuation.resume(returning: url) }
         }
     }
+}
+
+/// Liste de livres de la fenêtre principale et ce qui la détermine (voir `ContentView.listing`).
+@MainActor final class ListingMemo {
+    struct Key: Hashable {
+        var generation: Int
+        var page: SidebarItem?
+        var search: String
+        var scope: SearchScope
+        var sort: SortOrder
+        var clippings: Int
+    }
+
+    var key: Key?
+    var groups: [BookGroup] = []
+    var index: [String: BookGroup] = [:]
+    var urls: [URL] = []
 }

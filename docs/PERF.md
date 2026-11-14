@@ -114,14 +114,26 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | 400 | 17,5 s | 22 ms |
 
    Le calcul complet sur 100 000 livres variés ne change pas (3,4 s), car il est dominé par le calcul des clés de chaque fichier. Grâce à `IdentityCache`, il n'est refait que rarement.
-4. **Coût fixe de chaque rendu.** Entre 0,3 et 1,3 s par action à 10 000 livres. `ContentView` et `SidebarView` refont à chaque passage :
-   - `visibleBooks` (sans cache) ;
-   - les groupes ;
-   - le tri ;
-   - les listes auteurs, séries, étiquettes et genres ;
-   - les compteurs.
+4. **Coût fixe de chaque rendu : corrigé pour l'essentiel.**
+   - Avant : `ContentView` et `SidebarView` refaisaient à chaque passage `visibleBooks`, les groupes, le tri, les listes auteurs, séries, étiquettes et genres, et les compteurs. Changer de page, sélectionner ou ouvrir une fiche coûtait donc entre 0,3 et 1,3 s à 10 000 livres.
+   - Maintenant :
+     - `LibraryStore` garde `visibleBooks` et un `LibrarySummary` (tous les compteurs et toutes les listes de la barre latérale, en un passage) jusqu'à la modification suivante de la bibliothèque ;
+     - `ContentView` garde la liste filtrée, triée et groupée (`ListingMemo`) tant que la bibliothèque, la page, la recherche et le tri ne changent pas ;
+     - la fiche, la sélection et le survol ne refont plus rien.
 
-   Piste : calculer ces listes une fois par changement de `books`, dans le store ou dans un `LibraryFilter` du cœur, comme le propose `architecture-review-2026-11-06.md`.
+   Interface, 10 000 livres, plus long blocage du thread principal (`scripts/stress-ui.sh 10000`) :
+
+   | Action | Avant | Après |
+   | --- | ---: | ---: |
+   | Tous les livres (grille) | 839 ms | 233 ms |
+   | Page PDF (200 livres) | 367 ms | 11 ms |
+   | Auteur | 473 ms | 24 ms |
+   | Fiche d'un livre | 1 285 ms | 193 ms |
+   | Sélection de 1 000 livres | 1 199 ms | 101 ms |
+   | Recherche tapée lettre par lettre | 925 ms | 185 ms |
+   | Blocages de plus de 250 ms, sur toute la visite | 29 | 0 |
+
+   Ce qui reste : filtrer et trier toute la bibliothèque à chaque changement de page ou à chaque lettre tapée (environ 0,2 s à 10 000 livres, et sans doute 1,5 s à 100 000, d'après le banc d'essai du tri). Pistes : trier hors du thread principal, ou garder l'ordre trié par critère.
 5. **Parcours sans changement.** 11,5 s à 100 000 livres, dont un blocage de 4,7 s. Ce parcours est relancé par FSEvents à chaque changement dans les dossiers. La partie faite sur le thread principal (reconstruction de `books`, `isOffline`, `hiddenDuplicates`) est à déplacer.
 6. **Lancement et fermeture à 100 000 livres.**
    - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,9 s, blocage de 1,9 s).

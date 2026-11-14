@@ -20,22 +20,23 @@ struct SidebarView: View {
     @AppStorage("sidebarTagsExpanded") private var tagsExpanded = true
 
     var body: some View {
+        // Compteurs et listes calculés une fois par modification de la bibliothèque, pas à chaque page ouverte.
+        let summary = library.summary
         List(selection: $selection) {
             Section("Bibliothèque") {
-                let books = library.visibleBooks
-                row(String(localized: "Tous les livres"), "books.vertical", .all, count: count(books))
-                row(String(localized: "Favoris"), "star", .favorites, count: count(books.filter(\.isFavorite)))
+                row(String(localized: "Tous les livres"), "books.vertical", .all, count: summary.all)
+                row(String(localized: "Favoris"), "star", .favorites, count: summary.favorites)
                 row(String(localized: "Ajoutés récemment"), "clock", .recent)
                 row(String(localized: "Envoyés à la liseuse"), "checkmark.circle", .sent,
-                    count: count(books.filter { $0.lastSentAt != nil }))
-                row(String(localized: "À vérifier"), "exclamationmark.bubble", .toReview, count: library.pendingSuggestionCount)
+                    count: summary.sent)
+                row(String(localized: "À vérifier"), "exclamationmark.bubble", .toReview, count: summary.toReview)
                 let notes = kindle.clippings.filter { $0.kind != .bookmark }.count
                 if notes > 0 || selection == .notes {
                     row(String(localized: "Notes et surlignages"), "highlighter", .notes, count: notes)
                         .help("Notes et surlignages importés des liseuses")
                 }
-                row(String(localized: "Corbeille"), library.trashedBooks.isEmpty ? "trash" : "trash.fill", .trash,
-                    count: count(library.trashedBooks))
+                row(String(localized: "Corbeille"), summary.trash == 0 ? "trash" : "trash.fill", .trash,
+                    count: summary.trash)
                     .help("Livres supprimés, restaurables tant que la corbeille n'est pas vidée")
             }
 
@@ -89,7 +90,7 @@ struct SidebarView: View {
                     Button("Éjecter la liseuse") { Task { await kindle.eject() } }
                         .disabled(!kindle.canEject || kindle.isBusy)
                 }
-                let pending = count(library.pendingSends)
+                let pending = summary.pending
                 if pending > 0 || selection == .pending {
                     row(String(localized: "En attente d'envoi"), "clock.arrow.circlepath", .pending, count: pending)
                         .help("Livres envoyés automatiquement dès que la liseuse sera branchée")
@@ -101,7 +102,7 @@ struct SidebarView: View {
                     ForEach(kindle.readers) { reader in
                         let connected = kindle.deviceID == reader.id
                         Label(reader.name, systemImage: connected ? "books.vertical.circle.fill" : "books.vertical.circle")
-                            .badge(library.shelfCount(reader.id))
+                            .badge(summary.shelves[reader.id] ?? 0)
                             .tag(SidebarItem.shelf(reader.id))
                             .help(connected ? String(localized: "Étagère de \(reader.name) — branchée") : String(localized: "Étagère de \(reader.name)"))
                             // Livres glissés depuis la grille : ajoutés à cette étagère.
@@ -140,7 +141,7 @@ struct SidebarView: View {
                         ForEach(library.folders, id: \.path) { folder in
                             let unavailable = library.unavailableFolders.contains(folder.path)
                             row(LibraryFolders.name(of: folder.path), unavailable ? "externaldrive.badge.xmark" : "folder",
-                                .folder(folder.path), count: count(library.books(inFolder: folder.path)))
+                                .folder(folder.path), count: summary.folderCounts[folder.path] ?? 0)
                                 .foregroundStyle(unavailable ? .secondary : .primary)
                                 .help(unavailable ? String(localized: "Indisponible : disque débranché ou dossier introuvable. Ses livres restent dans la bibliothèque et reviendront au rebranchement.")
                                       : folder.path)
@@ -149,8 +150,7 @@ struct SidebarView: View {
                 }
             }
 
-            let formats = BookFormat.allCases.map { f in (f, library.visibleBooks.filter { $0.format == f }.count) }
-                .filter { $0.1 > 0 }
+            let formats = summary.formats
             // Titres en lignes ordinaires plutôt qu'en en-têtes de section : macOS ajoute aux en-têtes
             // son propre chevron (visible au survol seulement), qui masquerait celui-ci.
             Section {
@@ -160,7 +160,7 @@ struct SidebarView: View {
                 }
             }
 
-            let series = SeriesNames.groups(library.visibleBooks)
+            let series = summary.series
             Section {
                 CollapsibleHeader(title: String(localized: "Séries"), count: series.count, isExpanded: $seriesExpanded)
                 if seriesExpanded {
@@ -171,7 +171,7 @@ struct SidebarView: View {
                 }
             }
 
-            let genres = GenreNames.groups(library.visibleBooks, identities: library.identities)
+            let genres = summary.genres
             if !genres.isEmpty {
                 Section {
                     CollapsibleHeader(title: String(localized: "Genres"), count: genres.count, isExpanded: $genresExpanded)
@@ -182,7 +182,7 @@ struct SidebarView: View {
             }
 
             // Étiquettes de l'utilisateur (S-106) ; les sujets lus dans les fichiers restent dans la recherche.
-            let tags = TagNames.groups(library.visibleBooks, identities: library.identities)
+            let tags = summary.tags
             if !tags.isEmpty {
                 Section {
                     CollapsibleHeader(title: String(localized: "Étiquettes"), count: tags.count, isExpanded: $tagsExpanded)
@@ -195,11 +195,11 @@ struct SidebarView: View {
                 }
             }
 
-            let authors = AuthorNames.groups(library.visibleBooks)
+            let authors = summary.authors
             Section {
                 CollapsibleHeader(title: String(localized: "Auteurs"), count: authors.count, isExpanded: $authorsExpanded)
                 if authorsExpanded {
-                    let perAuthor = authorCounts(library.visibleBooks)
+                    let perAuthor = summary.authorCounts
                     ForEach(authors) { a in
                         row(a.name, "person", .author(a.key), count: perAuthor[a.key] ?? a.bookCount)
                             .help(a.variants.count > 1 ? String(localized: "Graphies regroupées : ") + a.variants.joined(separator: " · ") : a.name)
@@ -208,21 +208,6 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-    }
-
-    /// Nombre de livres, pas de fichiers : les fichiers d'un même livre (EPUB, MOBI, PDF…) comptent pour un,
-    /// comme dans la grille.
-    private func count(_ list: [Book]) -> Int { library.bookCount(list) }
-
-    /// Livres de chaque auteur (clé de regroupement), chaque livre compté une fois quel que soit son nombre de fichiers.
-    private func authorCounts(_ books: [Book]) -> [String: Int] {
-        let identities = library.identities
-        var seen: [String: Set<String>] = [:]
-        for b in books {
-            let identity = identities[b.id] ?? BookGroups.key(b)
-            for key in AuthorNames.keys(of: b) { seen[key, default: []].insert(identity) }
-        }
-        return seen.mapValues(\.count)
     }
 
     /// Renommer ou supprimer une étiquette dans toute la bibliothèque (S-106), annulable.

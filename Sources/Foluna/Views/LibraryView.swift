@@ -511,7 +511,7 @@ struct TagActions: View {
 
     var body: some View {
         let current = books.compactMap { library.book(id: $0.id) }
-        let tags = TagNames.groups(library.visibleBooks, identities: library.identities)
+        let tags = library.summary.tags
         Menu("Étiquettes") {
             ForEach(tags) { tag in
                 Toggle(tag.name, isOn: Binding(

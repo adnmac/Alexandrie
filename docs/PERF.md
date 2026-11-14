@@ -182,7 +182,7 @@ Interface, 10 000 livres (`interface-10500.md`) :
      - liste : clic, ⌘-clic et ⇧-clic ;
      - même sélection après un passage de la liste à la grille.
 
-     Pas vérifié : ⌘-clic et ⇧-clic dans la grille. L'outil relâche la touche tout de suite, alors que la grille lit les touches quand le clic simple est confirmé, après le délai du double-clic (`NSEvent.modifierFlags` dans `onTapGesture`, comportement d'avant ces changements). À essayer à la main : relâcher ⌘ très vite pourrait faire perdre la touche.
+     ⌘-clic et ⇧-clic dans la grille : corrigés et vérifiés ensuite. La grille lisait les touches (`NSEvent.modifierFlags`) quand le clic simple était confirmé, après le délai du double-clic, et perdait ⌘ ou ⇧ déjà relâchée. `ClickModifiers` retient maintenant les touches au moment où le bouton s'abaisse. Vérifié avec de vrais clics : ⌘-clic ajoute puis retire un livre, ⇧-clic étend la sélection.
 
    Ce qui reste à 100 000 livres :
    - afficher une nouvelle liste de toute la bibliothèque coûte encore 0,3 à 0,9 s, le temps que SwiftUI prépare 100 000 éléments ;

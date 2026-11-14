@@ -293,5 +293,5 @@ Interface, 10 000 livres (`interface-10500.md`) :
 
 ## Pas encore mesuré
 
-- La mémoire des couvertures pendant le défilement de la grille (`NSCache` sans limite).
+- La mémoire des couvertures pendant le défilement, mesurée en partie. En faisant défiler toute la grille à 10 000 livres, la mémoire passe de 170 à 242 Mo, soit environ 0,2 Mo par couverture chargée. Le cache (`NSCache`) n'avait aucune limite : parcourir une très grande bibliothèque aurait gardé chaque couverture vue jusqu'à ce que macOS manque de mémoire. Il est maintenant limité à 400 couvertures (environ 80 Mo). Le défilement en arrière-plan de l'outil de contrôle ne charge que quelques centaines de couvertures, ce qui ne suffit pas à voir la limite en action.
 - La fluidité du défilement. Pour la voir : `FOLUNA_STRESS_UI_MANUAL=1 scripts/stress-ui.sh 10000`, puis `xctrace record --template 'Time Profiler'` pendant le défilement.

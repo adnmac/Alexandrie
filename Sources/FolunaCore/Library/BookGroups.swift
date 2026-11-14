@@ -74,20 +74,8 @@ public enum BookGroups {
         var out: [Book.ID: String] = [:]
         let byTitle = Dictionary(grouping: books) { titleKey($0.title) }
         for (title, files) in byTitle {
-            // Groupes stricts (même clé), puis rapprochements successifs.
-            var clusters = Dictionary(grouping: files, by: key).map(\.value)
-            var merged = true
-            while merged {
-                merged = false
-                search: for i in clusters.indices {
-                    for j in clusters.indices where j > i && related(clusters[i], clusters[j], title: title) {
-                        clusters[i] += clusters[j]
-                        clusters.remove(at: j)
-                        merged = true
-                        break search
-                    }
-                }
-            }
+            // Groupes stricts (même clé), réunis de proche en proche (voir `related`).
+            var clusters = files.count == 1 ? [files] : components(files, title: title)
             // Fichiers sans auteur fiable : rattachés au seul livre de ce titre qui en a un, ou réunis entre eux.
             let reliable = clusters.filter { $0.contains { hasReliableAuthor($0, title: title) } }
             let unreliable = clusters.filter { !$0.contains { hasReliableAuthor($0, title: title) } }
@@ -108,6 +96,53 @@ public enum BookGroups {
     /// peuvent être le même livre.
     public static func titleKey(_ title: String) -> String { Matching.key(Matching.withoutGenre(title)) }
 
+    /// Groupes de fichiers d'un même titre, réunis tant que deux groupes sont liés (`related`) : ce sont les
+    /// composantes connexes du graphe « même clé, même dossier de livre, auteur contenu dans l'autre ».
+    /// Calculées par union-find, en comparant les ensembles de mots d'auteur distincts une seule fois
+    /// (des centaines de « Mémoires » d'auteurs différents ne coûtent plus des secondes).
+    static func components(_ files: [Book], title: String) -> [[Book]] {
+        var parent = Array(files.indices)
+        func find(_ x: Int) -> Int {
+            var x = x
+            while parent[x] != x {
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            }
+            return x
+        }
+        func union(_ a: Int, _ b: Int) {
+            let (ra, rb) = (find(a), find(b))
+            if ra != rb { parent[rb] = ra }
+        }
+        var byKey: [String: Int] = [:], byFolder: [String: Int] = [:], byWords: [Set<String>: Int] = [:]
+        for (i, b) in files.enumerated() {
+            if let j = byKey[key(b)] { union(i, j) } else { byKey[key(b)] = i }
+            if let dir = bookFolder(b) {
+                if let j = byFolder[dir] { union(i, j) } else { byFolder[dir] = i }
+            }
+            if hasReliableAuthor(b, title: title) {
+                for words in authorWordSets(b) {
+                    if let j = byWords[words] { union(i, j) } else { byWords[words] = i }
+                }
+            }
+        }
+        // Un auteur contenu dans un autre (« Soljénitsyne » ⊂ « Alexandre Soljénitsyne ») : même livre.
+        let sets = Array(byWords)
+        for x in sets.indices {
+            for y in sets.indices where y > x && (sets[x].key.isSubset(of: sets[y].key) || sets[y].key.isSubset(of: sets[x].key)) {
+                union(sets[x].value, sets[y].value)
+            }
+        }
+        var order: [Int] = [], members: [Int: [Book]] = [:]
+        for (i, b) in files.enumerated() {
+            let root = find(i)
+            if members[root] == nil { order.append(root) }
+            members[root, default: []].append(b)
+        }
+        return order.map { members[$0]! }
+    }
+
+    /// Règle de rapprochement appliquée par `components` (gardée telle quelle comme référence des tests).
     /// Deux groupes d'un même titre sont le même livre : un auteur de l'un est contenu dans un auteur de l'autre,
     /// ou un fichier de chacun est rangé dans le même dossier de livre (« Titre (528) », à la Calibre ; un dossier
     /// thématique comme « Poutine » peut réunir plusieurs livres de même titre).

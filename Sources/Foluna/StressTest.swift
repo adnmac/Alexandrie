@@ -69,7 +69,7 @@ struct StressTest {
 
     /// Mesure une étape ; le blocage et la mémoire sont relevés pendant toute sa durée.
     @discardableResult
-    private mutating func step<T>(_ name: String, note: String = "", _ body: () async throws -> T) async rethrows -> T {
+    private mutating func step<T>(_ name: String, note: String = "", _ body: @MainActor () async throws -> T) async rethrows -> T {
         _ = watchdog.take()
         let cpu = MainThreadWatchdog.cpuTime()
         let start = ContinuousClock.now

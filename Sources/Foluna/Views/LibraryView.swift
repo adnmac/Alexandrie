@@ -22,11 +22,22 @@ struct LibraryRow: Identifiable, Hashable {
     }
 }
 
-struct LibraryView: View {
+/// Sélection de la grille et de la liste, lue par chaque carte : un clic ne redessine que les cartes
+/// concernées, pas toute la grille (100 000 cartes : près d'une seconde par clic).
+@MainActor @Observable
+final class SelectionBox {
+    var ids = Set<String>()
+}
+
+/// Comparée par l'identité de sa liste (`listingID`) : quand seule la sélection change, la fenêtre se redessine
+/// sans reconstruire la grille ni la liste (`.equatable()`).
+struct LibraryView: View, Equatable {
     @Environment(LibraryStore.self) private var library
     @Environment(KindleMonitor.self) private var kindle
     let groups: [BookGroup]
-    @Binding var selection: Set<String>
+    let listingID: Int
+    let selection: SelectionBox
+    let setSelection: (Set<String>) -> Void
     let gridMode: Bool
     let resolve: (String) -> Book?
     /// Liste en cours de calcul (grande bibliothèque) : celle d'avant reste affichée, un indicateur le signale.
@@ -62,8 +73,9 @@ struct LibraryView: View {
 
     /// Livres emportés en glissant une carte : toute la sélection si la carte en fait partie.
     private func dragged(_ g: BookGroup) -> [Book] {
-        guard selection.contains(g.id), selection.count > 1 else { return [g.primary] }
-        return selection.compactMap(resolve)
+        let ids = selection.ids
+        guard ids.contains(g.id), ids.count > 1 else { return [g.primary] }
+        return ids.compactMap(resolve)
     }
 
     // MARK: - Grille : une carte par livre, avec tous ses formats
@@ -72,8 +84,7 @@ struct LibraryView: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 130, maximum: 170), spacing: 20)], spacing: 24) {
                 ForEach(groups) { g in
-                    BookCard(book: g.primary, formats: g.formats, fileCount: g.books.count,
-                             onDevice: g.books.contains(where: kindle.isOnDevice), isSelected: selection.contains(g.id))
+                    SelectableBookCard(group: g, onDevice: g.books.contains(where: kindle.isOnDevice), selection: selection)
                         // Double-clic : lire le livre (S-066) ; le simple clic reste la sélection.
                         .onTapGesture(count: 2) { if g.primary.canRead, !library.isUnavailable(g.primary) { ReaderWindows.open(g.primary.id) } }
                         .onTapGesture { select(g) }
@@ -93,29 +104,32 @@ struct LibraryView: View {
         .focusEffectDisabled()
         .focused($gridFocused)
         .onTapGesture {
-            selection.removeAll()
+            setSelection([])
             gridFocused = true
         }
     }
 
     private func select(_ g: BookGroup) {
         let flags = NSEvent.modifierFlags
+        var ids = selection.ids
         if flags.contains(.command) {
-            if selection.contains(g.id) { selection.remove(g.id) } else { selection.insert(g.id) }
-        } else if flags.contains(.shift), let anchor = selection.first,
+            if ids.contains(g.id) { ids.remove(g.id) } else { ids.insert(g.id) }
+        } else if flags.contains(.shift), let anchor = ids.first,
                   let a = groups.firstIndex(where: { $0.id == anchor }),
                   let b = groups.firstIndex(where: { $0.id == g.id }) {
-            selection = Set(groups[min(a, b)...max(a, b)].map(\.id))
+            ids = Set(groups[min(a, b)...max(a, b)].map(\.id))
         } else {
-            selection = [g.id]
+            ids = [g.id]
         }
+        setSelection(ids)
         gridFocused = true
     }
 
     // MARK: - Liste : chevron à gauche pour déplier les fichiers d'un même livre
 
     private var table: some View {
-        Table(LibraryRow.rows(groups), children: \.children, selection: $selection) {
+        Table(LibraryRow.rows(groups), children: \.children,
+              selection: Binding(get: { selection.ids }, set: { setSelection($0) })) {
             TableColumn("Titre") { r in
                 HStack(spacing: Space.sm) {
                     if r.isFile {
@@ -175,6 +189,24 @@ struct LibraryView: View {
             // Double-clic sur une ligne : lire le livre (S-066).
             if ids.count == 1, let b = ids.first.flatMap(resolve), b.canRead, !library.isUnavailable(b) { ReaderWindows.open(b.id) }
         }
+    }
+}
+
+extension LibraryView {
+    nonisolated static func == (a: LibraryView, b: LibraryView) -> Bool {
+        a.listingID == b.listingID && a.gridMode == b.gridMode && a.isComputing == b.isComputing
+    }
+}
+
+/// Carte de la grille qui lit elle-même si elle est sélectionnée (voir `SelectionBox`).
+struct SelectableBookCard: View {
+    let group: BookGroup
+    let onDevice: Bool
+    let selection: SelectionBox
+
+    var body: some View {
+        BookCard(book: group.primary, formats: group.formats, fileCount: group.books.count,
+                 onDevice: onDevice, isSelected: selection.ids.contains(group.id))
     }
 }
 

@@ -13,6 +13,8 @@ struct ContentView: View {
     @State private var sidebar: SidebarItem? = .all
     /// Identifiants de lignes : livre seul, groupe (`group:…`) ou fichier d'un groupe.
     @State private var selection = Set<String>()
+    /// Copie de `selection` lue par les cartes de la grille (voir `SelectionBox`).
+    @State private var selectionBox = SelectionBox()
     @State private var kindleSelection: KindleDocument.ID?
     @State private var search = ""
     /// Champ de recherche : fiches des livres, ou leur texte (S-082).
@@ -79,7 +81,10 @@ struct ContentView: View {
             opds.showRequest = nil
         }
         .onChange(of: sidebar) { _, page in savedPage = page?.storageKey ?? "" }
-        .onChange(of: selection) { _, ids in savedSelection = ids.sorted().joined(separator: "\n") }
+        .onChange(of: selection) { _, ids in
+            savedSelection = ids.sorted().joined(separator: "\n")
+            if selectionBox.ids != ids { selectionBox.ids = ids }
+        }
         .onAppear { ReaderWindows.open = { [openWindow] id in openWindow(id: "lecture", value: id) } }
         // Sauvegarde du jour dans le dossier choisi (jamais pendant les captures).
         .onAppear { if Snapshot.directory == nil { AppServices.shared.backups.start() } }
@@ -332,8 +337,13 @@ struct ContentView: View {
 
     /// Grille ou liste des livres, avec Coup d'œil (Espace) et la touche Supprimer.
     private func libraryPage(groups: [BookGroup], selected: [Book], resolve: @escaping (String) -> Book?) -> some View {
-        LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve,
-                    isComputing: listingMemo.isComputing)
+        LibraryView(groups: groups, listingID: listingMemo.id, selection: selectionBox,
+                    setSelection: { ids in
+                        selectionBox.ids = ids
+                        selection = ids
+                    },
+                    gridMode: gridMode, resolve: resolve, isComputing: listingMemo.isComputing)
+            .equatable()
             // Espace : Coup d'œil sur le livre sélectionné ; les flèches passent aux voisins.
             // Seulement quand la grille ou la liste a le focus : jamais dans le champ de recherche.
             .onKeyPress(.space) {
@@ -498,7 +508,11 @@ struct ContentView: View {
     var isComputing = false
     var task: Task<Void, Never>?
 
+    /// Augmente à chaque nouvelle liste : `LibraryView` ne se reconstruit que quand il change.
+    private(set) var id = 0
+
     func show(_ groups: [BookGroup]) {
+        id &+= 1
         self.groups = groups
         index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
         cachedURLs = nil

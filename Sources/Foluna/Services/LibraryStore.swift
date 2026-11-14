@@ -186,7 +186,48 @@ final class LibraryStore {
     /// Identités pour l'affichage, sans attendre : nil tant que le premier calcul tourne en arrière-plan.
     /// Les vues font alors sans (doublons pas encore masqués, barre latérale en attente) ; les actions
     /// passent par `identities`, toujours exactes.
-    var readyIdentities: [Book.ID: String]? { identitiesReady ? identities : nil }
+    /// Au-delà de 5 000 livres, une mise à jour se fait en arrière-plan (`refreshForDisplay`) et les vues gardent
+    /// en attendant les identités précédentes.
+    var readyIdentities: [Book.ID: String]? {
+        guard identitiesReady else { return nil }
+        let books = self.books
+        _ = displayVersion
+        if let identityMap { return identityMap }
+        guard books.count > LibraryListing.directLimit, let previous = lastIdentityMap else { return identities }
+        refreshForDisplay()
+        return previous
+    }
+
+    /// Augmente quand des identités et des doublons recalculés en arrière-plan arrivent (voir `refreshForDisplay`).
+    private(set) var displayVersion = 0
+    @ObservationIgnored private var displayTask: Task<Void, Never>?
+    @ObservationIgnored private var lastIdentityMap: [Book.ID: String]?
+    @ObservationIgnored private var lastDuplicateIDs: Set<Book.ID>?
+
+    /// Identités et doublons pour l'affichage, recalculés hors du thread principal après une modification
+    /// (0,3 et 0,4 s à 100 000 livres après chaque parcours). Les actions passent toujours par `identities`.
+    private func refreshForDisplay() {
+        guard displayTask == nil else { return }
+        let books = self.books, cache = identityCache, generation = self.generation
+        displayTask = Task { [weak self] in
+            let (updated, ids, duplicates) = await Task.detached(priority: .userInitiated) {
+                var cache = cache
+                let ids = cache.update(books)
+                return (cache, ids, BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: ids))
+            }.value
+            guard let self else { return }
+            self.displayTask = nil
+            if self.generation == generation {
+                self.identityCache = updated
+                self.identityMap = ids
+                self.duplicateIDs = duplicates
+            }
+            self.lastIdentityMap = ids
+            self.lastDuplicateIDs = duplicates
+            self.visibleCache = nil; self.summaryCache = nil; self.hiddenByIdentity = nil
+            self.displayVersion &+= 1
+        }
+    }
 
     /// Premier calcul des identités hors du thread principal : plusieurs secondes à 100 000 livres, qui
     /// bloquaient l'ouverture de la fenêtre. Le résultat est ensuite tenu à jour titre par titre.
@@ -194,18 +235,20 @@ final class LibraryStore {
         identitiesReady = false
         warmUpToken &+= 1
         let token = warmUpToken
-        let books = self.books
+        let books = self.books, generation = self.generation
         Task { [weak self] in
-            let cache = await Task.detached(priority: .userInitiated) { () -> IdentityCache in
+            let (cache, map) = await Task.detached(priority: .userInitiated) { () -> (IdentityCache, [Book.ID: String]) in
                 var cache = IdentityCache()
-                cache.update(books)
-                return cache
+                let map = cache.update(books)
+                return (cache, map)
             }.value
             // Un calcul plus récent est en route (ouverture puis gros parcours) : c'est lui qui conclura.
             guard let self, token == self.warmUpToken else { return }
             // Les livres changés depuis seront repris titre par titre au prochain accès.
             self.identityCache = cache
-            self.identityMap = nil; self.duplicateIDs = nil; self.visibleCache = nil; self.summaryCache = nil
+            self.lastIdentityMap = map
+            self.identityMap = self.generation == generation ? map : nil
+            self.duplicateIDs = nil; self.visibleCache = nil; self.summaryCache = nil
             self.hiddenByIdentity = nil
             self.generation &+= 1
             self.identitiesReady = true
@@ -219,6 +262,7 @@ final class LibraryStore {
         if let identityMap { return identityMap }
         let map = identityCache.update(books)
         identityMap = map
+        lastIdentityMap = map
         return map
     }
 
@@ -234,10 +278,17 @@ final class LibraryStore {
     var hiddenDuplicates: Set<Book.ID> {
         let books = self.books
         guard identitiesReady else { return [] }  // premier calcul en cours : rien de masqué pour l'instant
-        if duplicateIDs == nil {
-            duplicateIDs = BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: identities)
+        _ = displayVersion
+        if let duplicateIDs { return duplicateIDs }
+        // Grande bibliothèque : les doublons d'avant restent masqués pendant le calcul en arrière-plan.
+        if books.count > LibraryListing.directLimit, let previous = lastDuplicateIDs {
+            refreshForDisplay()
+            return previous
         }
-        return duplicateIDs ?? []
+        let duplicates = BookGroups.duplicates(books.filter { $0.trashedAt == nil }, identities: identities)
+        duplicateIDs = duplicates
+        lastDuplicateIDs = duplicates
+        return duplicates
     }
 
     /// Livres affichés, comptés et vérifiés en ligne. L'envoi et la reconnaissance des livres

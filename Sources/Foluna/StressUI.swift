@@ -30,6 +30,11 @@ enum StressUI {
         let start = ContinuousClock.now
         try? await Task.sleep(for: .milliseconds(300))
         while library.isScanning { try? await Task.sleep(for: .milliseconds(100)) }
+        // Identités et résumé prêts (calculés en arrière-plan sur une grande bibliothèque).
+        while !library.identitiesReady || library.summary.authors.isEmpty {
+            if ContinuousClock.now - start > .seconds(120) { break }
+            try? await Task.sleep(for: .milliseconds(100))
+        }
         var rows: [(String, Duration, MainThreadWatchdog.Window)] = []
         rows.append(("ouverture et parcours", ContinuousClock.now - start, watchdog.take()))
 
@@ -43,9 +48,11 @@ enum StressUI {
         }
 
         let books = library.visibleBooks
-        let tag = TagNames.groups(books).first
-        let author = AuthorNames.groups(books).first
-        let series = SeriesNames.groups(books).first
+        // Listes déjà calculées par la barre latérale : les recalculer ici bloquait la mesure de l'ouverture.
+        let summary = library.summary
+        let tag = summary.tags.first
+        let author = summary.authors.first
+        let series = summary.series.first
         var pages: [(String, SidebarItem)] = [("Tous", .all), ("Récents", .recent), ("À vérifier", .toReview),
                                               ("Format EPUB", .format(.epub)), ("Format PDF", .format(.pdf)), ("Corbeille", .trash)]
         if let tag { pages.append(("Étiquette", .tag(tag.key))) }

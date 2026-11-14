@@ -40,9 +40,22 @@ Aucun livre perdu à aucun palier. Index : 6,8 Mo à 10 000 livres, 68 Mo à 100
 | Sélection de 1 000 livres | 52 ms | 27 ms | 176 ms |
 | Recherche tapée lettre par lettre | 72 ms | 5 ms | 58 ms |
 
-À 10 000 livres, aucune action ne dépasse 250 ms. À 100 000 livres, seuls dépassent encore :
-- l'ouverture (1,0 s) ;
-- le premier affichage de « Tous les livres » en grille (0,84 s) ;
+À 10 000 livres, aucune action ne dépasse 250 ms.
+
+**Après cette série : identités et doublons d'affichage en arrière-plan.** Au-delà de 5 000 livres, après une modification (un parcours par exemple), les identités et les doublons masqués destinés à l'affichage sont recalculés hors du thread principal (`refreshForDisplay`). En attendant, les vues gardent les précédents ; les actions passent toujours par `identities`, exactes. Le premier calcul des identités garde aussi son résultat comme « identités précédentes ».
+
+`StressUI` attend maintenant que les identités et le résumé soient prêts avant de mesurer l'ouverture, et prend ses listes dans le résumé : il les recalculait sur le thread principal (0,4 s), ce qui gonflait la mesure.
+
+| 100 000 livres, plus long blocage | Série de référence | Après |
+| --- | ---: | ---: |
+| Ouverture (identités et liste comprises) | 1 031 ms | 535 ms |
+| Tous les livres (grille), juste après | 844 ms | 88 ms |
+| Pages en liste | 57 à 171 ms | 32 à 178 ms |
+| Fiche d'un livre | 359 ms | 359 ms |
+
+À 100 000 livres, seuls dépassent encore 250 ms :
+- l'ouverture (0,5 s) ;
+- la fiche (0,36 s) ;
 - l'enregistrement de l'index à la fermeture (0,7 s), s'il reste une modification à écrire.
 
 ## Comment relancer

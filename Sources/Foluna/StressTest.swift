@@ -151,6 +151,15 @@ struct StressTest {
         await step("tri par titre") {
             _ = visible.sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }.count
         }
+        // Tri de la liste : rangs calculés en arrière-plan, puis rangement par rang sur le thread principal.
+        await step("rangs de tri (arrière-plan)") {
+            store.refreshSortRanks()
+            let end = Date().addingTimeInterval(600)
+            while store.sortRanks.title.count != store.books.count && Date() < end {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+        }
+        await step("tri par titre (par rangs)") { _ = store.sorted(visible, by: .title).count }
         await step("recherche « jardin »") {
             _ = visible.filter { b in
                 [b.title, b.authorLine, b.series ?? "", b.labels.joined(separator: " ")].contains { $0.localizedStandardContains("jardin") }

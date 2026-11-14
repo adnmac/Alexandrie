@@ -136,7 +136,7 @@ struct ContentView: View {
     private var listing: ListingMemo {
         _ = library.visibleBooks  // la vue suit ainsi les changements de la bibliothèque
         let key = ListingMemo.Key(generation: library.generation, page: sidebar, search: search, scope: searchScope,
-                                  sort: sort, clippings: kindle.clippings.count)
+                                  sort: sort, ranks: library.sortRanks.generation, clippings: kindle.clippings.count)
         if listingMemo.key != key {
             let groups = BookGroups.make(filteredBooks, identities: library.identities)
             listingMemo.key = key
@@ -476,12 +476,7 @@ struct ContentView: View {
         if sidebar == .recent {
             return list.sorted { $0.addedAt > $1.addedAt }
         }
-        switch sort {
-        case .title: list.sort { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
-        case .author: list.sort { $0.authorLine.localizedStandardCompare($1.authorLine) == .orderedAscending }
-        case .added: list.sort { $0.addedAt > $1.addedAt }
-        }
-        return list
+        return library.sorted(list, by: sort)
     }
 
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
@@ -510,6 +505,7 @@ struct ContentView: View {
         var search: String
         var scope: SearchScope
         var sort: SortOrder
+        var ranks: Int
         var clippings: Int
     }
 

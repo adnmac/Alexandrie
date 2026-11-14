@@ -13,6 +13,7 @@ final class LibraryStore {
             positions = nil; titleIndex = nil; publisherList = nil; duplicateIDs = nil; identityMap = nil
             visibleCache = nil; summaryCache = nil
             generation &+= 1
+            ranksStale = true
         }
     }
     /// Dossiers de livres, dans l'ordre d'ajout (voir `LibraryFolders`).
@@ -37,6 +38,10 @@ final class LibraryStore {
     @ObservationIgnored private var summaryCache: LibrarySummary?
     /// Augmente à chaque modification de `books` : les vues s'en servent pour garder leurs listes calculées.
     @ObservationIgnored private(set) var generation = 0
+    /// Rangs de tri par titre et par auteur, calculés hors du thread principal (voir `sorted(_:by:)`).
+    private(set) var sortRanks = SortRanks()
+    @ObservationIgnored private var ranksStale = true
+    @ObservationIgnored private var rankTask: Task<Void, Never>?
     /// Identités tenues à jour titre par titre (voir `identities`).
     @ObservationIgnored private var identityCache = IdentityCache()
     @ObservationIgnored private var saveTask: Task<Void, Never>?
@@ -87,6 +92,7 @@ final class LibraryStore {
                 }
             }
         }
+        refreshSortRanks()
         Task { await rescan() }
     }
 
@@ -171,6 +177,34 @@ final class LibraryStore {
         let s = LibrarySummary(visible: visible, all: books, identities: identities, folders: folders)
         summaryCache = s
         return s
+    }
+
+    // MARK: - Tri (hors du thread principal)
+
+    /// `list` triée par titre, auteur ou date d'ajout. Titre et auteur suivent les rangs calculés en arrière-plan
+    /// (`SortRanks`) : comparer des chaînes localisées prenait 1,5 s à 100 000 livres sur le thread principal.
+    func sorted(_ list: [Book], by order: SortOrder) -> [Book] {
+        refreshSortRanks()
+        switch order {
+        case .title: return SortRanks.ordered(list, ranks: sortRanks.title, key: \.title)
+        case .author: return SortRanks.ordered(list, ranks: sortRanks.author, key: \.authorLine)
+        case .added: return list.sorted { $0.addedAt > $1.addedAt }
+        }
+    }
+
+    /// Recalcule les rangs en arrière-plan si la bibliothèque a changé depuis le dernier calcul ; un seul
+    /// calcul à la fois, le suivant repart avec les livres du moment. La liste se remet en ordre à son arrivée.
+    func refreshSortRanks() {
+        guard ranksStale, rankTask == nil else { return }
+        ranksStale = false
+        let books = self.books, next = sortRanks.generation &+ 1
+        rankTask = Task { [weak self] in
+            let ranks = await Task.detached(priority: .userInitiated) { SortRanks(books, generation: next) }.value
+            guard let self else { return }
+            self.rankTask = nil
+            self.sortRanks = ranks
+            self.refreshSortRanks()
+        }
     }
 
     // MARK: - Corbeille de Foluna

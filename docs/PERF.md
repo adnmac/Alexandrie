@@ -133,7 +133,27 @@ Interface, 10 000 livres (`interface-10500.md`) :
    | Recherche tapée lettre par lettre | 925 ms | 185 ms |
    | Blocages de plus de 250 ms, sur toute la visite | 29 | 0 |
 
-   Ce qui reste : filtrer et trier toute la bibliothèque à chaque changement de page ou à chaque lettre tapée (environ 0,2 s à 10 000 livres, et sans doute 1,5 s à 100 000, d'après le banc d'essai du tri). Pistes : trier hors du thread principal, ou garder l'ordre trié par critère.
+   - **Tri hors du thread principal.** `SortRanks` calcule en arrière-plan, après chaque modification, le rang de chaque fichier par titre et par auteur. La liste ne fait plus que ranger ses livres par rang.
+     - Les livres arrivés depuis le dernier calcul sont insérés à leur place par recherche dichotomique.
+     - Les listes de moins de 2 000 livres sont triées directement, comme avant.
+     - `SortRanksTests` vérifie que l'ordre obtenu est le même qu'avec le tri direct.
+     - Tri par titre de toute la liste : 1,5 s → 0,25 s à 100 000 livres, 126 → 21 ms à 10 000.
+     - Un livre retouché garde son ancien rang jusqu'au calcul suivant, une fraction de seconde plus tard.
+
+   Ce qui reste, mesuré dans l'interface à 100 000 livres (`scripts/stress-ui.sh 100000`) :
+
+   | Action | Blocage max |
+   | --- | ---: |
+   | Tous les livres | 0,9 à 1,1 s |
+   | Récents | 1,6 s |
+   | Fiche d'un livre | 0,8 s |
+   | Chaque lettre tapée | 0,4 à 0,9 s |
+   | Petites pages (PDF, étiquette, corbeille) | moins de 70 ms |
+
+   La page Récents est triée par date, ce qui ne coûte presque rien, et bloque quand même 1,6 s. Le coût ne vient donc plus du tri. Il vient de SwiftUI, qui compare 100 000 éléments dans la grille (`LazyVGrid`) ou la liste (`Table`, avec `LibraryRow.rows` reconstruit à chaque passage), et de `BookGroups.make`. Pistes :
+   - ne donner à la vue que la partie visible ;
+   - passer la grille et la liste à AppKit (`NSCollectionView`, `NSTableView`) au-delà d'une certaine taille ;
+   - garder `LibraryRow.rows` d'un rendu à l'autre.
 5. **Parcours sans changement.** 11,5 s à 100 000 livres, dont un blocage de 4,7 s. Ce parcours est relancé par FSEvents à chaque changement dans les dossiers. La partie faite sur le thread principal (reconstruction de `books`, `isOffline`, `hiddenDuplicates`) est à déplacer.
 6. **Lancement et fermeture à 100 000 livres.**
    - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,9 s, blocage de 1,9 s).

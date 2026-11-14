@@ -22,6 +22,7 @@ final class ContentIndexer {
     @ObservationIgnored private let directories: AppDirectories
     @ObservationIgnored private let index: ContentIndex?
     @ObservationIgnored private var task: Task<Void, Never>?
+    /// File d'attente, le prochain livre à la fin (`popLast` : retirer le premier d'un grand tableau recopie tout).
     @ObservationIgnored private var queued: [Book] = []
 
     init(directories: AppDirectories) {
@@ -52,20 +53,23 @@ final class ContentIndexer {
         }
         queued.removeAll { current[$0.fingerprint] == nil }
         let waiting = Set(queued.map(\.fingerprint))
-        queued += current.values.filter { !indexed.contains($0.fingerprint) && !waiting.contains($0.fingerprint) }
-            .sorted { $0.title < $1.title }
+        // Les nouveaux passent après ceux qui attendent déjà, par ordre de titre.
+        queued.insert(contentsOf: current.values.filter { !indexed.contains($0.fingerprint) && !waiting.contains($0.fingerprint) }
+            .sorted { $0.title > $1.title }, at: 0)
         remaining = queued.count
         guard task == nil, !queued.isEmpty else { return }
         task = Task { [weak self] in await self?.work() }
     }
 
-    /// Lit les livres un par un, à basse priorité ; l'index est écrit tous les dix livres.
+    /// Lit les livres un par un, à basse priorité. L'index et la liste des livres indexés sont écrits hors du
+    /// thread principal, tous les 50 livres ou toutes les 5 secondes (à chaque livre, l'écriture finissait par
+    /// occuper le thread principal plus que tout le reste sur une grande bibliothèque).
     private func work() async {
         guard let index else { return }
         let directories = directories
         var sinceFlush = 0
-        while !queued.isEmpty {
-            let book = queued.removeFirst()
+        var lastFlush = ContinuousClock.now
+        while let book = queued.popLast() {
             await Task.detached(priority: .background) {
                 guard BookText.canExtract(book), let text = try? BookText.extract(book) else { return }
                 try? text.save(to: BookText.url(of: book.fingerprint, in: directories))
@@ -74,10 +78,14 @@ final class ContentIndexer {
             indexed.insert(book.fingerprint)
             remaining = queued.count
             sinceFlush += 1
-            if sinceFlush >= 10 || queued.isEmpty {
-                index.flush()
-                saveState()
+            if sinceFlush >= 50 || ContinuousClock.now - lastFlush > .seconds(5) || queued.isEmpty {
+                let snapshot = indexed, state = directories.contentIndexState
+                await Task.detached(priority: .background) {
+                    index.flush()
+                    Self.write(snapshot, to: state)
+                }.value
                 sinceFlush = 0
+                lastFlush = .now
             }
         }
         task = nil
@@ -116,9 +124,10 @@ final class ContentIndexer {
         }.value
     }
 
-    private func saveState() {
-        try? FileManager.default.createDirectory(at: directories.contentIndexState.deletingLastPathComponent(),
-                                                 withIntermediateDirectories: true)
-        try? JSONEncoder().encode(indexed.sorted()).write(to: directories.contentIndexState, options: .atomic)
+    private func saveState() { Self.write(indexed, to: directories.contentIndexState) }
+
+    nonisolated private static func write(_ indexed: Set<String>, to url: URL) {
+        try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try? JSONEncoder().encode(indexed.sorted()).write(to: url, options: .atomic)
     }
 }

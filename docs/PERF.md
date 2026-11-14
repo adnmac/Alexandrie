@@ -140,20 +140,26 @@ Interface, 10 000 livres (`interface-10500.md`) :
      - Tri par titre de toute la liste : 1,5 s → 0,25 s à 100 000 livres, 126 → 21 ms à 10 000.
      - Un livre retouché garde son ancien rang jusqu'au calcul suivant, une fraction de seconde plus tard.
 
-   Ce qui reste, mesuré dans l'interface à 100 000 livres (`scripts/stress-ui.sh 100000`) :
+   - **Liste calculée hors du thread principal.** Un profil (`sample`) de la visite à 100 000 livres a montré où partait le temps, et la liste a été corrigée en conséquence :
+     - `Book.url` interrogeait le disque pour chaque livre (`URL(fileURLWithPath:)` sans `isDirectory`). Les adresses de Coup d'œil sont maintenant calculées à la demande.
+     - Les tris déplaçaient de gros `Book` : ils trient maintenant des indices.
+     - Le filtre de la recherche coûtait près d'une seconde par lettre tapée. Au-delà de 5 000 livres, la liste (filtre, recherche, tri, regroupement, voir `LibraryListing`) est calculée en arrière-plan, et la précédente reste affichée avec un indicateur. En deçà, elle est calculée directement, comme avant.
+   - **Indexation du contenu.** `ContentIndexer` occupait le thread principal plus que tout le reste : `removeFirst` sur une grande file, et l'index SearchKit écrit tous les dix livres. La file se vide maintenant par la fin. L'index et la liste des livres indexés sont écrits hors du thread principal, tous les 50 livres ou toutes les 5 secondes.
 
-   | Action | Blocage max |
-   | --- | ---: |
-   | Tous les livres | 0,9 à 1,1 s |
-   | Récents | 1,6 s |
-   | Fiche d'un livre | 0,8 s |
-   | Chaque lettre tapée | 0,4 à 0,9 s |
-   | Petites pages (PDF, étiquette, corbeille) | moins de 70 ms |
+   Plus long blocage du thread principal, après ces corrections :
 
-   La page Récents est triée par date, ce qui ne coûte presque rien, et bloque quand même 1,6 s. Le coût ne vient donc plus du tri. Il vient de SwiftUI, qui compare 100 000 éléments dans la grille (`LazyVGrid`) ou la liste (`Table`, avec `LibraryRow.rows` reconstruit à chaque passage), et de `BookGroups.make`. Pistes :
-   - ne donner à la vue que la partie visible ;
-   - passer la grille et la liste à AppKit (`NSCollectionView`, `NSTableView`) au-delà d'une certaine taille ;
-   - garder `LibraryRow.rows` d'un rendu à l'autre.
+   | Action | 10 000 livres | 100 000 livres |
+   | --- | ---: | ---: |
+   | Tous les livres | 90 ms | 0,3 s (2,1 s au premier affichage) |
+   | Récents | 3 ms | 0,34 s |
+   | Petites pages (format, étiquette, auteur, série) | moins de 25 ms | moins de 25 ms |
+   | Fiche d'un livre | 149 ms | 0,93 s |
+   | Sélection de 1 000 livres | 118 ms | 0,59 s |
+   | Recherche tapée lettre par lettre | 66 ms | 0,59 s |
+
+   Ce qui reste à 100 000 livres : SwiftUI redessine la grille (`LazyVGrid` de 100 000 cartes) ou la liste (`Table`) à chaque sélection et à chaque nouvelle liste, parce que `LibraryView` dépend de la sélection et de closures qui ne se comparent pas. Pistes :
+   - faire lire la sélection par chaque carte (objet observé) plutôt que par `LibraryView` ;
+   - au-delà d'une certaine taille, une grille et une liste AppKit (`NSCollectionView`, `NSTableView`).
 5. **Parcours sans changement.** 11,5 s à 100 000 livres, dont un blocage de 4,7 s. Ce parcours est relancé par FSEvents à chaque changement dans les dossiers. La partie faite sur le thread principal (reconstruction de `books`, `isOffline`, `hiddenDuplicates`) est à déplacer.
 6. **Lancement et fermeture à 100 000 livres.**
    - Au lancement, l'index de 68 Mo est lu sur le thread principal (0,9 s, blocage de 1,9 s).
@@ -162,6 +168,5 @@ Interface, 10 000 livres (`interface-10500.md`) :
 
 ## Pas encore mesuré
 
-- La recherche dans le contenu (`ContentIndexer` : `removeFirst` et `saveState` sur le thread principal).
 - La mémoire des couvertures pendant le défilement de la grille (`NSCache` sans limite).
 - La fluidité du défilement. Pour la voir : `FOLUNA_STRESS_UI_MANUAL=1 scripts/stress-ui.sh 10000`, puis `xctrace record --template 'Time Profiler'` pendant le défilement.

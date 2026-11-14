@@ -91,7 +91,9 @@ public struct Book: Codable, Identifiable, Hashable, Sendable {
 
     public static let currentMetadataVersion = 4
 
-    public var url: URL { URL(fileURLWithPath: path) }
+    /// Toujours un fichier : `isDirectory: false` évite d'interroger le disque (une liste de 100 000 livres
+    /// passait plus d'une seconde à le faire).
+    public var url: URL { URL(fileURLWithPath: path, isDirectory: false) }
     /// Un EPUB sous DRM ne peut pas être converti ; les formats Kindle sous DRM sont copiés tels quels.
     public var canSendToKindle: Bool { !isDRMProtected || format.isKindleNative }
     /// La fenêtre de lecture ouvre tous les formats, sauf un livre sous DRM.

@@ -37,6 +37,8 @@ struct ContentView: View {
     @State private var quickLookURL: URL?
     /// Liste affichée, gardée d'un rendu à l'autre (voir `listing`).
     @State private var listingMemo = ListingMemo()
+    /// Augmente quand une liste calculée en arrière-plan arrive : la vue se redessine avec elle.
+    @State private var listingVersion = 0
 
     // La chaîne de modificateurs est coupée en trois propriétés : d'un seul tenant, le Swift de la CI
     // (macos-15) n'arrivait plus à la typer à temps.
@@ -135,14 +137,34 @@ struct ContentView: View {
     /// une sélection, une fiche ouverte ou un survol ne refiltrent ni ne retrient toute la bibliothèque.
     private var listing: ListingMemo {
         _ = library.visibleBooks  // la vue suit ainsi les changements de la bibliothèque
+        _ = listingVersion
+        library.refreshSortRanks()
         let key = ListingMemo.Key(generation: library.generation, page: sidebar, search: search, scope: searchScope,
                                   sort: sort, ranks: library.sortRanks.generation, clippings: kindle.clippings.count)
-        if listingMemo.key != key {
-            let groups = BookGroups.make(filteredBooks, identities: library.identities)
-            listingMemo.key = key
-            listingMemo.groups = groups
-            listingMemo.index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
-            listingMemo.urls = groups.map(\.primary.url)
+        guard listingMemo.key != key else { return listingMemo }
+        listingMemo.key = key
+        let query = search.trimmingCharacters(in: .whitespaces)
+        let input = LibraryListing(
+            books: sidebar == .trash ? library.trashedBooks : library.visibleBooks, page: sidebar, query: search,
+            scope: searchScope, sort: sort,
+            withNotes: query.isEmpty || searchScope != .titles ? [] : kindle.titleKeys(withClippingsMatching: query),
+            identities: library.identities, ranks: library.sortRanks)
+        if input.books.count <= LibraryListing.directLimit {
+            listingMemo.task?.cancel()
+            listingMemo.isComputing = false
+            listingMemo.show(input.groups())
+        } else {
+            // Grande bibliothèque : la liste précédente reste affichée pendant le calcul.
+            listingMemo.isComputing = true
+            listingMemo.task?.cancel()
+            let memo = listingMemo
+            listingMemo.task = Task {
+                let groups = await Task.detached(priority: .userInitiated) { input.groups() }.value
+                guard !Task.isCancelled, memo.key == key else { return }
+                memo.show(groups)
+                memo.isComputing = false
+                listingVersion &+= 1
+            }
         }
         return listingMemo
     }
@@ -310,7 +332,8 @@ struct ContentView: View {
 
     /// Grille ou liste des livres, avec Coup d'œil (Espace) et la touche Supprimer.
     private func libraryPage(groups: [BookGroup], selected: [Book], resolve: @escaping (String) -> Book?) -> some View {
-        LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve)
+        LibraryView(groups: groups, selection: $selection, gridMode: gridMode, resolve: resolve,
+                    isComputing: listingMemo.isComputing)
             // Espace : Coup d'œil sur le livre sélectionné ; les flèches passent aux voisins.
             // Seulement quand la grille ou la liste a le focus : jamais dans le champ de recherche.
             .onKeyPress(.space) {
@@ -318,7 +341,8 @@ struct ContentView: View {
                 quickLookURL = quickLookURL == nil ? url : nil
                 return .handled
             }
-            .quickLookPreview($quickLookURL, in: listingMemo.urls)
+            // Les fichiers de la page, calculés seulement quand Coup d'œil est ouvert.
+            .quickLookPreview($quickLookURL, in: quickLookURL == nil ? [] : listingMemo.urls)
             // Touche Supprimer dans la grille ou la liste : même action que Livre > Mettre à la corbeille.
             .onDeleteCommand {
                 BookCommands(books: selected, list: sidebar, library: library, kindle: kindle,
@@ -438,47 +462,6 @@ struct ContentView: View {
         return books.filter { seen.insert($0.id).inserted }
     }
 
-    private var filteredBooks: [Book] {
-        var list = sidebar == .trash ? library.trashedBooks : library.visibleBooks
-        switch sidebar {
-        case .recent:
-            let limit = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? .distantPast
-            list = list.filter { $0.addedAt >= limit }
-        case .sent: list = list.filter { $0.lastSentAt != nil }
-        case .favorites: list = list.filter(\.isFavorite)
-        case .pending: list = list.filter(\.isPendingSend)
-        case .shelf(let reader): list = list.filter { $0.shelfIDs.contains(reader) }
-        case .genre(let key): list = list.filter { $0.genre.map(GenreNames.key) == key }
-        case .tag(let key): list = list.filter { TagNames.has($0, key: key) }
-        case .toReview: list = list.filter { !$0.catalogSuggestions.isEmpty }
-        case .series(let key):
-            // Classement par numéro de tome, les livres sans numéro à la fin.
-            return list.filter { $0.series.map(SeriesNames.key) == key }
-                .sorted { ($0.seriesIndex ?? .infinity, $0.title) < ($1.seriesIndex ?? .infinity, $1.title) }
-        case .format(let f): list = list.filter { $0.format == f }
-        case .author(let key): list = list.filter { AuthorNames.keys(of: $0).contains(key) }
-        case .folder(let path):
-            let prefix = LibraryFolders.prefix(path)
-            list = list.filter { !$0.isImported && $0.path.hasPrefix(prefix) }
-        default: break
-        }
-        let query = search.trimmingCharacters(in: .whitespaces)
-        if !query.isEmpty && searchScope == .titles {
-            // Aussi les livres dont une note ou un surlignage Kindle contient le texte cherché.
-            let withNotes = kindle.titleKeys(withClippingsMatching: query)
-            list = list.filter { b in
-                [b.title, b.authorLine, b.series ?? "", b.genre ?? "", b.labels.joined(separator: " "), b.tags.joined(separator: " ")]
-                    .contains { $0.localizedStandardContains(query) }
-                    || withNotes.contains(ShelfSync.normalize(b.title))
-            }
-        }
-        // « Ajoutés récemment » : toujours les derniers ajouts en tête, quel que soit le tri choisi.
-        if sidebar == .recent {
-            return list.sorted { $0.addedAt > $1.addedAt }
-        }
-        return library.sorted(list, by: sort)
-    }
-
     private func handleDrop(_ providers: [NSItemProvider]) -> Bool {
         Task {
             var urls: [URL] = []
@@ -511,6 +494,22 @@ struct ContentView: View {
 
     var key: Key?
     var groups: [BookGroup] = []
+    /// Liste en cours de calcul en arrière-plan (grande bibliothèque).
+    var isComputing = false
+    var task: Task<Void, Never>?
+
+    func show(_ groups: [BookGroup]) {
+        self.groups = groups
+        index = Dictionary(groups.filter(\.isGroup).map { ($0.id, $0) }, uniquingKeysWith: { a, _ in a })
+        cachedURLs = nil
+    }
     var index: [String: BookGroup] = [:]
-    var urls: [URL] = []
+    /// Fichiers des livres de la page, pour Coup d'œil (flèches d'un livre à l'autre) ; calculés à la demande.
+    var urls: [URL] {
+        if let cachedURLs { return cachedURLs }
+        let urls = groups.map(\.primary.url)
+        cachedURLs = urls
+        return urls
+    }
+    private var cachedURLs: [URL]?
 }

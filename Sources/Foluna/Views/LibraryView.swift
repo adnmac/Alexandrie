@@ -29,13 +29,26 @@ struct LibraryView: View {
     @Binding var selection: Set<String>
     let gridMode: Bool
     let resolve: (String) -> Book?
+    /// Liste en cours de calcul (grande bibliothèque) : celle d'avant reste affichée, un indicateur le signale.
+    var isComputing = false
     /// La grille prend le focus au clic : Espace (Coup d'œil) et Supprimer lui arrivent alors.
     @FocusState private var gridFocused: Bool
 
     var body: some View {
+        content
+            .overlay(alignment: .top) {
+                if isComputing && !groups.isEmpty {
+                    ProgressView().controlSize(.small).padding(Space.md)
+                }
+            }
+    }
+
+    @ViewBuilder private var content: some View {
         if groups.isEmpty {
             if library.isScanning {
                 ProgressView("Indexation de la bibliothèque…")
+            } else if isComputing {
+                ProgressView()
             } else {
                 ContentUnavailableView("Aucun livre", systemImage: "magnifyingglass",
                                        description: Text("Aucun livre ne correspond à ce filtre."))

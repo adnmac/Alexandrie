@@ -8,7 +8,41 @@ Livres inventés (`StressData`, `StressCatalog`) :
 - 1 % de fichiers tronqués ;
 - un livre sur 1 000 titré « Mémoires ».
 
-## Référence : machine au calme
+## Référence finale
+
+Série du 14 novembre 2026 après tous les correctifs : machine sans autre application, visite protégée d'App Nap. C'est elle qu'il faut comparer aux passes suivantes.
+
+**Store réel, sans fenêtre** (`scripts/stress.sh`), durée en ms et plus long blocage entre parenthèses :
+
+| Étape | 1 000 | 10 000 | 50 000 | 100 000 |
+| --- | ---: | ---: | ---: | ---: |
+| Première indexation | 588 (0) | 5 100 (1) | 24 166 (4) | 46 178 (19) |
+| Relance : création du store | 17 (29) | 2 | 2 | 2 |
+| Parcours sans changement | 105 (0) | 1 074 (3) | 4 349 (193) | 8 423 (357) |
+| Parcours après ajout de 1 % | 258 (0) | 1 059 (36) | 4 004 (201) | 7 741 (376) |
+| Identités après une étiquette | 4 | 15 | 78 (54) | 144 (135) |
+| Identités après un titre corrigé | 6 | 33 (38) | 148 (282) | 303 (571) |
+| 50 livres à la corbeille | 3 | 20 (35) | 104 (180) | 239 (401) |
+| Tri par titre, par rangs | 18 | 20 | 110 | 198 (179) |
+| Enregistrement (`saveNow`) | 19 | 29 | 60 | 138 (142) |
+
+Aucun livre perdu à aucun palier. Mémoire maximale : 126 Mo à 10 000 livres, 1 135 Mo à 100 000. La première indexation de 10 000 livres varie selon les passes (de 3,2 à 5,1 s). Certaines étapes du test sont faites sur le thread principal par le test lui-même, et l'app ne les fait pas ainsi : la relecture de l'index après « relance », le calcul direct du tri et des listes de la barre latérale.
+
+**Interface** (`scripts/stress-ui.sh`), plus long blocage du thread principal :
+
+| Action | 10 000 | 100 000 | 10 000, index vide |
+| --- | ---: | ---: | ---: |
+| Ouverture et parcours | 47 ms | 521 ms | 117 ms (indexation : 3,7 s) |
+| Tous les livres (grille) | 0 ms | 112 ms | 0 ms |
+| Autres pages (grille) | 0 à 30 ms | 0 à 80 ms | 0 à 49 ms |
+| Pages en liste | 13 à 139 ms | 60 à 155 ms | 37 à 131 ms |
+| Fiche d'un livre | 115 ms | 57 ms | 87 ms |
+| Sélection de 1 000 livres | 60 ms | 40 ms | 216 ms |
+| Recherche tapée lettre par lettre | 66 ms | 1 ms | 27 ms |
+
+À 10 000 livres, aucune action ne dépasse 250 ms. À 100 000 livres, seule l'ouverture dépasse encore ce seuil (0,5 s, lecture de l'index et premiers calculs). Mémoire de l'app pendant la visite : 120 à 360 Mo à 10 000 livres, 0,65 à 1,5 Go à 100 000.
+
+## Première référence (avant les derniers correctifs)
 
 Série complète du 14 novembre 2026, après tous les correctifs, machine sans autre application (charge moyenne autour de 4, app de test comprise). C'est elle qu'il faut comparer aux passes suivantes.
 

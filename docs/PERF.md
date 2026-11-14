@@ -56,7 +56,14 @@ Aucun livre perdu à aucun palier. Index : 6,8 Mo à 10 000 livres, 68 Mo à 100
 À 100 000 livres, seuls dépassent encore 250 ms :
 - l'ouverture (0,5 s) ;
 - la fiche (0,36 s) ;
-- l'enregistrement de l'index à la fermeture (0,7 s), s'il reste une modification à écrire.
+- ~~l'enregistrement de l'index à la fermeture (0,7 s)~~ : 0,14 s depuis l'encodage en parallèle (voir plus bas).
+
+**Index encodé en parallèle.** `LibraryIndex.encode` encode l'index en morceaux de 2 000 livres sur plusieurs fils, puis les recolle : sans leurs crochets et joints par des virgules, les morceaux donnent les mêmes octets qu'un encodage d'un seul tenant (`LibraryIndexEncodingTests`, y compris aux bornes des morceaux). Cela sert à chaque enregistrement, en arrière-plan comme à la fermeture.
+
+| Écriture de l'index | 10 000 livres | 100 000 livres |
+| --- | ---: | ---: |
+| Encodage seul (banc d'essai) | 80 → 25 ms | 679 → 111 ms |
+| `saveNow` (store réel, bloque la fermeture) | 85 → 28 ms | 722 → 140 ms |
 
 ## Comment relancer
 

@@ -55,3 +55,15 @@ import Testing
         }
     }
 }
+
+/// L'index encodé en morceaux parallèles est identique, octet pour octet, à un encodage d'un seul tenant.
+@Suite struct LibraryIndexEncodingTests {
+    @Test func chunkedEncodingIsByteIdentical() throws {
+        for n in [0, 1, 4000, 4001, 9999] {
+            let books = StressTests.library(n)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            #expect(try LibraryIndex.encode(books) == encoder.encode(books), "n = \(n)")
+        }
+    }
+}

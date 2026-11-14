@@ -188,7 +188,7 @@ final class LibraryStore {
         switch order {
         case .title: return SortRanks.ordered(list, ranks: sortRanks.title, key: \.title)
         case .author: return SortRanks.ordered(list, ranks: sortRanks.author, key: \.authorLine)
-        case .added: return list.sorted { $0.addedAt > $1.addedAt }
+        case .added: return SortRanks.newestFirst(list, date: \.addedAt)
         }
     }
 

@@ -33,19 +33,25 @@ public struct SortRanks: Sendable {
         return out
     }
 
+    /// `list` du plus récent au plus ancien selon `date` (ajout), en triant des indices.
+    public static func newestFirst(_ list: [Book], date: (Book) -> Date) -> [Book] {
+        list.indices.map { (date(list[$0]), $0) }.sorted { $0.0 > $1.0 }.map { list[$0.1] }
+    }
+
     /// `list` dans l'ordre de `key`. Les livres classés suivent leur rang ; les autres (ajoutés depuis le
     /// dernier calcul) sont insérés à leur place par recherche dichotomique. Un livre retouché depuis garde
     /// son ancien rang jusqu'au calcul suivant, une fraction de seconde plus tard.
     public static func ordered(_ list: [Book], ranks: [Book.ID: Int], key: (Book) -> String) -> [Book] {
         func before(_ a: String, _ b: String) -> Bool { a.localizedStandardCompare(b) == .orderedAscending }
         if list.count <= directSortLimit { return list.sorted { before(key($0), key($1)) } }
-        var ranked: [(rank: Int, book: Book)] = [], pending: [Book] = []
+        // Des indices plutôt que des `Book` : un tri déplace ses éléments, et un `Book` est gros.
+        var ranked: [(rank: Int, index: Int)] = [], pending: [Book] = []
         ranked.reserveCapacity(list.count)
-        for b in list {
-            if let r = ranks[b.id] { ranked.append((r, b)) } else { pending.append(b) }
+        for (i, b) in list.enumerated() {
+            if let r = ranks[b.id] { ranked.append((r, i)) } else { pending.append(b) }
         }
         ranked.sort { $0.rank < $1.rank }
-        let sorted = ranked.map(\.book)
+        let sorted = ranked.map { list[$0.index] }
         guard !pending.isEmpty else { return sorted }
         guard pending.count <= pendingLimit else { return sorted + pending }
         pending.sort { before(key($0), key($1)) }

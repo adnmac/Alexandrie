@@ -103,7 +103,17 @@ Interface, 10 000 livres (`interface-10500.md`) :
    Ce qui reste à surveiller :
    - La mémoire maximale à 100 000 livres passe d'environ 880 à 1 090 Mo : le cache garde une entrée par fichier.
    - La première indexation à 100 000 livres a mis 151 s, contre 129 s au premier passage. L'écart était le même avec la version intermédiaire, qui ne touchait pas au parcours : il vient probablement de l'état de la machine. À vérifier au prochain passage.
-3. **Même titre, auteurs différents.** `BookGroups.identities` est en O(k³) (`BookGroups.swift:79-89`). Quelques centaines de « Sans titre », « Mémoires » ou « Poèmes » suffisent à figer l'app. Le banc d'essai `sameTitle` échoue volontairement tant que ce n'est pas corrigé.
+3. **Même titre, auteurs différents : corrigé.**
+   - Avant : `BookGroups.identities` fusionnait les groupes deux à deux et recommençait depuis le début après chaque fusion, soit O(k³). Quelques centaines de « Sans titre », « Mémoires » ou « Poèmes » suffisaient à figer l'app.
+   - Maintenant : `BookGroups.components` calcule les mêmes groupes (composantes connexes) avec un union-find, et compare chaque ensemble de mots d'auteur distinct une seule fois. `BookComponentsTests` compare le résultat à l'ancien algorithme sur des cas choisis et sur 30 bibliothèques tirées au hasard.
+
+   | Livres au même titre | Avant | Après |
+   | ---: | ---: | ---: |
+   | 100 | 0,37 s | 5 ms |
+   | 200 | 2,1 s | 10 ms |
+   | 400 | 17,5 s | 22 ms |
+
+   Le calcul complet sur 100 000 livres variés ne change pas (3,4 s), car il est dominé par le calcul des clés de chaque fichier. Grâce à `IdentityCache`, il n'est refait que rarement.
 4. **Coût fixe de chaque rendu.** Entre 0,3 et 1,3 s par action à 10 000 livres. `ContentView` et `SidebarView` refont à chaque passage :
    - `visibleBooks` (sans cache) ;
    - les groupes ;

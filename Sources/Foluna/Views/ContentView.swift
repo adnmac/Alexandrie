@@ -150,7 +150,8 @@ struct ContentView: View {
         _ = listingVersion
         library.refreshSortRanks()
         let key = ListingMemo.Key(generation: library.generation, page: sidebar, search: search, scope: searchScope,
-                                  sort: sort, ranks: library.sortRanks.generation, clippings: kindle.clippings.count)
+                                  sort: sort, ranks: library.sortRanks.generation, display: library.displayVersion,
+                                  clippings: kindle.clippings.count)
         guard listingMemo.key != key else { return listingMemo }
         listingMemo.key = key
         let identity = tableIdentity
@@ -515,6 +516,7 @@ struct ContentView: View {
         var scope: SearchScope
         var sort: SortOrder
         var ranks: Int
+        var display: Int
         var clippings: Int
     }
 

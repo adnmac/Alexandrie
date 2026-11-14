@@ -357,8 +357,14 @@ extension CoverView where Decoration == EmptyView {
 }
 
 /// Couverture mise en cache, avec une couverture générée à défaut.
-/// Couvertures déjà lues, partagées par toutes les vues (hors du type générique).
-@MainActor private let coverCache = NSCache<NSString, NSImage>()
+/// Couvertures déjà lues, partagées par toutes les vues (hors du type générique). Limitées à 400 (environ 80 Mo) :
+/// sans limite, parcourir une grande bibliothèque gardait chaque couverture vue (0,2 Mo chacune) jusqu'à ce que
+/// macOS manque de mémoire. 400, c'est des dizaines d'écrans de grille : revenir en arrière reste instantané.
+@MainActor private let coverCache: NSCache<NSString, NSImage> = {
+    let cache = NSCache<NSString, NSImage>()
+    cache.countLimit = 400
+    return cache
+}()
 
 /// `decoration` (pastilles, contour de sélection) se pose sur la couverture elle-même,
 /// pas sur le cadre plus large qui la centre.
